@@ -21,20 +21,18 @@ function buildBicycle(close: boolean) {
   for (const center of wheels) {
     const wheel = makeAssetMesh(new TorusGeometry(0.39, 0.055, close ? 5 : 4, close ? 12 : 8), TIRE, 'rubber bicycle tire');
     wheel.position.copy(center);
-    wheel.rotation.y = Math.PI / 2;
     root.add(wheel);
     if (close) {
       const rim = makeAssetMesh(new TorusGeometry(0.32, 0.022, 4, 10), '#b5b9a4', 'steel wheel rim');
       rim.position.copy(center);
-      rim.rotation.y = Math.PI / 2;
       root.add(rim);
       const hub = makeAssetMesh(new CylinderGeometry(0.065, 0.065, 0.16, 6), '#ad7956', 'wheel hub');
       hub.position.copy(center);
-      hub.rotation.z = Math.PI / 2;
+      hub.rotation.x = Math.PI / 2;
       root.add(hub);
       for (let index = 0; index < spokes; index += 1) {
         const angle = (index / spokes) * Math.PI * 2;
-        const endpoint = center.clone().add(new Vector3(0, Math.cos(angle) * 0.3, Math.sin(angle) * 0.3));
+        const endpoint = center.clone().add(new Vector3(Math.cos(angle) * 0.3, Math.sin(angle) * 0.3, 0));
         addTube(root, 'fine wheel spoke', center, endpoint, 0.008, '#abb1a4', 4);
       }
     }
@@ -76,7 +74,6 @@ function buildBicycle(close: boolean) {
     root.add(crankArm);
     const chainring = makeAssetMesh(new TorusGeometry(0.12, 0.022, 4, 8), '#8d9a80', 'chain ring');
     chainring.position.copy(crank);
-    chainring.rotation.y = Math.PI / 2;
     root.add(chainring);
     const pedal = makeAssetMesh(new BoxGeometry(0.12, 0.045, 0.09), '#485851', 'near pedal');
     pedal.position.set(0.05, 0.39, 0.07);

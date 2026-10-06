@@ -350,3 +350,59 @@ describe('review regressions', () => {
     expect(action.update(1)).toBe(true);
   });
 });
+
+
+describe('player combat across death and respawn', () => {
+  it('keeps thrown grenades advancing while dead without accepting new actions', () => {
+    const session = new CombatSession(openWorld(), [], weapon);
+    session.grenades.toggleEquipped();
+    session.grenades.throw({ x: 0, y: 2, z: 0 }, { x: 0, y: 0, z: -1 });
+    const input = { fireHeld: true, firePressed: true, reloadPressed: true, grenadeTogglePressed: true, aiming: false };
+    const result = session.step(3, input, { x: 0, y: 90, z: 0 }, { x: 0, y: -1, z: 0 }, () => 0.5, false);
+    expect(result.explosions).toHaveLength(1);
+    expect(result.explosions[0]?.position.y).toBe(0);
+    expect(result.shots).toHaveLength(0);
+    expect(result.weaponEvents).toHaveLength(0);
+    expect(result.grenadeThrown).toBe(false);
+    expect(session.grenades.count).toBe(1);
+    expect(session.grenades.projectiles).toHaveLength(0);
+    const later = session.step(3, input, { x: 0, y: 90, z: 0 }, { x: 0, y: -1, z: 0 }, () => 0.5, false);
+    expect(later.explosions).toHaveLength(0);
+  });
+
+  it('refills carried ammo and cancels reload on respawn without deleting thrown grenades', () => {
+    const session = new CombatSession(openWorld(), [], weapon);
+    session.weapon.magazine = 0;
+    session.weapon.reserve = 10;
+    session.weapon.step(0.01, { fireHeld: false, firePressed: false, reloadPressed: true }, false);
+    session.grenades.toggleEquipped();
+    session.grenades.throw({ x: 0, y: 2, z: 0 }, { x: 0, y: 0, z: -1 });
+    session.resetForRespawn();
+    expect(session.weapon.magazine).toBe(weapon.magazineSize);
+    expect(session.weapon.reserve).toBe(weapon.startingReserve);
+    expect(session.weapon.snapshot.reloading).toBe(false);
+    expect(session.grenades.count).toBe(GRENADE_RULES.startingCount);
+    expect(session.grenades.equipped).toBe(false);
+    expect(session.grenades.projectiles).toHaveLength(1);
+  });
+});
+
+
+it('restores the weapon pose immediately when respawning during a reload', () => {
+  const camera = new PerspectiveCamera();
+  const rig = createWeaponModel('honk-47');
+  const basePosition = rig.root.position.clone();
+  const magazinePosition = rig.magazine.position.clone();
+  const view = new WeaponView(camera, rig, 1.8);
+  view.beginReload();
+  view.fire();
+  view.update(0.45);
+  expect(rig.magazine.position.equals(magazinePosition)).toBe(false);
+  view.resetForRespawn();
+  expect(rig.magazine.position.equals(magazinePosition)).toBe(true);
+  expect(rig.root.position.equals(basePosition)).toBe(true);
+  expect(rig.muzzleFlash.visible).toBe(false);
+  view.update(0.01);
+  expect(rig.magazine.position.equals(magazinePosition)).toBe(true);
+  view.dispose();
+});

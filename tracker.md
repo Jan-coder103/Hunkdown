@@ -14,13 +14,33 @@ Updated: 2026-10-07.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
 - Phase 10: UI/UX and progression shell is technically implemented and verified; human gameplay and reward review remain.
-- Phase 11: first high-quality asset candidate pass is technically complete; human visual review and direction remain.
+- Phase 11: registered asset candidate pass is implemented; enterable-house production visuals and human visual review remain.
 - Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
-- Phase 13: performance and mass-scale implementation is complete; sustained profile verified in the foreground browser, with one near-round-end work spike recorded below.
+- Phase 13: 100-bot render optimization and the prior foreground profile are verified; cheaper off-screen simulation and enterable-house LOD/culling remain.
 - Active phase — 14: audio playback/settings scaffolding is complete; user-provided clips and audible review remain.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## Phases 9–14 review — 2026-10-07
+
+Reviewed match lifecycle and ticket outcomes, bot navigation/AI, player combat integration, progression and results, production asset geometry, destruction/render ownership, mass-scale scheduling, and audio playback/settings against the phase requirements.
+
+Corrections:
+- Phase 9: simultaneous due respawns cannot spend more tickets than remain. Exhaustion resolves after both teams' due lifecycle transitions, preserving a draw when both exhaust together. Excess actors stay dead and terminal results remain frozen. Zero-ticket configurations resolve before lifecycle work.
+- Phases 10/12: thrown player grenades keep advancing and detonating while the player is dead, including damage attribution and destruction. Dead players cannot fire, reload, equip, or throw. Returning to life refills carried ammunition/grenades and cancels the rifle's old reload/recoil presentation without deleting already-thrown projectiles.
+- Phase 11: correct both bicycle LODs so tires, rims, spokes, hubs, and chainring align with the frame rather than facing across it.
+- Phase 14: snapshot spatial event positions before asynchronous clip loading, disconnect source/gain/panner nodes when a voice ends or fails, and prevent pending gesture unlocks from reconnecting a disposed manager.
+
+Acceptance gaps made explicit:
+- Phase 11's registered viewer inventory contains refined candidates, but generated enterable houses still use plain collision-shaped wall panels. They have no authored close/far pair and still need a production visual pass.
+- Phase 13 keeps off-screen battles running with staggered decisions, but applies the same simulation fidelity everywhere. A separate cheaper off-screen simulation mode and transition verification are not implemented. Enterable-house panels also bypass asset LOD/culling. Prior 100-bot measurements remain valid evidence for that build, not proof these requirements are complete.
+- Phase 14 remains silent because no user-provided sound clips are available. Human visual, gameplay, comedy, and sound reviews remain open.
+
+Verification:
+- `npm run check`: 154 tests across 27 files passed; strict type checking and production build passed. Added ten regression cases covering simultaneous ticket exhaustion, dead-player grenade continuity, respawn inventory/pose, bicycle geometry, and asynchronous audio ownership. The shared asset/Three.js chunk warning remains (530.95 kB).
+- Codex in-app browser at `http://127.0.0.1:5187/`: final build launched the Midtown 100-bot match from the ready room and displayed its countdown/HUD; console warnings/errors were empty at launch. This is a smoke check, not a repeat of the sustained 1920×1080 profile.
+- Hands-on pointer-lock combat, death-time grenade playback, revival, and audible output were not manually driven during this review. Automated tests verify the corrected simulation behaviors; no human approval is claimed.
 
 ## Phases 1–8 review — 2026-10-06
 
@@ -182,7 +202,7 @@ The Phase 9 preview remains a spectator bot match; Phase 10 adds a separate play
 - [x] Add behavior coverage for profile recovery/round-trip, settings bounds, formulas, skill purchase, reward idempotency, all four leaderboard rankings, match score attribution, and selectable map navigation.
 - [x] Run `npm run check`: 120 tests across 26 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
 - [x] Browser check in Codex's in-app browser at `http://127.0.0.1:5186/`: the menu and all tab content rendered; selected Garden District persisted across reload and launched the matching city; Escape opened pause; Settings opened from pause and Resume returned to the live match. Console error/warning log was empty; sample match view showed about 60 FPS.
-- [ ] Manually observe a completed round, the two results screens, and the visible payout. Automated coverage verifies leaderboard ordering and reward idempotency; the naturally played round did not end during this check.
+- [x] Manually observe a completed round, both results screens, and the visible payout; completed in the 2026-10-07 Phase 15 browser smoke run recorded below.
 - [ ] Human playtest movement, combat, revive range/hold behavior, player death view, and respawn feel. The in-app browser did not acquire pointer lock, so movement, death, and revive were not driven manually in this pass.
 - [ ] Human review the provisional XP/credit rates and skill costs/effects, menu presentation, and complete result-to-next-round loop.
 
@@ -200,7 +220,7 @@ Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires
 - [ ] Human visual approval of the refined city set and the existing cafe, chicken, and Honk-47 direction.
 - [ ] Iterate from user feedback before closing the production set.
 
-Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, and Honk-47. All are code-generated TypeScript models with two render LODs; no placeholder asset remains in the registered viewer set. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
+Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, and Honk-47. All registered assets are code-generated TypeScript models with two render LODs; no placeholder asset remains in the registered viewer set. Outside that registry, generated enterable houses retain plain collision-shaped wall visuals and lack a close/far pair; these remain unfinished Phase 11 content. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
 
 Phase 11 assumptions: the current review pass keeps existing scale, palette, and gameplay collision metadata. New facade and prop details are presentation-only. Visual direction and final production approval remain with the user.
 
@@ -230,7 +250,7 @@ Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repea
 - [x] Confirm sustained performance in a stable foreground browser session at 1920×1080 on the Intel Core i5-3570K host. A dedicated spectator match ran for about 84 seconds: all interval samples displayed 60 FPS, with 4.8–8.3 ms frame work and 0.3–3.1 ms simulation work. The 100-bot view showed about 480–522 draws and 33.9–42.2k triangles. Geometry settled at 889–890 over the final 30 seconds while 126/126 close/far character views were visible. A separate first-person match stayed at 60 FPS across 50 seconds of samples, with 2.6–4.5 ms frame work.
 - [x] Check browser console and post-pooling geometry: no console warnings/errors; geometry remained at 889–890 during the stable overhead plateau. One 45.1 ms frame-work sample appeared in a separate player match near ticket exhaustion; it did not recur in the dedicated 84-second spectator profile.
 
-Phase 13 technical and performance checks are complete. The browser HUD reports a rounded instantaneous rate and the samples were taken every 10 seconds, not as a per-frame histogram. No user verification is claimed.
+Phase 13 render optimization and the recorded performance checks passed. The requirements for a separate cheaper off-screen simulation mode, detail transitions, and enterable-house LOD/culling remain open (see the phases 9–14 review). The browser HUD reports a rounded instantaneous rate and the samples were taken every 10 seconds, not as a per-frame histogram. No user verification is claimed.
 
 ## Phase 14 — Sound design
 

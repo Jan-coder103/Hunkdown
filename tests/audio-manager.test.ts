@@ -87,6 +87,55 @@ async function letAudioTasksSettle(): Promise<void> {
 }
 
 describe('AudioManager', () => {
+  it('preserves an event position during loading and disconnects ended voice nodes', async () => {
+    const { manager, context } = makeAudioHarness();
+    await manager.unlock();
+    const position = { x: 4, y: 5, z: 6 };
+    manager.play('gunshot', { position });
+    position.x = 99;
+    await letAudioTasksSettle();
+    expect(context.panners[0]?.positionX.value).toBe(4);
+    const source = context.sources[0]!;
+    source.onended?.();
+    expect(source.connections).toHaveLength(0);
+    expect(source.onended).toBeNull();
+    expect(context.gains[2]?.connections).toHaveLength(0);
+    expect(context.panners[0]?.connections).toHaveLength(0);
+    manager.dispose();
+  });
+
+  it('does not reconnect audio when disposed during a pending unlock', async () => {
+    const { manager, context } = makeAudioHarness();
+    let resume!: () => void;
+    context.resume = vi.fn(() => new Promise<void>((resolve) => { resume = resolve; }));
+    const unlocked = manager.unlock();
+    manager.dispose();
+    resume();
+    expect(await unlocked).toBe(false);
+    expect(context.gains).toHaveLength(0);
+    expect(manager.isUnlocked).toBe(false);
+  });
+
+  it('releases voice nodes and capacity when playback fails', async () => {
+    const { manager, context } = makeAudioHarness();
+    await manager.unlock();
+    const createSource = context.createBufferSource.bind(context);
+    context.createBufferSource = () => {
+      const source = createSource();
+      (source as unknown as FakeSource).start.mockImplementation(() => { throw new Error('Playback failed'); });
+      return source;
+    };
+    for (let index = 0; index < 8; index += 1) {
+      context.currentTime += 0.1;
+      expect(manager.play('gunshot', { position: { x: 0, y: 0, z: 0 } })).toBe(true);
+      await letAudioTasksSettle();
+    }
+    expect(context.sources).toHaveLength(8);
+    expect(context.sources.every((source) => source.connections.length === 0)).toBe(true);
+    expect(context.panners.every((panner) => panner.connections.length === 0)).toBe(true);
+    manager.dispose();
+  });
+
   it('unlocks after a gesture and applies separate volume buses', async () => {
     const { manager, context } = makeAudioHarness();
     expect(manager.isUnlocked).toBe(false);

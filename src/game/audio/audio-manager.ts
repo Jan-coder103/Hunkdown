@@ -49,6 +49,7 @@ type Voice = {
   soundId: AudioSoundId;
   source: AudioBufferSourceNode | null;
   released: boolean;
+  nodes: AudioNode[];
 };
 
 /** Browser audio is unlocked on the first gesture and remains silent for clips absent from the manifest. */
@@ -93,6 +94,7 @@ export class AudioManager {
     if (!context) return false;
     try {
       if (context.state === 'suspended') await context.resume();
+      if (this.disposed || this.context !== context) return false;
       if (context.state !== 'running') return false;
       if (!this.masterGain || !this.effectsGain) {
         this.masterGain = context.createGain();
@@ -137,10 +139,13 @@ export class AudioManager {
     for (const voice of this.voices) if (!voice.released && voice.soundId === soundId) soundVoices += 1;
     if (soundVoices >= rules.maxVoices || this.voices.size >= MAX_ACTIVE_AUDIO_VOICES) return false;
 
-    const voice: Voice = { soundId, source: null, released: false };
+    const voice: Voice = { soundId, source: null, released: false, nodes: [] };
     this.voices.add(voice);
     this.lastRequestedAt.set(soundId, now);
-    void this.startVoice(voice, options).catch(() => this.releaseVoice(voice));
+    // Callers often pass live Three.js vectors; preserve the event's location
+    // while its clip is fetched and decoded.
+    const capturedOptions = { ...options, ...(options.position ? { position: { ...options.position } } : {}) };
+    void this.startVoice(voice, capturedOptions).catch(() => this.releaseVoice(voice));
     return true;
   }
 
@@ -170,13 +175,16 @@ export class AudioManager {
 
     const rules = SOUND_RULES[voice.soundId];
     const source = context.createBufferSource();
-    const voiceGain = context.createGain();
     voice.source = source;
+    voice.nodes.push(source);
+    const voiceGain = context.createGain();
+    voice.nodes.push(voiceGain);
     source.buffer = buffer;
     voiceGain.gain.value = rules.gain * (options.volume ?? 1);
     source.connect(voiceGain);
     if (rules.spatial && options.position) {
       const panner = context.createPanner();
+      voice.nodes.push(panner);
       panner.panningModel = 'HRTF';
       panner.distanceModel = 'inverse';
       panner.refDistance = 3;
@@ -222,6 +230,12 @@ export class AudioManager {
   private releaseVoice(voice: Voice): void {
     if (voice.released) return;
     voice.released = true;
+    if (voice.source) voice.source.onended = null;
+    for (const node of voice.nodes) {
+      try { node.disconnect(); } catch { /* Context teardown is best effort. */ }
+    }
+    voice.nodes.length = 0;
+    voice.source = null;
     this.voices.delete(voice);
   }
 }

@@ -37,13 +37,26 @@ export class CombatSession {
     this.weapon = new WeaponController(weapon);
   }
 
+  resetForRespawn(): void {
+    this.weapon.resetForRespawn();
+    this.grenades.resetForRespawn();
+  }
+
   step(
     deltaSeconds: number,
     input: CombatInput,
     origin: Readonly<{ x: number; y: number; z: number }>,
     direction: Readonly<{ x: number; y: number; z: number }>,
     random: RandomSource,
+    allowPlayerActions = true,
   ): CombatStepResult {
+    if (!allowPlayerActions) {
+      return {
+        weaponEvents: [], shots: [], grenadeThrown: false,
+        grenadeEquipped: this.grenades.equipped, grenadeCount: this.grenades.count,
+        explosions: this.grenades.update(deltaSeconds, this.world, this.combatants, this.shooterTeam),
+      };
+    }
     if (input.grenadeTogglePressed) this.grenades.toggleEquipped();
     let grenadeThrown = false;
     let weaponEvents: readonly WeaponEvent[] = [];

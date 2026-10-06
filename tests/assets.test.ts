@@ -8,6 +8,23 @@ import { AssetPreview } from '../src/tools/asset-viewer/asset-preview';
 import { OrbitController } from '../src/tools/asset-viewer/orbit-controller';
 
 describe('generated asset pipeline', () => {
+  it('keeps bicycle wheels, spokes, and chainring in the frame plane in both LODs', () => {
+    const asset = createAsset('street-bicycle');
+    for (const model of Object.values(asset.lods)) {
+      model.updateMatrixWorld(true);
+      model.traverse((part) => {
+        if (!['rubber bicycle tire', 'steel wheel rim', 'chain ring', 'fine wheel spoke'].includes(part.name)) return;
+        const size = new Box3().setFromObject(part).getSize(new Vector3());
+        expect(size.z, part.name).toBeLessThan(0.12);
+        if (part.name !== 'fine wheel spoke') {
+          expect(size.x, part.name).toBeGreaterThan(0.2);
+          expect(size.y, part.name).toBeGreaterThan(0.2);
+        }
+      });
+    }
+    asset.dispose();
+  });
+
   it('registers typed code-generated assets with two render LODs and collision metadata', () => {
     expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual([
       'building', 'building', 'building',

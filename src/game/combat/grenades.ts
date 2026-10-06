@@ -37,6 +37,12 @@ export class GrenadeSystem {
     return this.remaining;
   }
 
+  /** Refill carried grenades without removing projectiles already in the world. */
+  resetForRespawn(): void {
+    this.remaining = GRENADE_RULES.startingCount;
+    this.equipped = false;
+  }
+
   toggleEquipped(): boolean {
     if (this.remaining === 0) {
       this.equipped = false;

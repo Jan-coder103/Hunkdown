@@ -43,6 +43,17 @@ export class WeaponView {
     this.reloadRemaining = this.reloadSeconds;
   }
 
+  resetForRespawn(): void {
+    if (this.disposed) return;
+    this.recoil = 0;
+    this.flashRemaining = 0;
+    this.reloadRemaining = 0;
+    this.rig.muzzleFlash.visible = false;
+    this.rig.magazine.position.copy(this.baseMagazinePosition);
+    this.rig.root.position.copy(this.basePosition);
+    this.rig.root.rotation.copy(this.baseRotation);
+  }
+
   setVisible(visible: boolean): void {
     if (this.disposed) return;
     this.rig.root.visible = visible;

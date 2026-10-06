@@ -397,6 +397,7 @@ export function mountApp(root: HTMLElement) {
     stepSeconds: number,
     random: () => number,
     input: Readonly<{ wasPressed(code: string): boolean }>,
+    allowPlayerActions = true,
   ) => {
     const activeCombat = combat;
     const camera = sceneView?.camera;
@@ -409,7 +410,7 @@ export function mountApp(root: HTMLElement) {
       reloadPressed: input.wasPressed('KeyR'),
       grenadeTogglePressed: input.wasPressed('KeyG'),
       aiming: pointerControls?.isAiming ?? false,
-    }, camera.position, aimDirection, random);
+    }, camera.position, aimDirection, random, allowPlayerActions);
     if (isPlayerMatchMode) skirmishView?.match.recordPlayerCombat('player', result.shots, result.explosions);
     const destroyedObstacleIds = [
       ...result.shots.flatMap((shot) => shot.destroyedObstacleId ? [shot.destroyedObstacleId] : []),
@@ -520,12 +521,12 @@ export function mountApp(root: HTMLElement) {
           if (!isSkirmishMode && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive')) {
             player?.render(interpolationAlpha);
           }
-          if (!isSkirmishMode && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive') && combat && grenadeView && view.camera) {
+          if (!isSkirmishMode && combat && grenadeView && view.camera) {
             view.camera.getWorldDirection(aimDirection);
             const previewOrigin = view.camera.position.clone().addScaledVector(aimDirection, 0.45);
             grenadeView.updateTrajectory(
-              combat.grenades.equipped ? combat.trajectory(previewOrigin, aimDirection) : [],
-              combat.grenades.equipped,
+              combat.grenades.equipped && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive') ? combat.trajectory(previewOrigin, aimDirection) : [],
+              combat.grenades.equipped && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive'),
             );
             grenadeView.updateProjectiles(combat.grenades.projectiles);
           }
@@ -616,8 +617,12 @@ export function mountApp(root: HTMLElement) {
           activePlayer.applyImpulse(playerActor.velocity, impactSpeed);
           playerActor.velocity.set(0, 0, 0);
         }
-        if (playerActor.status === 'alive' && battle.match.matchState === 'active') {
-          stepPlayerCombat(stepSeconds, random, input);
+        if (!playerWasAlive && playerActor.status === 'alive') {
+          combat?.resetForRespawn();
+          weaponView?.resetForRespawn();
+        }
+        if (battle.match.matchState === 'active') {
+          stepPlayerCombat(stepSeconds, random, input, playerActor.status === 'alive');
         }
         playerCharacter?.update(stepSeconds);
 
@@ -627,7 +632,7 @@ export function mountApp(root: HTMLElement) {
           playerCharacter?.setPose({ dead: true });
           playerCharacter && (playerCharacter.object.visible = false);
           weaponView?.setVisible(false);
-          grenadeView?.setVisible(false);
+          grenadeView?.updateTrajectory([], false);
           deathOverlay.hidden = false;
           const camera = sceneView?.camera;
           if (camera) {

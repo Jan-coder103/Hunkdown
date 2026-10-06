@@ -243,6 +243,8 @@ export class BotSkirmishMatch {
   }
 
   private advanceLifecycle(deltaSeconds: number): void {
+    this.resolveTicketOutcome();
+    if (this.outcomeState) return;
     for (const [id, corpse] of this.corpses) {
       corpse.remaining = Math.max(0, corpse.remaining - deltaSeconds);
       if (corpse.remaining <= TIMER_EPSILON_SECONDS) this.corpses.delete(id);
@@ -283,6 +285,10 @@ export class BotSkirmishMatch {
       }
 
       if (life.respawnRemaining <= deltaSeconds + TIMER_EPSILON_SECONDS) {
+        // Resolve both teams' due respawns in this step, but never spend a ticket
+        // or spawn another actor after that team's allocation is exhausted.
+        const ticketsRemaining = life.team === 'friendly' ? this.friendlyTickets : this.enemyTickets;
+        if (ticketsRemaining === 0) continue;
         if (this.simulation.respawnBot(actorId)) {
           if (life.team === 'friendly') this.friendlyTickets -= 1;
           else this.enemyTickets -= 1;

@@ -5,6 +5,26 @@ import { generateMap } from '../src/game/world/map-generator';
 import { createEmptyMap } from '../src/game/world/map-types';
 
 describe('bot skirmish match start', () => {
+  it.each([
+    { friendlyCount: 3, enemyCount: 0, winner: 'enemy', tickets: { friendly: 0, enemy: 1 } },
+    { friendlyCount: 0, enemyCount: 3, winner: 'friendly', tickets: { friendly: 1, enemy: 0 } },
+    { friendlyCount: 3, enemyCount: 3, winner: 'draw', tickets: { friendly: 0, enemy: 0 } },
+  ])('limits simultaneous respawns to remaining tickets: $winner', ({ friendlyCount, enemyCount, winner, tickets }) => {
+    const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 71, cellSize: 4 }));
+    const match = new BotSkirmishMatch(map, { friendlyCount, enemyCount }, {}, 0.01,
+      { initialTickets: 1, respawnDelaySeconds: 0.2, captureDurationSeconds: 100 });
+    for (const actor of match.simulation.combatants) actor.applyDamage(100);
+    match.step(0.02);
+    match.step(0.2);
+    expect(match.tickets).toEqual(tickets);
+    expect(match.outcome).toEqual({ winner, reason: 'tickets' });
+    const living = match.simulation.combatants.filter((actor) => actor.status === 'alive');
+    expect(living.filter((actor) => actor.team === 'friendly')).toHaveLength(Number(friendlyCount > 0));
+    expect(living.filter((actor) => actor.team === 'enemy')).toHaveLength(Number(enemyCount > 0));
+    match.step(10);
+    expect(match.tickets).toEqual(tickets);
+  });
+
   it('records player combat scores and ranks every leaderboard consistently', () => {
     const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 87, cellSize: 4 }));
     const match = new BotSkirmishMatch(
