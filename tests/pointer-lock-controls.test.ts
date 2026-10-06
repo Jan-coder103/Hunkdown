@@ -58,12 +58,18 @@ describe('PointerLockControls', () => {
     expect(control.isLocked).toBe(true);
     documentTarget.dispatchEvent(mouseEvent('mousedown', { button: 2 }));
     expect(control.isAiming).toBe(true);
+    documentTarget.dispatchEvent(mouseEvent('mousedown', { button: 0 }));
+    expect(control.isFireHeld).toBe(true);
+    expect(control.consumeFirePressed()).toBe(true);
+    expect(control.consumeFirePressed()).toBe(false);
     documentTarget.dispatchEvent(mouseEvent('mousemove', { movementX: 10, movementY: 4 }));
     expect(looks).toEqual([[10, 4, true]]);
 
     expect(documentTarget.dispatchEvent(mouseEvent('contextmenu'))).toBe(false);
     documentTarget.dispatchEvent(mouseEvent('mouseup', { button: 2 }));
     expect(control.isAiming).toBe(false);
+    documentTarget.dispatchEvent(mouseEvent('mouseup', { button: 0 }));
+    expect(control.isFireHeld).toBe(false);
     control.dispose();
   });
 
@@ -83,10 +89,14 @@ describe('PointerLockControls', () => {
     expect(canvas.requestCount).toBe(1);
     documentTarget.pointerLockElement = canvas as unknown as Element;
     documentTarget.dispatchEvent(new Event('pointerlockchange'));
+    documentTarget.dispatchEvent(mouseEvent('mousedown', { button: 0 }));
+    expect(control.isFireHeld).toBe(true);
     windowTarget.dispatchEvent(new Event('blur'));
 
     expect(documentTarget.exitCount).toBe(1);
     expect(control.isLocked).toBe(false);
+    expect(control.isFireHeld).toBe(false);
+    expect(control.consumeFirePressed()).toBe(false);
     expect(lockStates).toEqual([false, true, false]);
     canvas.dispatchEvent(new Event('click'));
     expect(canvas.requestCount).toBe(2);
@@ -111,12 +121,14 @@ describe('PointerLockControls', () => {
     documentTarget.pointerLockElement = canvas as unknown as Element;
     documentTarget.dispatchEvent(new Event('pointerlockchange'));
     documentTarget.dispatchEvent(mouseEvent('mousedown', { button: 2 }));
+    documentTarget.dispatchEvent(mouseEvent('mousedown', { button: 0 }));
     documentTarget.hidden = true;
     documentTarget.dispatchEvent(new Event('visibilitychange'));
 
     expect(documentTarget.exitCount).toBe(1);
     expect(control.isLocked).toBe(false);
     expect(control.isAiming).toBe(false);
+    expect(control.isFireHeld).toBe(false);
     control.dispose();
   });
 });

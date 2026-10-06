@@ -207,6 +207,18 @@ describe('PlayerController', () => {
     expect(aimed.camera.fov).toBeGreaterThan(48);
   });
 
+  it('applies weapon recoil to the live aim ray and smoothly returns to the look direction', () => {
+    const { input, camera, player } = createHarness();
+    player.applyRecoil(0.08, 0.03);
+    expect(camera.rotation.x).toBeCloseTo(-0.08);
+    expect(camera.rotation.y).toBeCloseTo(0.03);
+    for (let frame = 0; frame < 40; frame += 1) tick(player, input);
+    expect(camera.rotation.x).toBeGreaterThan(-0.08);
+    expect(camera.rotation.x).toBeCloseTo(0, 2);
+    expect(camera.rotation.y).toBeCloseTo(0, 2);
+    input.dispose();
+  });
+
   it('clamps extreme vertical mouse movement before camera pitch flips', () => {
     const { player, camera } = createHarness();
     player.handleMouseMove(0, 100_000);

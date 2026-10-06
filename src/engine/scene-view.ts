@@ -51,6 +51,8 @@ export class SceneView {
     this.scene.background = new Color('#c6ded5');
     this.camera.position.set(0, 1.6, 7);
     this.camera.lookAt(0, 1, 0);
+    // Camera children (such as the Phase 4 first-person weapon) must be traversed with the scene.
+    this.scene.add(this.camera);
     this.scene.add(new HemisphereLight(0xf2f6e9, 0x526e64, 2.1));
     const keyLight = new DirectionalLight(0xfff1d4, 2.4);
     keyLight.position.set(-4, 7, 5);

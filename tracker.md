@@ -7,7 +7,8 @@ Updated: 2026-10-06.
 - Phase 1: technically complete; human review pending.
 - Phase 2: technically complete; human review pending.
 - Phase 3: technically complete; human movement review pending.
-- Phases 4–17: not started.
+- Phase 4: technically complete; human review of shooting feel pending.
+- Active phase — 5: not started.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -26,7 +27,7 @@ Technical acceptance is complete. Human review of the foundation and plan remain
 - [x] Verify the browser scene and Escape/Resume behavior.
 - [ ] Human review of the engine shell.
 
-## Active phase — 3
+## Phase 3
 
 - [x] Build the flat movement playground with test walls, low obstacles, and a traversable ramp plus matching collision surfaces.
 - [x] Implement fixed-step WASD movement, jumping, held sprint, default hold crouch, sprint-to-slide, Q/E lean, aim FOV and 80% look sensitivity, collision, ramp traversal, and render interpolation.
@@ -38,6 +39,24 @@ Technical acceptance is complete. Human review of the foundation and plan remain
 - [ ] Human review of movement feel and visual playground.
 
 Browser limitation: pointer-lock acquisition was attempted by clicking the scene and using Resume in the in-app browser, but `document.pointerLockElement` remained `null`; the in-app browser automation did not provide a successful pointer-lock session. As a result, mouse look, aim, held movement/jump, collision, slope traversal, and focus recovery have not been manually playtested in-browser. Their logic is covered by automated tests, but interactive acceptance remains open.
+
+## Phase 4
+
+- [x] Add a typed weapon schema, startup discovery from `src/content/weapons/*.weapon.ts`, unique-ID/schema validation, and the generated Honk-47 model in its own content file.
+- [x] Add automatic/semi-automatic firing support, seeded spread, independent magazine/reserve state, cooldowns, reloads, aim accuracy, camera recoil, muzzle flash, and reload animation.
+- [x] Resolve hitscan against target hitboxes and movement-world solid boxes; apply team-filtered damage, death, and impact knockback.
+- [x] Add shared cancellable 4-second revive at 50% health and configurable full-health respawn timer primitives.
+- [x] Add G-to-equip grenades, a ballistic trajectory preview, two-grenade inventory, collision/fuse detonation, line-of-sight radial damage with falloff, and teammate protection.
+- [x] Connect the combat practice range and HUD; add a local weapon-pose hit stop, hit flash/marker, and nearby-explosion camera shake without halting world simulation.
+- [x] Fix the engine input edge lifecycle so one-shot keys survive frames with no fixed step and clear after the first simulation step that consumes them.
+- [x] Add behavior coverage for ammo/cooldowns/reload, schema errors/discovery, hitscan/occlusion/teams, damage/lifecycle, grenades, view/resource lifecycle, pointer mouse buttons, recoil, and fixed-step key edges.
+- [x] Run `npm run check`: 56 tests across 13 files passed; strict typecheck and production build passed. Vite reports a non-blocking 533.70 kB minified bundle warning.
+- [x] Browser page rendered at `http://127.0.0.1:5175/`; the practice range, aligned target, HUD, and first-person rifle are visible at about 60 FPS. Captured browser error logs were empty.
+- [ ] Human review of weapon model, shooting feel, and grenade handling.
+
+Browser limitation: the in-app browser did not acquire pointer lock during the manual check, and keyboard input simulation did not update the page. Actual firing, aiming, reload key interaction, grenade throw, and movement therefore remain unverified in a hands-on browser playtest; automated behavior tests cover the combat logic and event lifecycles.
+
+Phase 4 tuning assumptions: Honk-47 starts with a 30-round magazine and 120 reserve rounds, fires at 600 RPM, deals 34 damage, and reloads in 1.8 seconds. Grenades start at two, fly at 11 m/s with a 3.2 m/s upward boost, detonate on first solid/ground contact or after 2.2 seconds, and use a 4.2 m blast radius with up to 90 damage and linear falloff. Revives take four seconds and restore 50% health; respawn delay and spawn are supplied by the later match system. These values are initial tuning choices, not final match policy.
 
 ## Decisions to resolve before affected features
 

@@ -134,7 +134,6 @@ export class EngineRuntime {
     if (this.input.wasPressed('Escape')) {
       changedState = this.state === 'running' ? this.pause() : this.state === 'paused' ? this.resume() : false;
     }
-    this.input.endFrame();
     if (changedState) {
       elapsedSeconds = 0;
       this.lastFrameTimestamp = timestampMs;
@@ -146,6 +145,7 @@ export class EngineRuntime {
       fixedStepResult = this.simulation.advance(elapsedSeconds, (stepSeconds) => {
         const simulationStartedAt = this.now();
         this.updateSimulation(stepSeconds, this.random, this.input);
+        this.input.endFrame();
         simulationTimeMs += Math.max(0, this.now() - simulationStartedAt);
       });
     } else {

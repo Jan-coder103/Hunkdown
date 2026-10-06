@@ -60,6 +60,10 @@ export class PlayerController {
   private previousYaw = 0;
   private previousPitch = 0;
   private previousLean = 0;
+  private recoilPitch = 0;
+  private recoilYaw = 0;
+  private previousRecoilPitch = 0;
+  private previousRecoilYaw = 0;
   private previousEyeHeight = STANDING_EYE_HEIGHT;
   private lean = 0;
   private crouchToggled = false;
@@ -105,12 +109,25 @@ export class PlayerController {
     this.syncCameraRotation();
   }
 
+  /** Adds a short weapon kick without changing the player's underlying look direction. */
+  applyRecoil(pitchRadians: number, yawRadians: number): void {
+    if (!Number.isFinite(pitchRadians) || !Number.isFinite(yawRadians)) return;
+    this.recoilPitch -= Math.max(0, pitchRadians);
+    this.recoilYaw += yawRadians;
+    this.syncCameraRotation();
+  }
+
   update(deltaSeconds: number, input: KeyboardInput, aiming: boolean): void {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.previousPosition.copy(this.position);
     this.previousYaw = this.yaw;
     this.previousPitch = this.pitch;
     this.previousLean = this.lean;
+    this.previousRecoilPitch = this.recoilPitch;
+    this.previousRecoilYaw = this.recoilYaw;
+    const recoilRecovery = Math.exp(-5.5 * deltaSeconds);
+    this.recoilPitch *= recoilRecovery;
+    this.recoilYaw *= recoilRecovery;
     this.previousEyeHeight = this.isCrouched ? CROUCHED_EYE_HEIGHT : STANDING_EYE_HEIGHT;
     this.aiming = aiming;
 
@@ -208,8 +225,10 @@ export class PlayerController {
       this.previousPosition.z + (this.position.z - this.previousPosition.z) * alpha,
     );
     this.camera.rotation.set(
-      this.previousPitch + (this.pitch - this.previousPitch) * alpha,
-      this.previousYaw + (this.yaw - this.previousYaw) * alpha,
+      Math.max(-MAX_PITCH, Math.min(MAX_PITCH,
+        this.previousPitch + (this.pitch - this.previousPitch) * alpha + this.previousRecoilPitch + (this.recoilPitch - this.previousRecoilPitch) * alpha,
+      )),
+      this.previousYaw + (this.yaw - this.previousYaw) * alpha + this.previousRecoilYaw + (this.recoilYaw - this.previousRecoilYaw) * alpha,
       this.previousLean + (this.lean - this.previousLean) * alpha,
       'YXZ',
     );
@@ -277,6 +296,11 @@ export class PlayerController {
   }
 
   private syncCameraRotation(): void {
-    this.camera.rotation.set(this.pitch, this.yaw, this.lean, 'YXZ');
+    this.camera.rotation.set(
+      Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch + this.recoilPitch)),
+      this.yaw + this.recoilYaw,
+      this.lean,
+      'YXZ',
+    );
   }
 }

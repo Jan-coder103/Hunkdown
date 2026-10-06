@@ -60,7 +60,8 @@ describe('SceneView', () => {
 
     expect(renderer.pixelRatio).toBe(2);
     expect(container.child).toBe(renderer.domElement);
-    expect(view.scene.children).toHaveLength(2);
+    expect(view.scene.children).toHaveLength(3);
+    expect(view.scene.children).toContain(view.camera);
     expect(view.camera.aspect).toBeCloseTo(4 / 3);
     expect(renderer.sizes[0]).toEqual([800, 600, false]);
     expect(observer?.observed).toBe(container as unknown as Element);

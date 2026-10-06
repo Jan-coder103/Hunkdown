@@ -80,6 +80,34 @@ describe('EngineRuntime', () => {
     runtime.dispose();
   });
 
+  it('keeps one-shot keys until a fixed step consumes them, then clears them between catch-up steps', () => {
+    const scheduler = new ManualFrameScheduler();
+    const windowTarget = new FakeEventTarget();
+    const presses: boolean[] = [];
+    const held: boolean[] = [];
+    const runtime = new EngineRuntime({
+      createView: () => new FakeEngineView(),
+      frameScheduler: scheduler,
+      inputTargets: { windowTarget, documentTarget: new FakeVisibilityTarget() },
+      updateSimulation: (_stepSeconds, _random, input) => {
+        presses.push(input.wasPressed('Space'));
+        held.push(input.isDown('Space'));
+      },
+    });
+    runtime.start();
+    scheduler.runFrame(0);
+    windowTarget.dispatchEvent(makeKeyEvent('keydown', 'Space'));
+    scheduler.runFrame(8);
+    expect(presses).toEqual([]);
+    scheduler.runFrame(108);
+
+    expect(presses.length).toBeGreaterThan(1);
+    expect(presses[0]).toBe(true);
+    expect(presses.slice(1).every((pressed) => !pressed)).toBe(true);
+    expect(held.every(Boolean)).toBe(true);
+    runtime.dispose();
+  });
+
   it('repeated start/dispose cycles release frame callbacks, keyboard listeners, and views', () => {
     for (let cycle = 0; cycle < 3; cycle += 1) {
       const windowTarget = new FakeEventTarget();

@@ -21,6 +21,8 @@ export class PointerLockControls {
   private windowTarget: EventTarget | null = null;
   private locked = false;
   private aiming = false;
+  private fireHeld = false;
+  private firePressed = false;
 
   constructor(
     private readonly canvas: PointerLockCanvas,
@@ -35,18 +37,34 @@ export class PointerLockControls {
     return this.aiming;
   }
 
+  get isFireHeld(): boolean {
+    return this.locked && this.fireHeld;
+  }
+
+  consumeFirePressed(): boolean {
+    const pressed = this.locked && this.firePressed;
+    this.firePressed = false;
+    return pressed;
+  }
+
   private readonly handleCanvasClick: EventListener = () => {
     if (!this.locked) this.requestLock();
   };
 
   private readonly handleMouseDown: EventListener = (event) => {
-    if ((event as MouseEvent).button === 2) {
+    if (!this.locked) return;
+    if ((event as MouseEvent).button === 0) {
+      this.fireHeld = true;
+      this.firePressed = true;
+      event.preventDefault();
+    } else if ((event as MouseEvent).button === 2) {
       this.aiming = true;
       event.preventDefault();
     }
   };
 
   private readonly handleMouseUp: EventListener = (event) => {
+    if ((event as MouseEvent).button === 0) this.fireHeld = false;
     if ((event as MouseEvent).button === 2) this.aiming = false;
   };
 
@@ -66,6 +84,8 @@ export class PointerLockControls {
 
   private readonly handleFocusLoss: EventListener = () => {
     this.aiming = false;
+    this.fireHeld = false;
+    this.firePressed = false;
     this.releaseLock();
   };
 
@@ -102,6 +122,8 @@ export class PointerLockControls {
       this.documentTarget.exitPointerLock();
     }
     this.aiming = false;
+    this.fireHeld = false;
+    this.firePressed = false;
     this.setLocked(false);
   }
 
@@ -123,7 +145,11 @@ export class PointerLockControls {
   private setLocked(locked: boolean): void {
     if (this.locked === locked) return;
     this.locked = locked;
-    if (!locked) this.aiming = false;
+    if (!locked) {
+      this.aiming = false;
+      this.fireHeld = false;
+      this.firePressed = false;
+    }
     this.options.onLockChange?.(locked);
   }
 }

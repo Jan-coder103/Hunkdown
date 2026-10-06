@@ -45,4 +45,18 @@ describe('MovementWorld', () => {
     expect(world.groundHeightAt(2, 0)).toBeCloseTo(3);
     expect(world.groundHeightAt(5, 4)).toBe(0);
   });
+
+  it('returns the nearest solid obstruction along normalized hitscan rays', () => {
+    const world = new MovementWorld({
+      halfExtent: 10,
+      obstacles: [
+        { minX: -1, maxX: 1, minZ: -2, maxZ: -1, maxY: 2 },
+        { minX: -1, maxX: 1, minZ: -6, maxZ: -5, maxY: 2 },
+      ],
+    });
+    expect(world.raycast({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -4 }, 20)?.distance).toBe(1);
+    expect(world.raycast({ x: 4, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 20)).toBeNull();
+    expect(world.raycast({ x: 0, y: 3, z: 0 }, { x: 0, y: 0, z: -1 }, 20)).toBeNull();
+    expect(world.raycast({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 0.5)).toBeNull();
+  });
 });
