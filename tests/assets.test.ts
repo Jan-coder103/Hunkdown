@@ -6,8 +6,12 @@ import { AssetPreview } from '../src/tools/asset-viewer/asset-preview';
 import { OrbitController } from '../src/tools/asset-viewer/orbit-controller';
 
 describe('generated asset pipeline', () => {
-  it('registers the four placeholder categories with two render LODs and collision metadata', () => {
-    expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual(['building', 'decoration', 'weapon', 'bird']);
+  it('registers typed placeholder assets with two render LODs and collision metadata', () => {
+    expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual([
+      'building', 'building', 'building',
+      'decoration', 'decoration', 'decoration', 'decoration', 'decoration',
+      'weapon', 'bird',
+    ]);
     for (const definition of ASSET_DEFINITIONS) {
       expect(Object.isFrozen(definition.bounds.min)).toBe(true);
       expect(Object.isFrozen(definition.collision)).toBe(true);

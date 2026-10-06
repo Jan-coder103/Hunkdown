@@ -9,7 +9,7 @@ Updated: 2026-10-06.
 - Phase 3: technically complete; human movement review pending.
 - Phase 4: technically complete; human review of shooting feel pending.
 - Phase 5: technically complete; human review pending.
-- Active phase — 6: not started.
+- Active phase — 6: technically complete; human review pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -72,6 +72,20 @@ Phase 4 tuning assumptions: Honk-47 starts with a 30-round magazine and 120 rese
 - [ ] Link the viewer from the Escape menu when Phase 10 creates that menu.
 
 Phase 5 assumption: collision metadata uses axis-aligned boxes, and visual bounds are authored per asset. Close/far tiers alter only rendering; both keep the same collision records. The viewer entry is directly addressable until the planned Escape menu exists.
+
+## Phase 6
+
+- [x] Add a versioned, validated map document with row-major street, solid-house, enterable-house, and elevation cells plus orthogonal authored routes.
+- [x] Add the top-down grid painter with blue solid houses, yellow enterable houses, north/south, west/east, and all-side door layouts, and green elevation cells.
+- [x] Add deterministic building selection from three typed building assets and clearance-aware placement from five typed decoration assets.
+- [x] Generate elevated tiles and matching ramp render/collision descriptors at accessible elevation boundaries; build a door-aware navigation graph from the same cell data.
+- [x] Add validated local save/load, JSON import/export, grid resizing, and a standalone `/map-editor.html` generation preview.
+- [x] Add behavior tests for schema validation, malformed imports, door rules, seeded generation, route/decoration clearance, elevation links, and save/load round trips.
+- [x] Run `npm run check`: 71 tests across 16 files passed; strict typecheck and production build passed. Vite builds the game, asset viewer, and map editor as separate entry points.
+- [x] Browser check in the Codex in-app browser at `http://127.0.0.1:5180/map-editor.html`: editor and 3D preview rendered; painted an enterable house, drew a route through its open doors, and observed four ramps after elevating an adjacent cell.
+- [ ] Human review of map-editor workflow, generated city look, door readability, and route/prop clearance.
+
+Phase 6 assumptions: maps default to 16 × 16 cells at 8 m per cell; dimensions range from 2 to 64 cells, and cell size ranges from 4 to 32 m. Elevation rises 1.25 m, enterable door gaps are 1.5 m wide, and decoration candidates are selected with a 20% seeded chance while preserving clearance from authored paths and other props. These values are initial editor/generator defaults.
 
 ## Decisions to resolve before affected features
 

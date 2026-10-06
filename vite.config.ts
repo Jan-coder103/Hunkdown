@@ -6,6 +6,7 @@ export default defineConfig({
       input: {
         main: decodeURIComponent(new URL('./index.html', import.meta.url).pathname),
         assetViewer: decodeURIComponent(new URL('./asset-viewer.html', import.meta.url).pathname),
+        mapEditor: decodeURIComponent(new URL('./map-editor.html', import.meta.url).pathname),
       },
     },
   },

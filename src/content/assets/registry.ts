@@ -1,12 +1,24 @@
 import { birdPlaceholderAsset } from './bird-placeholder.asset';
+import { bicycleAsset } from './bicycle.asset';
 import { buildingAsset } from './building.asset';
+import { cafeKioskAsset } from './cafe-kiosk.asset';
+import { cornerCafeAsset } from './corner-cafe.asset';
 import { decorationAsset } from './decoration.asset';
+import { fountainAsset } from './fountain.asset';
+import { tallTownhouseAsset } from './tall-townhouse.asset';
+import { treeAsset } from './tree.asset';
 import { weaponPlaceholderAsset } from './weapon-placeholder.asset';
 import { createGeneratedAsset, freezeAssetDefinition, validateAssetDefinition, type AssetDefinition, type GeneratedAsset } from './asset-types';
 
 const authoredDefinitions: readonly AssetDefinition[] = [
   buildingAsset,
+  cornerCafeAsset,
+  tallTownhouseAsset,
   decorationAsset,
+  treeAsset,
+  cafeKioskAsset,
+  fountainAsset,
+  bicycleAsset,
   weaponPlaceholderAsset,
   birdPlaceholderAsset,
 ];

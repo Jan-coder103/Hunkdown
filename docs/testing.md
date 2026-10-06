@@ -17,7 +17,7 @@ After every feature:
 - Engine: fixed-step accumulation, pause, resize and lifecycle cleanup.
 - Movement: collision, jump eligibility, slope handling, sensitivity and frame-rate invariance.
 - Combat: ammo/cooldowns, occlusion, damage, death and invalid transitions.
-- Content/tools: registry validation, disposal, seeded generation, map persistence and navigation clearance.
+- Content/tools: registry validation, disposal, seeded generation, versioned map validation/round-trips, door-aware paths, slope connectivity, decoration clearance, and browser checks of the grid painter and generated preview.
 - Bots/match: reachability, targeting, crowd behavior, countdown, revive/respawn/ticket edge cases, capture/tie rules.
 - UI/progression: complete state transitions, reward idempotency, saved-data recovery.
 - Physics/performance: bounded debris, collision updates, cheap/detailed simulation transitions, 100+ bot stress tests and memory trends.
