@@ -22,6 +22,10 @@ export class Combatant {
   readonly velocity = new Vector3();
   health: number;
   status: CombatantStatus = 'alive';
+  private deaths = 0;
+
+  /** Identifies the death that a pending lifecycle action belongs to. */
+  get deathVersion(): number { return this.deaths; }
 
   constructor(
     readonly id: string,
@@ -51,7 +55,10 @@ export class Combatant {
       if (impulse.lengthSq() > 0) this.velocity.addScaledVector(impulse.normalize(), knockback);
     }
     const killed = this.health === 0;
-    if (killed) this.status = 'dead';
+    if (killed) {
+      this.status = 'dead';
+      this.deaths += 1;
+    }
     return { applied, health: this.health, killed };
   }
 
@@ -85,6 +92,7 @@ export class Combatant {
 /** A cancellable revive timer. Completing it restores one half of maximum health. */
 export class ReviveAction {
   private target: Combatant | null = null;
+  private deathVersion = 0;
   private elapsed = 0;
 
   constructor(readonly durationSeconds = 4, readonly healthFraction = 0.5) {
@@ -99,12 +107,17 @@ export class ReviveAction {
   start(target: Combatant): boolean {
     if (this.target || target.status !== 'dead') return false;
     this.target = target;
+    this.deathVersion = target.deathVersion;
     this.elapsed = 0;
     return true;
   }
 
   update(deltaSeconds: number): boolean {
     if (!this.target || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return false;
+    if (this.target.status !== 'dead' || this.target.deathVersion !== this.deathVersion) {
+      this.cancel();
+      return false;
+    }
     this.elapsed = Math.min(this.durationSeconds, this.elapsed + deltaSeconds);
     if (this.elapsed < this.durationSeconds) return false;
     const completed = this.target.revive(this.healthFraction);
@@ -122,17 +135,23 @@ export class ReviveAction {
 /** Reusable delayed full-health respawn; match rules supply the delay and spawn point. */
 export class RespawnTimer {
   private target: Combatant | null = null;
+  private deathVersion = 0;
   private remaining = 0;
 
   start(target: Combatant, delaySeconds: number): boolean {
     if (this.target || target.status !== 'dead' || !Number.isFinite(delaySeconds) || delaySeconds < 0) return false;
     this.target = target;
+    this.deathVersion = target.deathVersion;
     this.remaining = delaySeconds;
     return true;
   }
 
   update(deltaSeconds: number, spawn?: Readonly<{ x: number; y: number; z: number }>): boolean {
     if (!this.target || !Number.isFinite(deltaSeconds) || deltaSeconds < 0) return false;
+    if (this.target.status !== 'dead' || this.target.deathVersion !== this.deathVersion) {
+      this.cancel();
+      return false;
+    }
     this.remaining = Math.max(0, this.remaining - deltaSeconds);
     if (this.remaining > 0) return false;
     const completed = this.target.respawn(spawn);

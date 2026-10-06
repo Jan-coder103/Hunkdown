@@ -270,3 +270,38 @@ describe('grenades and presentation feedback', () => {
     expect(scene.children).toHaveLength(0);
   });
 });
+
+
+describe('review regressions', () => {
+  it('maintains 600 RPM at the engine fixed step without floating-point delays', () => {
+    const rifle = new WeaponController({ ...weapon, magazineSize: 100 });
+    let shots = 0;
+    for (let step = 0; step < 60; step += 1) {
+      shots += rifle.step(1 / 60, { fireHeld: true, firePressed: false, reloadPressed: false }, false).length;
+    }
+    expect(shots).toBe(10);
+    expect(rifle.magazine).toBe(90);
+  });
+
+  it.each(['revive', 'respawn'] as const)('cancels a stale %s action after revival and another death', (kind) => {
+    const target = combatant('bird', 'enemy', 0, 0);
+    target.applyDamage(100);
+    const action = kind === 'revive' ? new ReviveAction(4) : new RespawnTimer();
+    if (action instanceof ReviveAction) action.start(target);
+    else action.start(target, 4);
+    action.update(3);
+    target.revive();
+    target.applyDamage(100);
+    expect(action.update(1)).toBe(false);
+    expect(target.status).toBe('dead');
+    if (action instanceof ReviveAction) {
+      expect(action.progress).toBe(0);
+      expect(action.start(target)).toBe(true);
+    } else {
+      expect(action.secondsRemaining).toBe(0);
+      expect(action.start(target, 4)).toBe(true);
+    }
+    expect(action.update(3)).toBe(false);
+    expect(action.update(1)).toBe(true);
+  });
+});

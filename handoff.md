@@ -2,16 +2,14 @@
 
 ## Current status
 
-Phase 8 character work is implemented. `tactical-chicken.asset.ts` provides the close/far low-poly chicken models, collision metadata, and team markings. `ChickenCharacterView` provides first-person camera wings and a third-person rig with movement, jump-flap, aim, reload, damage, and death presentation hooks. The practice range now uses enemy chickens.
+Reviewed phases 1–8 and fixed combat cadence, stale lifecycle timers, and map editor/generation defects. Honk-47 now fires ten rounds per second at the 60 Hz engine step. Revive/respawn actions are scoped to a specific death. Route-blocking painting fails atomically; cropped winding paths split into connected pieces with unique IDs.
 
-`npm run check` passes: 76 tests across 17 files, strict typecheck, and production build. Vite reports the Honk-47 chunk at 505.04 kB minified. Browser inspection at `http://127.0.0.1:5181/asset-viewer.html` confirmed both chicken LODs and bounds; the combat range showed three chicken targets and first-person wings at about 60 FPS. The in-app browser did not acquire pointer lock, so no hands-on movement or reload playtest was possible. Human review is pending.
+The map preview draws enterable-house walls from collision records, with real door gaps. Ramp surfaces now extend into the low cell, matching collider width and position. Larger maps receive an adequate camera far plane, and invalid map generation preserves the previous preview. `map-geometry.ts` isolates preview geometry for regression tests.
 
-Phase 7 is still technically complete with human visual approval pending for the Honk-47 and Corner cafe. Do not claim approval for either phase until the user confirms.
+`npm run check`: 83 tests across 18 files, strict typecheck and production build passed. The existing 505.04 kB shared chunk warning remains. Browser checks at port 5182 verified editor resizing/painting, house/elevation preview, combat-range rendering, and chicken far LOD; captured warning/error logs were empty. DOM reported pointer lock, but automated gameplay input did not update ammo or capture status, so hands-on movement/shooting/reload verification remains pending.
 
 ## Next step
 
-Review the tactical chicken's silhouette, equipment, team palette, and first-person proportions, along with the Phase 7 rifle and cafe candidates. Record any requested revisions. Before implementing Phase 9 match policy, resolve the objective capture rules and the death/revive/respawn/ticket edge cases listed in `tracker.md`.
+Human review remains open for phases 1–8, including Phase 7 rifle/cafe and Phase 8 chicken art. Review these candidates and record explicit feedback. Enterable houses currently use collision-derived placeholder walls; refined exteriors remain Phase 11 work.
 
-## Open design issues
-
-See `tracker.md` for the Phase 9 capture and lifecycle decisions, Phase 10 class/progression rules, Phase 13 performance target, and Phase 16 plane ability rules. Phase 4 combat values and Phase 6 map/generator defaults remain provisional.
+Before Phase 9 implementation, resolve the objective capture rules and death/revive/respawn/ticket policy in `tracker.md`. Do not claim user approval or advance match policy based on this technical review.

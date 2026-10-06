@@ -69,7 +69,8 @@ export class WeaponController {
     }
 
     const trigger = this.definition.fireMode === 'automatic' ? input.fireHeld || input.firePressed : input.firePressed;
-    if (!trigger || this.cooldown > 0 || this.magazine === 0) return events;
+    // Six 1/60 steps leave a tiny positive residue for a 600 RPM cooldown.
+    if (!trigger || this.cooldown > 1e-9 || this.magazine === 0) return events;
     this.magazine -= 1;
     this.cooldown = 60 / this.definition.roundsPerMinute;
     events.push({ type: 'shot', aimed: aiming });

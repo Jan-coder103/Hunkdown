@@ -125,7 +125,7 @@ export function generateMap(map: MapDocument): GeneratedMap {
     const isNorthSouth = slope.direction === 'north' || slope.direction === 'south';
     collisions.push(Object.freeze({
       cell: slope.highCell,
-      center: Object.freeze({ x: (high.x + low.x) / 2, y: slope.height / 2, z: (high.z + low.z) / 2 }),
+      center: Object.freeze({ x: (high.x + low.x) / 2 + Math.sign(low.x - high.x) * slope.run / 2, y: slope.height / 2, z: (high.z + low.z) / 2 + Math.sign(low.z - high.z) * slope.run / 2 }),
       size: Object.freeze({ x: isNorthSouth ? Math.min(map.cellSize * 0.76, 5.6) : slope.run, y: slope.height, z: isNorthSouth ? slope.run : Math.min(map.cellSize * 0.76, 5.6) }),
       role: 'slope-ramp',
       direction: slope.direction,

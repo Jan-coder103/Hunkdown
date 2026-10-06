@@ -15,6 +15,24 @@ Updated: 2026-10-06.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Phases 1–8 review — 2026-10-06
+
+Reviewed the phase acceptance criteria, project specifications, engine/input and movement boundaries, combat/lifecycle, typed assets/viewer, seeded map data/generation/editor, and chicken presentation. This review does not grant human approval or begin Phase 9.
+
+Corrections:
+- Phase 4: eliminate floating-point cooldown residue that reduced the Honk-47's 600 RPM cadence at the engine's 60 Hz fixed step. Regression verifies ten shots in one second.
+- Phase 4: bind revive/respawn timers to a specific death. An intervening revival followed by another death invalidates the old action instead of reviving/respawning the new death early.
+- Phase 6: reject cell painting that blocks an existing authored route or closes its required doors before changing the document. Clear routes before making those edits. Cropping a winding route now preserves separate connected segments with unique IDs.
+- Phase 6: render enterable-house placeholder walls directly from door collision segments, replacing closed decorative building models in these cells. Detailed enterable exteriors remain Phase 11 work.
+- Phase 6: put ramps entirely on the low side of elevation boundaries so raised tiles do not bury half the incline; align their visual width/position with collision descriptors.
+- Phase 6: extend the preview camera's far plane with map size so larger supported grids remain visible. Validate maps before clearing the current preview.
+
+Verification:
+- `npm run check`: 83 tests across 18 files passed; strict typecheck and production build passed. Existing 505.04 kB shared weapon/Three.js chunk warning remains non-blocking.
+- Codex in-app browser at `http://127.0.0.1:5182/`: combat range and first-person chicken wings rendered, with diagnostics around 60 FPS. The map editor resized to 4 × 4, painted an N/S enterable house and adjacent elevation, and displayed three ramps (the elevated cell was at the map boundary). Chicken far LOD loaded in the asset viewer. Captured warning/error logs were empty.
+- Browser DOM reported pointer lock acquired, but the visible controls continued to report uncaptured mouse and automated click/R input did not change ammunition. Firing/reload and movement remain unverified as hands-on interactions; behavior tests cover their logic. No new human approval is claimed.
+- Human review of movement/shooting feel and representative assets remains pending. Full generated-map gameplay and 100+ bot performance belong to later phases.
+
 ## Phase 1
 
 Technical acceptance is complete. Human review of the foundation and plan remains pending; see Foundation verification below.

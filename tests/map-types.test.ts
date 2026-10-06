@@ -72,3 +72,32 @@ describe('versioned map documents', () => {
     expect(() => loadMapFromStorage(storage)).toThrow(/could not be parsed/);
   });
 });
+
+
+describe('map editing regressions', () => {
+  it('rejects painting over a route or closing its doors without corrupting the original', () => {
+    let map = createEmptyMap({ width: 4, height: 4 });
+    for (let x = 0; x < 3; x += 1) map = appendPathPoint(map, { x, y: 1 });
+    expect(() => paintMapCell(map, 1, 1, 'solid-house')).toThrow(/solid house/);
+    expect(() => paintMapCell(map, 1, 1, 'enterable-house', 'north-south')).toThrow(/through a wall/);
+    expect(getMapCell(map, 1, 1)?.kind).toBe('street');
+    expect(() => serializeMapDocument(map)).not.toThrow();
+    expect(() => paintMapCell(map, 1, 1, 'enterable-house', 'west-east')).not.toThrow();
+  });
+
+  it('splits a cropped winding route into connected pieces with unique IDs', () => {
+    let map = createEmptyMap({ width: 4, height: 4 });
+    for (const point of [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 2 }]) {
+      map = appendPathPoint(map, point);
+    }
+    map = appendPathPoint(map, { x: 0, y: 3 }, 'main-route-crop-1');
+    const cropped = resizeMap(map, 3, 4);
+    expect(cropped.paths.map((path) => path.cells)).toEqual([
+      [{ x: 1, y: 0 }, { x: 2, y: 0 }],
+      [{ x: 2, y: 2 }, { x: 1, y: 2 }],
+      [{ x: 0, y: 3 }],
+    ]);
+    expect(new Set(cropped.paths.map((path) => path.id)).size).toBe(3);
+    expect(parseMapDocument(serializeMapDocument(cropped))).toEqual(cropped);
+  });
+});

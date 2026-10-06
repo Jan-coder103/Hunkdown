@@ -74,7 +74,9 @@ export function paintMapCell(map: MapDocument, x: number, y: number, kind: CellK
     ? Object.freeze({ x, y, kind, doorLayout })
     : Object.freeze({ x, y, kind } as StreetCell | SolidHouseCell | ElevationCell);
   const cells = map.cells.map((cell) => cell.x === x && cell.y === y ? replacement : cell);
-  return Object.freeze({ ...map, cells: Object.freeze(cells) });
+  const next = Object.freeze({ ...map, cells: Object.freeze(cells) });
+  validateMapDocument(next);
+  return next;
 }
 
 export function appendPathPoint(map: MapDocument, point: GridPoint, pathId = 'main-route'): MapDocument {
@@ -114,9 +116,30 @@ export function resizeMap(map: MapDocument, width: number, height: number): MapD
       cells.push(getMapCell(map, x, y) ?? Object.freeze({ x, y, kind: 'street' }));
     }
   }
-  const paths = map.paths
-    .map((path) => Object.freeze({ ...path, cells: Object.freeze(path.cells.filter((point) => point.x < width && point.y < height)) }))
-    .filter((path) => path.cells.length > 0);
+  // Cropping can cut the middle of a winding route. Preserve each connected piece.
+  const paths: AuthoredPath[] = [];
+  const usedIds = new Set(map.paths.map((path) => path.id));
+  for (const path of map.paths) {
+    let segment: GridPoint[] = [];
+    let segmentIndex = 0;
+    const flush = () => {
+      if (segment.length === 0) return;
+      let id = path.id;
+      if (segmentIndex > 0) {
+        let suffix = segmentIndex;
+        do { id = `${path.id.slice(0, 48)}-crop-${suffix++}`; } while (usedIds.has(id));
+        usedIds.add(id);
+      }
+      paths.push(Object.freeze({ ...path, id, cells: Object.freeze(segment) }));
+      segment = [];
+      segmentIndex += 1;
+    };
+    for (const point of path.cells) {
+      if (point.x < width && point.y < height) segment.push(point);
+      else flush();
+    }
+    flush();
+  }
   const resized = Object.freeze({ ...map, width, height, cells: Object.freeze(cells), paths: Object.freeze(paths) });
   validateMapDocument(resized);
   return resized;

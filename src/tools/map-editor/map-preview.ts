@@ -4,7 +4,6 @@ import {
   BufferGeometry,
   Color,
   DirectionalLight,
-  Float32BufferAttribute,
   Line,
   LineBasicMaterial,
   Mesh,
@@ -21,7 +20,8 @@ import {
 } from 'three';
 import { createAsset, getAssetDefinition } from '../../content/assets/registry';
 import type { GeneratedAsset } from '../../content/assets/asset-types';
-import { generateMap, worldPosition, type GeneratedMap, type SlopePlacement } from '../../game/world/map-generator';
+import { generateMap, worldPosition, type GeneratedMap } from '../../game/world/map-generator';
+import { createEnterableBuilding, createSlopeGeometry } from './map-geometry';
 import { getMapCell, type MapDocument } from '../../game/world/map-types';
 
 export type PreviewSummary = Readonly<{
@@ -76,9 +76,9 @@ export class MapPreview {
   }
 
   build(map: MapDocument): Readonly<{ generated: GeneratedMap; summary: PreviewSummary }> {
+    const generated = generateMap(map);
     this.clearContents();
     this.currentMap = map;
-    const generated = generateMap(map);
     this.buildGround(generated);
     this.buildElevations(generated);
     this.buildSlopes(generated);
@@ -173,32 +173,23 @@ export class MapPreview {
   private buildBuildings(generated: GeneratedMap): void {
     const size = generated.source.cellSize;
     for (const placement of generated.buildings) {
+      if (placement.enterable) {
+        const model = createEnterableBuilding(generated, placement.cell);
+        model.traverse((child) => {
+          if (!(child instanceof Mesh)) return;
+          this.ownGeometry(child.geometry);
+          for (const material of Array.isArray(child.material) ? child.material : [child.material]) this.ownMaterial(material);
+        });
+        this.contents.add(model);
+        continue;
+      }
       const asset = createAsset(placement.assetId);
       this.generatedAssets.push(asset);
-      const definition = getAssetDefinition(placement.assetId);
-      const modelHeight = (definition.bounds.max[1] - definition.bounds.min[1]) * size / 2.8;
       const model = asset.lods.close;
       model.scale.set(size / (asset.bounds.max[0] - asset.bounds.min[0]), size / 2.8, size / (asset.bounds.max[2] - asset.bounds.min[2]));
       model.rotation.y = placement.quarterTurns * Math.PI / 2;
       model.position.set(placement.position.x, 0.025, placement.position.z);
       this.contents.add(model);
-      if (!placement.enterable) continue;
-      for (const side of placement.doors) {
-        const mark = new Mesh(
-          this.ownGeometry(new PlaneGeometry(1.5, 0.46)),
-          this.ownMaterial(new MeshBasicMaterial({ color: '#fff1b3', side: 2 })),
-        );
-        const direction = side === 'north' ? -1 : side === 'south' ? 1 : side === 'west' ? -1 : 1;
-        const isNorthSouth = side === 'north' || side === 'south';
-        mark.rotation.x = -Math.PI / 2;
-        mark.rotation.z = isNorthSouth ? 0 : Math.PI / 2;
-        mark.position.set(
-          placement.position.x + (isNorthSouth ? 0 : direction * size / 2),
-          modelHeight + 0.08,
-          placement.position.z + (isNorthSouth ? direction * size / 2 : 0),
-        );
-        this.contents.add(mark);
-      }
     }
   }
 
@@ -262,7 +253,9 @@ export class MapPreview {
     this.camera.right = verticalSize * aspect / 2;
     this.camera.top = verticalSize / 2;
     this.camera.bottom = -verticalSize / 2;
-    this.camera.position.set(centerX, Math.max(width, height) * 0.9 + 30, centerZ);
+    const cameraHeight = Math.max(width, height) * 0.9 + 30;
+    this.camera.far = cameraHeight + 250;
+    this.camera.position.set(centerX, cameraHeight, centerZ);
     this.camera.up.set(0, 0, -1);
     this.camera.lookAt(centerX, 0, centerZ);
     this.camera.updateProjectionMatrix();
@@ -302,32 +295,4 @@ function createCellOutline(x: number, z: number, size: number, y: number): Buffe
     new Vector3(x - half, y, z + half),
     new Vector3(x - half, y, z - half),
   ]);
-}
-
-function createSlopeGeometry(map: MapDocument, slope: SlopePlacement): BufferGeometry {
-  const high = worldPosition(map, slope.highCell);
-  const low = worldPosition(map, slope.lowCell);
-  const dx = Math.sign(low.x - high.x);
-  const dz = Math.sign(low.z - high.z);
-  const boundaryX = (high.x + low.x) / 2;
-  const boundaryZ = (high.z + low.z) / 2;
-  const halfRun = slope.run / 2;
-  const halfWidth = Math.min(map.cellSize * 0.38, 2.8) / 2;
-  const perpendicularX = -dz;
-  const perpendicularZ = dx;
-  const topX = boundaryX - dx * halfRun;
-  const topZ = boundaryZ - dz * halfRun;
-  const bottomX = boundaryX + dx * halfRun;
-  const bottomZ = boundaryZ + dz * halfRun;
-  const positions = [
-    topX - perpendicularX * halfWidth, slope.height, topZ - perpendicularZ * halfWidth,
-    topX + perpendicularX * halfWidth, slope.height, topZ + perpendicularZ * halfWidth,
-    bottomX - perpendicularX * halfWidth, 0.025, bottomZ - perpendicularZ * halfWidth,
-    bottomX + perpendicularX * halfWidth, 0.025, bottomZ + perpendicularZ * halfWidth,
-  ];
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-  geometry.setIndex([0, 1, 2, 1, 3, 2]);
-  geometry.computeVertexNormals();
-  return geometry;
 }
