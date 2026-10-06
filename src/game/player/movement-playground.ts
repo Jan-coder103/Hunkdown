@@ -143,6 +143,9 @@ export function createMovementPlayground(scene: Scene) {
   let disposed = false;
   return {
     world: new MovementWorld({ halfExtent: 18, obstacles: OBSTACLES, ramps: RAMPS }),
+    setVisible(visible: boolean) {
+      for (const object of ownedObjects) object.visible = visible;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

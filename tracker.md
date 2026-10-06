@@ -12,7 +12,7 @@ Updated: 2026-10-06.
 - Phase 6: technically complete; human review pending.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
-- Active phase — 9: bot navigation and tactical decision foundation implemented; match policy and simulation integration remain open.
+- Active phase — 9: bot navigation and tactics are implemented, and a rendered 16-bot preview is integrated; match policy and lifecycle remain open.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -146,13 +146,15 @@ Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, fri
 - [x] Add a data-only skirmish simulation with deterministic team spawns on cells connected to the center objective, route-following movement through generated colliders/ramps, building-blocked visibility, Honk-47 cadence/reload, and shared hitscan damage.
 - [x] Keep route waypoints until bots reach cell centers; add regression coverage for traversing a generated enterable-house door without clipping its walls.
 - [x] Add behavior coverage for blocked routes, door/slope connectivity, deterministic route variation/spawns/skirmishes, building cover and sight blocking, objective seeking, imperfect aim, cover seeking, and crowd avoidance.
-- [x] Run `npm run check`: 95 tests across 20 files passed; strict typecheck and production build passed. The existing 505.04 kB Honk-47 bundle warning remains.
-- [ ] Integrate the data-only skirmish into a rendered match and manually verify bot routes, targeting, crowd behavior, and combat presentation.
+- [x] Add a switchable bird's-eye browser preview with generated city blocks, team-marked chicken views, live simulation positions, damage poses, and transient team-colored shot tracers. The existing combat practice view remains available.
+- [x] Add behavior coverage for live scene synchronization, bot movement, visible shot tracers, and resource cleanup.
+- [x] Run `npm run check`: 97 tests across 21 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
+- [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5183/`: switched from practice to the 16-bot bird's-eye preview and back; saw live team counts, eliminations, and tracers. A sample HUD read 60 FPS and 7.7 ms frame work; this is not a formal 100+ bot performance test.
 - [ ] Profile 100+ bots after the match simulation is integrated; no scaling claim has been made.
 - [ ] Implement countdown, objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
 - [ ] Human playtest bot routes, accuracy, retreat behavior, and match rules.
 
-Phase 9 has a data-only bot skirmish runner, but it is not connected to the rendered browser game, so interactive playtesting is not yet possible. Objective and lifecycle rules remain pending user direction, and Phases 1–8 still have human-review items open.
+The browser preview demonstrates the existing bot navigation and combat simulation; it does not yet include the human player, countdown, respawn/revive lifecycle, tickets, capture progress, or match outcomes. Those rules remain pending user direction. Phases 1–8 still have human-review items open.
 
 ## Decisions to resolve before affected features
 

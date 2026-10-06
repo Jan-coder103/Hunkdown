@@ -30,6 +30,9 @@ export function createCombatPracticeRange(scene: Scene) {
   return {
     combatants,
     characters,
+    setVisible(visible: boolean) {
+      for (const character of characters) character.object.visible = visible;
+    },
     update(deltaSeconds: number) {
       for (let i = 0; i < combatants.length; i += 1) {
         const combatant = combatants[i];

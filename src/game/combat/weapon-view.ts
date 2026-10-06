@@ -43,6 +43,11 @@ export class WeaponView {
     this.reloadRemaining = this.reloadSeconds;
   }
 
+  setVisible(visible: boolean): void {
+    if (this.disposed) return;
+    this.rig.root.visible = visible;
+  }
+
   update(deltaSeconds: number): void {
     if (this.disposed || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.recoil = Math.max(0, this.recoil - deltaSeconds * 11);
@@ -116,6 +121,12 @@ export class GrenadeView {
     }
     this.trajectoryGeometry.setFromPoints(points.map((point) => point));
     this.trajectory.visible = true;
+  }
+
+  setVisible(visible: boolean): void {
+    if (this.disposed) return;
+    this.trajectory.visible = visible;
+    for (const projectile of this.projectileMeshes) projectile.visible = visible;
   }
 
   updateProjectiles(positions: readonly import('three').Vector3[]): void {
