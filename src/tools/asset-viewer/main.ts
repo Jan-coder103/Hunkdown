@@ -63,6 +63,7 @@ function selectAsset(id: string): void {
     return;
   }
   const asset = result.asset;
+  orbit?.frameBounds(asset.bounds);
   const width = asset.bounds.max[0] - asset.bounds.min[0];
   const height = asset.bounds.max[1] - asset.bounds.min[1];
   const depth = asset.bounds.max[2] - asset.bounds.min[2];
@@ -164,8 +165,8 @@ function buildViewerShell(container: HTMLElement): ViewerElements {
           <select id="asset-choice" class="viewer-select"></select>
           <label class="field-label" for="lod-choice">Visual detail</label>
           <select id="lod-choice" class="viewer-select">
-            <option value="close">Close — full placeholder</option>
-            <option value="far">Far — reduced detail</option>
+            <option value="close">Close — detailed</option>
+            <option value="far">Far — simplified</option>
           </select>
           <label class="check-row"><input id="bounds-choice" type="checkbox" checked /> Show bounds and collision</label>
         </section>
@@ -181,7 +182,7 @@ function buildViewerShell(container: HTMLElement): ViewerElements {
         </section>
       </aside>
     </main>
-    <footer class="viewer-footer"><span>Phase 5 · Code-generated placeholders</span><span>Close and far LODs</span></footer>
+    <footer class="viewer-footer"><span>Phase 7 · Asset revision candidates</span><span>Close and far LODs</span></footer>
   `;
   const assetSelect = required<HTMLSelectElement>(container, '#asset-choice');
   for (const asset of ASSET_DEFINITIONS) {

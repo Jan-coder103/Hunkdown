@@ -2,14 +2,16 @@
 
 ## Current status
 
-Phase 6 is technically complete; human review of the editor workflow and generated city presentation remains pending. Maps use a versioned `operation-honkdown-map` schema with row-major cells, explicit door layouts, and authored routes. The standalone `/map-editor.html` supports painting, deterministic generation, resize, validated local save/load, and JSON import/export. Generated maps include typed building/decoration placements, door-aware collision and navigation data, and slope tiles at accessible elevation boundaries.
+Phase 7 has two review candidates ready: the Honk-47 and Corner cafe. The asset viewer now uses the same Honk-47 model builder as the combat range, frames each asset from its bounds, and labels close/far LODs by detail. The cafe has a two-sided striped awning, storefront windows, a door, and sign details; its building-shell collider is unchanged. Reload animation now lowers and reinserts the magazine in stages.
 
-`npm run check` passes 71 tests across 16 files, strict typecheck, and production build. The browser editor was opened at `http://127.0.0.1:5180/map-editor.html`; the grid and preview rendered, and painting a house, drawing a route through all-side doors, and elevating a neighbor updated the report to four ramps. No human verification has been claimed.
+`npm run check` passes: 72 tests across 16 files, strict typecheck, and production build. Browser inspection confirmed both candidates in `/asset-viewer.html`, the updated rifle in the combat range, and the generated city preview. No human visual approval is recorded.
 
-## Next work
+## Next step
 
-Continue Phase 7: review the generated weapon and city assets with the user, then correct scale, silhouettes, palette, collision metadata, and visible animation defects. Use the asset viewer at `/asset-viewer.html` and map preview at `/map-editor.html`. Keep visual approval pending until the user confirms it.
+Review the Honk-47 and Corner cafe in the asset viewer at `http://127.0.0.1:5180/asset-viewer.html` (choose each in the Asset menu). Ask for palette, silhouette, scale, or detail revisions. Keep Phase 7 open until the user confirms the visual direction; then continue to Phase 8.
+
+Placeholders still tracked in `tracker.md`: Pastel row house, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, and Tactical bird placeholder.
 
 ## Open design issues
 
-`tracker.md` retains capture-point and death/ticket policies for Phase 9, progression/class rules for Phase 10, performance targets for Phase 13, and plane ability rules for Phase 16. Phase 4 combat tuning values and Phase 6 editor/generator defaults remain provisional.
+`tracker.md` retains capture-point and death/ticket policies for Phase 9, progression/class rules for Phase 10, performance targets for Phase 13, and plane ability rules for Phase 16. Phase 4 combat values and Phase 6 map/generator defaults remain provisional.

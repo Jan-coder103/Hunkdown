@@ -46,33 +46,39 @@ export class WeaponView {
   update(deltaSeconds: number): void {
     if (this.disposed || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.recoil = Math.max(0, this.recoil - deltaSeconds * 11);
+    this.flashRemaining = Math.max(0, this.flashRemaining - deltaSeconds);
+    this.rig.muzzleFlash.visible = this.flashRemaining > 0;
+
+    let reloadDip = 0;
+    let reloadRoll = 0;
+    if (this.reloadRemaining > 0) {
+      this.reloadRemaining = Math.max(0, this.reloadRemaining - deltaSeconds);
+      const progress = 1 - this.reloadRemaining / this.reloadDuration;
+      const drop = smoothstep(Math.min(1, progress / 0.22));
+      const insert = smoothstep(Math.min(1, Math.max(0, (progress - 0.56) / 0.22)));
+      const magazineOffset = 0.22 * (drop - insert);
+      const magazineShift = 0.055 * (drop - insert);
+      this.rig.magazine.position.set(
+        this.baseMagazinePosition.x + magazineShift,
+        this.baseMagazinePosition.y - magazineOffset,
+        this.baseMagazinePosition.z + 0.03 * (drop - insert),
+      );
+      reloadDip = 0.025 * Math.sin(Math.PI * progress);
+      reloadRoll = 0.12 * Math.sin(Math.PI * progress);
+    } else {
+      this.rig.magazine.position.copy(this.baseMagazinePosition);
+    }
+
     this.rig.root.position.set(
       this.basePosition.x,
-      this.basePosition.y - 0.012 * this.recoil,
+      this.basePosition.y - 0.012 * this.recoil - reloadDip,
       this.basePosition.z + 0.065 * this.recoil,
     );
     this.rig.root.rotation.set(
       this.baseRotation.x + 0.045 * this.recoil,
       this.baseRotation.y,
-      this.baseRotation.z,
+      this.baseRotation.z + reloadRoll,
     );
-    this.flashRemaining = Math.max(0, this.flashRemaining - deltaSeconds);
-    this.rig.muzzleFlash.visible = this.flashRemaining > 0;
-
-    if (this.reloadRemaining > 0) {
-      this.reloadRemaining = Math.max(0, this.reloadRemaining - deltaSeconds);
-      const progress = 1 - this.reloadRemaining / this.reloadDuration;
-      const dip = Math.sin(Math.PI * progress);
-      this.rig.magazine.position.set(
-        this.baseMagazinePosition.x,
-        this.baseMagazinePosition.y - 0.18 * dip,
-        this.baseMagazinePosition.z + 0.02 * dip,
-      );
-      this.rig.root.rotation.z = this.baseRotation.z + 0.2 * dip;
-    } else {
-      this.rig.magazine.position.copy(this.baseMagazinePosition);
-      this.rig.root.rotation.z = this.baseRotation.z;
-    }
   }
 
   dispose(): void {
@@ -81,6 +87,11 @@ export class WeaponView {
     this.camera.remove(this.rig.root);
     disposeObjectResources(this.rig.root);
   }
+}
+
+function smoothstep(value: number): number {
+  const t = Math.min(1, Math.max(0, value));
+  return t * t * (3 - 2 * t);
 }
 
 /** Scene-owned grenade spheres and a visible ballistic preview while grenade mode is equipped. */

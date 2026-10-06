@@ -1,7 +1,8 @@
-import { Box3, Mesh, PerspectiveCamera, Scene } from 'three';
+import { Box3, Mesh, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { ASSET_DEFINITIONS, createAsset } from '../src/content/assets/registry';
 import { createGeneratedAsset, validateAssetDefinition, type AssetDefinition } from '../src/content/assets/asset-types';
+import { createWeaponModel } from '../src/content/weapons/registry';
 import { AssetPreview } from '../src/tools/asset-viewer/asset-preview';
 import { OrbitController } from '../src/tools/asset-viewer/orbit-controller';
 
@@ -32,6 +33,24 @@ describe('generated asset pipeline', () => {
       }
       asset.dispose();
     }
+  });
+
+  it('uses the same detailed Honk-47 model in combat and the asset viewer', () => {
+    const asset = createAsset('honk-47');
+    const weapon = createWeaponModelForAssetCheck();
+    const viewerParts = new Set<string>();
+    const combatParts = new Set<string>();
+    asset.lods.close.traverse((object) => { if (object.name) viewerParts.add(object.name); });
+    weapon.root.traverse((object) => { if (object.name) combatParts.add(object.name); });
+
+    expect(asset.displayName).toBe('Honk-47');
+    expect(ASSET_DEFINITIONS.some((definition) => definition.id === 'practice-rifle')).toBe(false);
+    expect(asset.bounds.max[2] - asset.bounds.min[2]).toBeCloseTo(1.28);
+    expect(viewerParts).toContain('muzzle brake');
+    expect(viewerParts).toContain('optic housing');
+    expect(combatParts).toContain('muzzle brake');
+    expect(combatParts).toContain('optic housing');
+    asset.dispose();
   });
 
   it('reports malformed dimensions, collision extents, and incomplete LOD declarations', () => {
@@ -130,6 +149,20 @@ describe('asset viewer orbit controls', () => {
     expect(orbited.equals(start)).toBe(false);
     expect(canvas.capturePointer).toHaveBeenCalledWith(3);
 
+    const rifle = ASSET_DEFINITIONS.find((asset) => asset.id === 'honk-47');
+    const cafe = ASSET_DEFINITIONS.find((asset) => asset.id === 'corner-cafe');
+    if (!rifle || !cafe) throw new Error('Expected revised weapon and cafe review assets');
+    orbit.frameBounds(rifle.bounds);
+    const rifleCenter = new Vector3(...rifle.bounds.min).add(new Vector3(...rifle.bounds.max)).multiplyScalar(0.5);
+    const rifleRadius = camera.position.distanceTo(rifleCenter);
+    orbit.frameBounds(cafe.bounds);
+    const cafeCenter = new Vector3(...cafe.bounds.min).add(new Vector3(...cafe.bounds.max)).multiplyScalar(0.5);
+    const cafeRadius = camera.position.distanceTo(cafeCenter);
+    camera.updateMatrixWorld();
+    const cameraDirection = camera.getWorldDirection(new Vector3());
+    expect(cafeRadius).toBeGreaterThan(rifleRadius);
+    expect(cameraDirection.dot(cafeCenter.clone().sub(camera.position).normalize())).toBeCloseTo(1);
+
     const wheel = Object.assign(new Event('wheel', { cancelable: true }), { deltaY: 120 });
     canvas.dispatchEvent(wheel);
     const zoomed = camera.position.clone();
@@ -143,3 +176,7 @@ describe('asset viewer orbit controls', () => {
     expect(camera.position.equals(zoomed)).toBe(true);
   });
 });
+
+function createWeaponModelForAssetCheck() {
+  return createWeaponModel('honk-47');
+}

@@ -5,9 +5,9 @@ import { cafeKioskAsset } from './cafe-kiosk.asset';
 import { cornerCafeAsset } from './corner-cafe.asset';
 import { decorationAsset } from './decoration.asset';
 import { fountainAsset } from './fountain.asset';
+import { honk47Asset } from './honk-47.asset';
 import { tallTownhouseAsset } from './tall-townhouse.asset';
 import { treeAsset } from './tree.asset';
-import { weaponPlaceholderAsset } from './weapon-placeholder.asset';
 import { createGeneratedAsset, freezeAssetDefinition, validateAssetDefinition, type AssetDefinition, type GeneratedAsset } from './asset-types';
 
 const authoredDefinitions: readonly AssetDefinition[] = [
@@ -19,7 +19,7 @@ const authoredDefinitions: readonly AssetDefinition[] = [
   cafeKioskAsset,
   fountainAsset,
   bicycleAsset,
-  weaponPlaceholderAsset,
+  honk47Asset,
   birdPlaceholderAsset,
 ];
 

@@ -9,7 +9,8 @@ Updated: 2026-10-06.
 - Phase 3: technically complete; human movement review pending.
 - Phase 4: technically complete; human review of shooting feel pending.
 - Phase 5: technically complete; human review pending.
-- Active phase — 6: technically complete; human review pending.
+- Phase 6: technically complete; human review pending.
+- Active phase — 7: candidate revisions are implemented; human visual review pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -87,6 +88,21 @@ Phase 5 assumption: collision metadata uses axis-aligned boxes, and visual bound
 
 Phase 6 assumptions: maps default to 16 × 16 cells at 8 m per cell; dimensions range from 2 to 64 cells, and cell size ranges from 4 to 32 m. Elevation rises 1.25 m, enterable door gaps are 1.5 m wide, and decoration candidates are selected with a 20% seeded chance while preserving clearance from authored paths and other props. These values are initial editor/generator defaults.
 
+## Phase 7 — Asset revision and quality direction
+
+- [x] Replace the separate rifle placeholder with the in-game Honk-47 model in the asset viewer. The viewer and combat range now use the same model builder; bounds and the viewer collision envelope are 0.24 × 0.46 × 1.28 m.
+- [x] Refine the corner cafe prototype with a striped two-sided awning, framed windows, a door, and sign details while retaining its building-shell collision and fitting both LODs inside declared bounds.
+- [x] Frame assets from their declared bounds when selected, including small weapon models; rename the LOD controls to describe detail rather than placeholder status.
+- [x] Revise the reload pose so the magazine lowers, pauses, returns to the receiver, and resets cleanly; keep recoil and reload motion composed.
+- [x] Add behavior coverage for the shared Honk-47 model, scale/bounds, automatic viewer framing, and magazine removal/insertion.
+- [x] Run `npm run check`: 72 tests across 16 files passed; strict typecheck and production build passed.
+- [x] Browser review in the Codex in-app browser at `http://127.0.0.1:5180/asset-viewer.html`: Honk-47 and corner cafe load with close/far LODs; selection frames each asset; no browser warnings or errors were captured. The combat range also rendered the updated rifle, and the map editor rendered the generated city preview. Reload was verified by behavior tests, not manually triggered in-browser during this pass.
+- [ ] Human approval of the Honk-47 and corner cafe visual direction.
+
+Review inventory: revised review candidates are Honk-47 and corner cafe. Placeholders still awaiting Phase 11 production work are Pastel row house, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, and Tactical bird placeholder. The bird remains a pipeline placeholder, not the Phase 8 player character.
+
+Phase 7 assumptions: rifle scale and olive/charcoal/wood palette are initial art choices; the cafe's visible additions remain decorative while the existing shell collider defines building blocking. Visual approval is open until the user confirms direction or gives revisions.
+
 ## Decisions to resolve before affected features
 
 1. **Objective:** notes call the mode capture the flag, but describe one central capture point ending the round. Planning uses a central capture-point mode. Confirm capture duration, contested behavior, decay, and tie resolution before Phase 9.
@@ -98,7 +114,7 @@ Phase 6 assumptions: maps default to 16 × 16 cells at 8 m per cell; dimensions 
 
 ## Revision queue
 
-None yet. Record failures, deferred checks, user feedback, and relevant reproduction details here as work proceeds.
+Phase 7 visual approval is pending. Record user feedback and any requested asset revisions here before closing the phase.
 
 ## Phase 2 verification
 

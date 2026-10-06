@@ -243,7 +243,12 @@ describe('grenades and presentation feedback', () => {
     const magazineY = rig.magazine.position.y;
     weaponView.beginReload();
     weaponView.update(0.45);
-    expect(rig.magazine.position.y).toBeLessThan(magazineY);
+    const magazineDroppedY = rig.magazine.position.y;
+    expect(magazineDroppedY).toBeLessThan(magazineY);
+    weaponView.update(0.72);
+    expect(rig.magazine.position.y).toBeGreaterThan(magazineDroppedY);
+    weaponView.update(0.72);
+    expect(rig.magazine.position.y).toBeCloseTo(magazineY);
     weaponView.dispose();
     expect(camera.children).not.toContain(rig.root);
     expect(geometryDispose).toHaveBeenCalledOnce();
