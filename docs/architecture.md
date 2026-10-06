@@ -16,9 +16,9 @@ TypeScript with strict checks, Three.js for rendering and procedural models, Vit
 | `src/game/match/` | Objectives, tickets, respawn and scoring |
 | `src/game/world/` | Cells, generation, collision, destruction |
 | `src/content/weapons/` | One typed definition per weapon and startup discovery |
-| `src/content/assets/` | TypeScript asset factories and LOD metadata |
+| `src/content/assets/` | TypeScript asset factories, collision metadata, and exactly two render LODs |
 | `src/ui/` | Menus, HUD, settings, results and progression views |
-| `src/tools/asset-viewer/` | Separate inspection app (Phase 5) |
+| `src/tools/asset-viewer/` | Separate inspection app for generated assets and collision/bounds guides |
 | `src/tools/map-editor/` | Top-down editor (Phase 6) |
 | `tests/` | Behavior tests and deterministic fixtures |
 | `public/audio/` | User-provided audio later |
@@ -36,7 +36,7 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - Keep visual LOD (exactly two tiers) distinct from AI update frequency/simulation fidelity.
 - Seed random map choices and test scenarios. Generate geometry/collision/navigation from the same cell data.
 - Use shared immutable content definitions and separate mutable runtime weapon state. Startup discovers weapon modules (for example Vite `import.meta.glob` with eager loading), validates unique IDs/schema, and fails clearly on malformed content. Do not populate gameplay weapon data before Phase 4.
-- Asset factories return render objects plus collision/LOD metadata with explicit resource ownership; reuse shared geometry/materials when safe.
+- Asset definitions validate finite min/max bounds, positive collision box sizes contained by those bounds, and exactly `close` and `far` LOD builders. A generated asset owns the render objects and unique geometry/material resources for both tiers; dispose it once when a preview or runtime instance is replaced.
 - Lifecycle changes must be atomic: death, revive, respawn, and cleanup cannot duplicate a bird or spend a ticket twice.
 - Save map/progression/settings with versioned schemas and validation; unknown/invalid data needs explicit recovery.
 - Escape/tools and browser focus changes must release pointer lock and suppress stuck inputs. Audio unlocks on a user gesture.

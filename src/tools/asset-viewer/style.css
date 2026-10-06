@@ -1,0 +1,61 @@
+:root {
+  color: #253a32;
+  background: #f4eedf;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #f4eedf; }
+button, select, input { font: inherit; }
+#asset-viewer-app { min-height: 100vh; display: flex; flex-direction: column; padding: 0 clamp(18px, 4vw, 64px); }
+.viewer-header { min-height: 116px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #d8d3c5; }
+.viewer-brand { display: flex; align-items: center; gap: clamp(24px, 4vw, 56px); }
+.back-link { color: #49685e; text-decoration: none; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.back-link:hover { color: #9e543f; }
+.eyebrow { margin: 0 0 6px; color: #9b634e; font: 500 10px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+h1 { margin: 0; color: #263c33; font: 700 clamp(25px, 3vw, 34px) ui-sans-serif, system-ui, sans-serif; letter-spacing: -.04em; }
+.viewer-tagline { max-width: 340px; margin: 0; color: #6b7c71; font-size: 13px; line-height: 1.6; text-align: right; }
+.viewer-layout { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 315px); gap: 22px; padding: 22px 0; min-height: 500px; }
+.viewer-stage { position: relative; overflow: hidden; min-height: 480px; border: 1px solid #c5d0c1; border-radius: 8px; background: #a4bdb4; box-shadow: 0 14px 34px #39534815; }
+.canvas-host { position: absolute; inset: 0; }
+.canvas-host canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.canvas-host canvas:active { cursor: grabbing; }
+.stage-hint { position: absolute; bottom: 16px; left: 18px; padding: 8px 11px; border: 1px solid #ffffff54; border-radius: 4px; color: #f8f3e4; background: #314b42b8; font: 10px ui-monospace, monospace; pointer-events: none; }
+.stage-hint span { color: #f1c58b; padding: 0 4px; }
+.viewer-panel { display: flex; flex-direction: column; border: 1px solid #d8d3c5; border-radius: 8px; background: #faf7ed; }
+.panel-section { padding: 20px; border-bottom: 1px solid #e3dece; }
+.panel-section:last-child { border-bottom: 0; }
+.field-label { display: block; margin: 16px 0 7px; color: #53665d; font-size: 11px; font-weight: 700; }
+.viewer-select { width: 100%; min-height: 40px; padding: 0 11px; border: 1px solid #c8d1c6; border-radius: 4px; color: #2d443a; background: #fffdf5; font-size: 12px; }
+.viewer-select:focus-visible, .back-link:focus-visible, input:focus-visible { outline: 2px solid #bd7858; outline-offset: 2px; }
+.check-row { display: flex; align-items: center; gap: 9px; margin-top: 18px; color: #53665d; font-size: 12px; cursor: pointer; }
+.check-row input { accent-color: #597b6e; width: 15px; height: 15px; }
+.viewer-status { margin: 0; color: #426b5a; font-size: 13px; font-weight: 700; line-height: 1.5; }
+.viewer-status[data-kind='error'] { color: #ad4939; }
+.viewer-summary { margin: 9px 0 0; color: #738177; font-size: 11px; line-height: 1.6; }
+.report-key { margin-top: auto; }
+.report-key > div { display: flex; align-items: center; gap: 9px; margin: 10px 0; color: #58695f; font-size: 11px; }
+.key-swatch { width: 14px; height: 8px; border: 1px solid; }
+.key-bounds { border-color: #fff4c7; }
+.key-collision { border-color: #71d8c7; }
+.report-key p { margin: 17px 0 0; color: #7d887d; font-size: 10px; line-height: 1.6; }
+.viewer-footer { display: flex; justify-content: space-between; padding: 13px 0 17px; color: #889087; font: 10px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; }
+
+@media (max-width: 760px) {
+  .viewer-header { align-items: flex-start; flex-direction: column; justify-content: center; padding: 18px 0; gap: 12px; }
+  .viewer-brand { width: 100%; justify-content: space-between; align-items: flex-start; }
+  .viewer-tagline { text-align: left; }
+  .viewer-layout { grid-template-columns: 1fr; }
+  .viewer-stage { min-height: min(62vh, 500px); }
+  .viewer-panel { display: grid; grid-template-columns: 1fr 1fr; }
+  .report-key { margin-top: 0; }
+}
+
+@media (max-width: 480px) {
+  #asset-viewer-app { padding: 0 14px; }
+  .viewer-brand { gap: 12px; flex-direction: column-reverse; }
+  .viewer-panel { display: flex; }
+  .viewer-footer { font-size: 8px; }
+}

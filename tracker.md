@@ -8,7 +8,8 @@ Updated: 2026-10-06.
 - Phase 2: technically complete; human review pending.
 - Phase 3: technically complete; human movement review pending.
 - Phase 4: technically complete; human review of shooting feel pending.
-- Active phase — 5: not started.
+- Phase 5: technically complete; human review pending.
+- Active phase — 6: not started.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -58,6 +59,19 @@ Browser limitation: pointer-lock acquisition was attempted by clicking the scene
 Browser limitation: the in-app browser did not acquire pointer lock during the manual check, and keyboard input simulation did not update the page. Actual firing, aiming, reload key interaction, grenade throw, and movement therefore remain unverified in a hands-on browser playtest; automated behavior tests cover the combat logic and event lifecycles.
 
 Phase 4 tuning assumptions: Honk-47 starts with a 30-round magazine and 120 reserve rounds, fires at 600 RPM, deals 34 damage, and reloads in 1.8 seconds. Grenades start at two, fly at 11 m/s with a 3.2 m/s upward boost, detonate on first solid/ground contact or after 2.2 seconds, and use a 4.2 m blast radius with up to 90 damage and linear falloff. Revives take four seconds and restore 50% health; respawn delay and spawn are supplied by the later match system. These values are initial tuning choices, not final match policy.
+
+## Phase 5
+
+- [x] Define typed code-generated assets with validated bounds, collision boxes, explicit ownership, and exactly two visual LOD tiers.
+- [x] Add building, decoration, weapon, and bird placeholders. The bird is a pipeline placeholder, not the Phase 8 player character.
+- [x] Add the separate `/asset-viewer.html` app with lighting, drag orbit, wheel zoom, collision/bounds guides, and close/far selection.
+- [x] Add behavior tests for asset metadata failures, collider containment, both LODs, disposal across swaps, viewer errors, orbit/zoom, and listener cleanup.
+- [x] Run `npm run check`: 62 tests across 14 files passed; strict typecheck and production build passed. Vite builds the main app and viewer as separate HTML entry points with a shared Three.js chunk; no bundle-size warning.
+- [x] Browser check in Codex in-app browser at `http://127.0.0.1:5176/asset-viewer.html`: all four assets report loaded; far LOD and bounds toggle work; drag changes the orbit; wheel changes zoom; no browser warnings or errors captured.
+- [ ] Human review of placeholder appearance and viewer workflow.
+- [ ] Link the viewer from the Escape menu when Phase 10 creates that menu.
+
+Phase 5 assumption: collision metadata uses axis-aligned boxes, and visual bounds are authored per asset. Close/far tiers alter only rendering; both keep the same collision records. The viewer entry is directly addressable until the planned Escape menu exists.
 
 ## Decisions to resolve before affected features
 
