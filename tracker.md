@@ -13,7 +13,8 @@ Updated: 2026-10-06.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
-- Active phase — 10: UI/UX and progression shell. Menu, results, local profile, and once-only placeholder rewards are technically implemented; human gameplay and reward review remain.
+- Phase 10: UI/UX and progression shell is technically implemented and verified; human gameplay and reward review remain.
+- Active phase — 11: first high-quality asset candidate pass is implemented; human visual review and direction remain.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -120,7 +121,7 @@ Phase 6 assumptions: maps default to 16 × 16 cells at 8 m per cell; dimensions 
 - [x] Browser review in the Codex in-app browser at `http://127.0.0.1:5180/asset-viewer.html`: Honk-47 and corner cafe load with close/far LODs; selection frames each asset; no browser warnings or errors were captured. The combat range also rendered the updated rifle, and the map editor rendered the generated city preview. Reload was verified by behavior tests, not manually triggered in-browser during this pass.
 - [ ] Human approval of the Honk-47 and corner cafe visual direction.
 
-Review inventory: revised review candidates are Honk-47 and corner cafe. Placeholders still awaiting Phase 11 production work are Pastel row house, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, and Tactical bird placeholder. The bird remains a pipeline placeholder, not the Phase 8 player character.
+Review inventory: Phase 7 candidates Honk-47 and corner cafe still need human visual approval. Phase 8's tactical chicken also needs human visual approval. The remaining Phase 11 city set is being refined below.
 
 Phase 7 assumptions: rifle scale and olive/charcoal/wood palette are initial art choices; the cafe's visible additions remain decorative while the existing shell collider defines building blocking. Visual approval is open until the user confirms direction or gives revisions.
 
@@ -182,6 +183,22 @@ The Phase 9 preview remains a spectator bot match; Phase 10 adds a separate play
 - [ ] Human review the provisional XP/credit rates and skill costs/effects, menu presentation, and complete result-to-next-round loop.
 
 Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires holding F for the shared four-second revive duration. The player automatically returns at the spawn point when the 20-second eligibility timer completes; pointer lock must be reacquired by clicking the scene. The selected economy and skill bonuses are provisional placeholders, kept progression-only and easy to adjust. These rules remain open for human review.
+
+## Phase 11 — High-quality asset production
+
+- [x] Refine the pastel row house and tall townhouse with layered facades, framed windows, trim, entries, and low-poly roof details.
+- [x] Refine the street lamp, street tree, cafe kiosk, plaza fountain, and street bicycle with clearer silhouettes and street-level detail.
+- [x] Keep code-generated close/far LODs and collision metadata; generated visual bounds remain inside each declared asset envelope.
+- [x] Remove the duplicate tactical bird placeholder from the asset registry and viewer. The detailed Tactical chicken remains the canonical bird asset; the Honk-47 remains the shared combat/viewer model.
+- [x] Add asset-pipeline coverage for the refined models, reduced far LODs, bounds, and placeholder-free viewer inventory.
+- [x] Run `npm run check`: 121 tests across 26 files passed; strict type checking and production build passed. The shared 522.27 kB asset/Three.js chunk warning remains.
+- [x] Browser review in the Codex in-app viewer at `http://127.0.0.1:5186/asset-viewer.html`: reviewed the row house, townhouse, lamp, tree, kiosk, fountain, and bicycle models; bounds and collision guides loaded. The map editor also loaded with the revised assets available.
+- [ ] Human visual approval of the refined city set and the existing cafe, chicken, and Honk-47 direction.
+- [ ] Iterate from user feedback before closing the production set.
+
+Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, and Honk-47. All are code-generated TypeScript models with two render LODs; no placeholder asset remains in the registered viewer set. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
+
+Phase 11 assumptions: the current review pass keeps existing scale, palette, and gameplay collision metadata. New facade and prop details are presentation-only. Visual direction and final production approval remain with the user.
 
 ## Decisions to resolve before affected features
 

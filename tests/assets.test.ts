@@ -12,7 +12,7 @@ describe('generated asset pipeline', () => {
     expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual([
       'building', 'building', 'building',
       'decoration', 'decoration', 'decoration', 'decoration', 'decoration',
-      'weapon', 'bird', 'bird',
+      'weapon', 'bird',
     ]);
     for (const definition of ASSET_DEFINITIONS) {
       expect(Object.isFrozen(definition.bounds.min)).toBe(true);
@@ -34,6 +34,36 @@ describe('generated asset pipeline', () => {
       }
       asset.dispose();
     }
+  });
+
+  it('provides a detailed close LOD and a lighter far LOD for the Phase 11 city review set', () => {
+    const reviewSet = [
+      ['pastel-row-house', ['painted roof eaves', 'sage window shutter', 'terracotta chimney']],
+      ['tall-townhouse', ['wide roof cornice', 'coral window shutter', 'front roof dormer']],
+      ['street-lamp', ['cast iron base', 'warm lantern glass', 'lantern roof cap']],
+      ['street-tree', ['upper faceted canopy', 'east canopy cluster']],
+      ['cafe-kiosk', ['striped canopy valance', 'side menu board']],
+      ['plaza-fountain', ['upper fountain bowl', 'central water spout']],
+      ['street-bicycle', ['chain ring', 'small wicker front basket']],
+    ] as const;
+
+    for (const [id, expectedCloseParts] of reviewSet) {
+      const asset = createAsset(id);
+      const closeParts = new Set<string>();
+      let closeMeshes = 0;
+      let farMeshes = 0;
+      asset.lods.close.traverse((object) => {
+        if (object.name) closeParts.add(object.name);
+        if (object instanceof Mesh) closeMeshes += 1;
+      });
+      asset.lods.far.traverse((object) => { if (object instanceof Mesh) farMeshes += 1; });
+
+      expect(expectedCloseParts.every((part) => closeParts.has(part)), id).toBe(true);
+      expect(closeMeshes, `${id} close LOD should retain street-level detail`).toBeGreaterThan(farMeshes);
+      asset.dispose();
+    }
+
+    expect(ASSET_DEFINITIONS.some((asset) => asset.id.includes('placeholder') || asset.displayName.toLowerCase().includes('placeholder'))).toBe(false);
   });
 
   it('builds a recognizable tactical chicken with team markings and reduced far detail', () => {

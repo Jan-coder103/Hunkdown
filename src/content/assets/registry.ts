@@ -1,4 +1,3 @@
-import { birdPlaceholderAsset } from './bird-placeholder.asset';
 import { bicycleAsset } from './bicycle.asset';
 import { buildingAsset } from './building.asset';
 import { cafeKioskAsset } from './cafe-kiosk.asset';
@@ -21,7 +20,6 @@ const authoredDefinitions: readonly AssetDefinition[] = [
   fountainAsset,
   bicycleAsset,
   honk47Asset,
-  birdPlaceholderAsset,
   tacticalChickenAsset,
 ];
 
