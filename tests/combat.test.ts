@@ -1,4 +1,4 @@
-import { Mesh, PerspectiveCamera, Scene, Vector3 } from 'three';
+import { Line, Mesh, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { createWeaponModel, WEAPON_REGISTRY } from '../src/content/weapons/registry';
 import { Combatant, RespawnTimer, ReviveAction } from '../src/game/combat/combatant';
@@ -250,7 +250,13 @@ describe('grenades and presentation feedback', () => {
 
     const scene = new Scene();
     const grenadeView = new GrenadeView(scene);
+    const trajectory = scene.getObjectByName('grenade trajectory');
+    if (!(trajectory instanceof Line)) throw new Error('Grenade arc line was not created');
+    const setFromPoints = vi.spyOn(trajectory.geometry, 'setFromPoints');
+    grenadeView.updateTrajectory([], false);
+    expect(setFromPoints).not.toHaveBeenCalled();
     grenadeView.updateTrajectory([new Vector3(), new Vector3(0, 1, -1)], true);
+    expect(setFromPoints).toHaveBeenCalledOnce();
     grenadeView.updateProjectiles([new Vector3(1, 2, 3)]);
     expect(scene.children.some((child) => child.name === 'grenade trajectory' && child.visible)).toBe(true);
     expect(scene.children.some((child) => child.name === 'thrown grenade')).toBe(true);

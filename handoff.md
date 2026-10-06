@@ -2,9 +2,9 @@
 
 ## Current status
 
-Phase 4 is technically complete; human review of weapon scale/model, shooting feel, and grenade handling is pending. The app now opens to a combat practice range with the code-generated Honk-47, three targets, hitscan damage, reloads, and grenade trajectory/throw support. `npm run check` passes 56 tests across 13 files, strict typecheck, and production build; Vite reports a non-blocking 533.70 kB minified bundle warning.
+Phase 4 is technically complete; human review of weapon scale/model, shooting feel, and grenade handling is pending. The app now opens to a combat practice range with the code-generated Honk-47, three targets, hitscan damage, reloads, and grenade trajectory/throw support. `npm run check` passes 56 tests across 13 files, strict typecheck, and production build; Vite reports a non-blocking 533.75 kB minified bundle warning.
 
-Browser rendering was checked at `http://127.0.0.1:5175/` at about 60 FPS, with no captured browser errors. The in-app browser could not acquire pointer lock, so hands-on firing, aiming, reloading, grenade throwing, and movement were not verified. See `tracker.md` for assumptions and remaining human review.
+Browser rendering was checked at `http://127.0.0.1:5175/` at about 60 FPS, with no captured browser warnings or errors after fixing an empty trajectory-geometry update. The in-app browser could not acquire pointer lock, so hands-on firing, aiming, reloading, grenade throwing, and movement were not verified. See `tracker.md` for assumptions and remaining human review.
 
 ## Next work
 

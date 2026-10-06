@@ -49,9 +49,10 @@ Browser limitation: pointer-lock acquisition was attempted by clicking the scene
 - [x] Add G-to-equip grenades, a ballistic trajectory preview, two-grenade inventory, collision/fuse detonation, line-of-sight radial damage with falloff, and teammate protection.
 - [x] Connect the combat practice range and HUD; add a local weapon-pose hit stop, hit flash/marker, and nearby-explosion camera shake without halting world simulation.
 - [x] Fix the engine input edge lifecycle so one-shot keys survive frames with no fixed step and clear after the first simulation step that consumes them.
+- [x] Keep the hidden grenade arc geometry untouched when no arc is shown, removing repeated empty-buffer warnings from Three.js.
 - [x] Add behavior coverage for ammo/cooldowns/reload, schema errors/discovery, hitscan/occlusion/teams, damage/lifecycle, grenades, view/resource lifecycle, pointer mouse buttons, recoil, and fixed-step key edges.
-- [x] Run `npm run check`: 56 tests across 13 files passed; strict typecheck and production build passed. Vite reports a non-blocking 533.70 kB minified bundle warning.
-- [x] Browser page rendered at `http://127.0.0.1:5175/`; the practice range, aligned target, HUD, and first-person rifle are visible at about 60 FPS. Captured browser error logs were empty.
+- [x] Run `npm run check`: 56 tests across 13 files passed; strict typecheck and production build passed. Vite reports a non-blocking 533.75 kB minified bundle warning.
+- [x] Browser page rendered at `http://127.0.0.1:5175/`; the practice range, aligned target, HUD, and first-person rifle are visible at about 60 FPS. Final browser warning/error capture was empty after fixing the empty-arc update.
 - [ ] Human review of weapon model, shooting feel, and grenade handling.
 
 Browser limitation: the in-app browser did not acquire pointer lock during the manual check, and keyboard input simulation did not update the page. Actual firing, aiming, reload key interaction, grenade throw, and movement therefore remain unverified in a hands-on browser playtest; automated behavior tests cover the combat logic and event lifecycles.

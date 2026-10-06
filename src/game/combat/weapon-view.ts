@@ -99,8 +99,12 @@ export class GrenadeView {
 
   updateTrajectory(points: readonly import('three').Vector3[], visible: boolean): void {
     if (this.disposed) return;
+    if (!visible || points.length < 2) {
+      this.trajectory.visible = false;
+      return;
+    }
     this.trajectoryGeometry.setFromPoints(points.map((point) => point));
-    this.trajectory.visible = visible && points.length > 1;
+    this.trajectory.visible = true;
   }
 
   updateProjectiles(positions: readonly import('three').Vector3[]): void {
