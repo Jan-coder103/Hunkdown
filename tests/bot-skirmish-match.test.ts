@@ -117,4 +117,38 @@ describe('bot skirmish match start', () => {
       expect(match.outcome?.winner).toBe(match.tickets.friendly === 0 ? 'enemy' : 'friendly');
     }
   });
+
+  it('lets the living player revive a teammate and owns the player death, respawn, and ticket lifecycle', () => {
+    const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 71, cellSize: 4 }));
+    const match = new BotSkirmishMatch(
+      map,
+      { friendlyCount: 1, enemyCount: 0, seed: 71 },
+      {
+        seed: 71,
+        humanPlayer: { id: 'player', team: 'friendly', spawn: { x: -8, y: 0, z: 0 } },
+        thinkInterval: 100,
+      },
+      0.01,
+      { captureDurationSeconds: 100, captureRadius: 0.1, respawnDelaySeconds: 0.2, reviveDurationSeconds: 0.1, initialTickets: 4 },
+    );
+    const player = match.simulation.playerCombatant;
+    const teammate = match.simulation.getCombatant('friendly-001');
+    expect(player).not.toBeNull();
+    expect(teammate).not.toBeNull();
+    teammate?.applyDamage(100);
+    match.step(0.02);
+    expect(match.corpseSnapshots.some((corpse) => corpse.botId === 'friendly-001')).toBe(true);
+    expect(match.beginRevive('friendly-001', 'player')).toBe(true);
+    match.step(0.1);
+    expect(teammate?.status).toBe('alive');
+    expect(match.corpseSnapshots.some((corpse) => corpse.botId === 'friendly-001')).toBe(false);
+
+    player?.applyDamage(100);
+    match.step(0.02);
+    expect(match.lifeSnapshots.find((life) => life.botId === 'player')?.respawnSecondsRemaining).toBeCloseTo(0.2);
+    match.step(0.2);
+    expect(player?.status).toBe('alive');
+    expect(player?.health).toBe(100);
+    expect(match.tickets.friendly).toBe(3);
+  });
 });

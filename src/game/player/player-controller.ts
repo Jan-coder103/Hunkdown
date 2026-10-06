@@ -98,6 +98,37 @@ export class PlayerController {
     return Math.hypot(this.velocity.x, this.velocity.z);
   }
 
+  /** Resets interpolation and movement state when the match lifecycle spawns the player. */
+  setSpawn(position: Readonly<{ x: number; y: number; z: number }>): void {
+    if (![position.x, position.y, position.z].every(Number.isFinite)) throw new RangeError('Player spawn position must be finite');
+    this.position.set(position.x, position.y, position.z);
+    this.previousPosition.copy(this.position);
+    this.velocity.set(0, 0, 0);
+    this.isGrounded = true;
+    this.isCrouched = false;
+    this.isSliding = false;
+    this.aiming = false;
+    this.crouchToggled = false;
+    this.jumpCount = 0;
+    this.previousYaw = this.yaw;
+    this.previousPitch = this.pitch;
+    this.slideRemaining = 0;
+    this.slideSpeed = 0;
+    this.wallNormalX = 0;
+    this.wallNormalZ = 0;
+    this.wallJumpControlLock = 0;
+    this.lean = 0;
+    this.previousLean = 0;
+    this.previousEyeHeight = STANDING_EYE_HEIGHT;
+    this.recoilPitch = 0;
+    this.recoilYaw = 0;
+    this.previousRecoilPitch = 0;
+    this.previousRecoilYaw = 0;
+    this.camera.fov = BASE_FOV;
+    this.camera.updateProjectionMatrix();
+    this.syncCamera();
+  }
+
   /** Applies raw pointer-lock deltas. Aiming scales look speed by the specified 20%. */
   handleMouseMove(movementX: number, movementY: number, aiming = this.aiming): void {
     if (!Number.isFinite(movementX) || !Number.isFinite(movementY)) return;

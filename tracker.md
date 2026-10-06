@@ -13,7 +13,7 @@ Updated: 2026-10-06.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
-- Active phase — 10: UI/UX and progression shell. Player revive interaction and player death/respawn presentation have not started.
+- Active phase — 10: UI/UX and progression shell. The playable player lifecycle slice is technically complete; menus, results, and persistent progression remain.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -158,17 +158,31 @@ Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, fri
 - [x] Run `npm run check`: 107 tests across 24 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
 - [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5184/`: observed the 20-second countdown and active 16-bot combat HUD with tickets and objective status. A sample read 60 FPS and about 7.3 ms frame work; this is not a formal 100+ bot performance test.
 - [x] Defer the 100+ bot performance profile to Phase 13; the Phase 9 browser preview used 16 bots and makes no scaling claim.
-- [ ] Integrate player F-interaction for reviving bots and player death/respawn presentation with Phase 10.
+- [x] Integrate player F-interaction for reviving bots and player death/respawn presentation with Phase 10; details are tracked below.
 - [ ] Human playtest bot routes, accuracy, retreat behavior, capture rules, and match outcomes.
 
-The preview is still a spectator bot match. The match API supports starting a teammate revive; player F-interaction and the player's own death/respawn screen are deferred to Phase 10. Bot respawns restore full health and the weapon's initial ammunition. A simultaneous exhaustion of both teams' last tickets resolves as a draw. Phases 1–8 still have human-review items open.
+The Phase 9 preview remains a spectator bot match; Phase 10 adds a separate playable join-round path. Bot respawns restore full health and the weapon's initial ammunition. A simultaneous exhaustion of both teams' last tickets resolves as a draw. Phases 1–8 still have human-review items open.
+
+## Phase 10 — UI/UX and progression shell
+
+- [x] Add a playable join-round path with a locally controlled friendly player sharing the bots' movement world, hit registration, objective presence, and match-owned death lifecycle.
+- [x] Hold F within 2.5 m of a fallen friendly bot to begin its existing 4-second revive; releasing F, leaving range, switching targets, or dying cancels the interaction.
+- [x] On player death, release pointer lock and switch to the live bird's-eye city view while the battle continues; return the player to the friendly spawn after the existing 20-second delay and charge one ticket.
+- [x] Add behavior coverage for a human player as a shared hit target, player-initiated teammate revive, player death/respawn, ticket accounting, and movement-state reset on spawn.
+- [x] Run `npm run check`: 111 tests across 24 files passed; strict type checking and production build passed. The 514.84 kB shared Three.js/asset chunk warning remains.
+- [x] Browser check in Codex's in-app browser at `http://127.0.0.1:5185/`: joined a live 16-bot match, saw the first-person match view and active objective/ticket HUD at 60 FPS.
+- [ ] Human playtest movement, combat, revive range/hold behavior, player death view, and respawn feel. The in-app browser did not acquire pointer lock, so movement, death, and revive were not driven manually in this pass.
+- [ ] Build the main menu tabs for loadout, settings, map selection, and skill tree; add Escape settings/tools navigation, results leaderboards, and the menu-to-results flow.
+- [ ] Add versioned local settings/progression storage and once-only match rewards. The user selected a simple placeholder economy direction; reward amounts and skill effects are not yet implemented.
+
+Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires holding F for the shared four-second revive duration. The player automatically returns at the spawn point when the 20-second eligibility timer completes; pointer lock must be reacquired by clicking the scene. These rules reuse Phase 9 lifecycle timing and remain open for human review.
 
 ## Decisions to resolve before affected features
 
 1. **Objective — resolved for Phase 9:** one central point needs 30 seconds of control; contests and neutral time pause progress, and accumulated progress persists. Capture ends the round.
 2. **Death timing — resolved for Phase 9:** 20-second respawn eligibility; teammate revive can complete before respawn, takes four seconds, and restores 50% health at team spawn; a completed revive removes its corpse. Unrevived bodies are cleaned up after 30 seconds.
 3. **Tickets — resolved for Phase 9:** 200 per team; initial spawns are free; each respawn costs one; revives cost none; a team reaching zero ends the round. Simultaneous exhaustion is treated as a draw.
-4. **Progression/classes:** classes, skill tree effects, XP/money formulas, unlock costs, and persistence/reset behavior need definition before Phase 10.
+4. **Progression/classes:** the user selected a simple placeholder economy for Phase 10. Provisional XP/currency formulas, skill effects, and unlock costs remain to be implemented and documented; class effects and save/reset behavior need human review.
 5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
 6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.
 

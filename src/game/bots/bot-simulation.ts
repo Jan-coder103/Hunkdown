@@ -28,6 +28,12 @@ export type BotSimulationOptions = Readonly<{
   weaponId?: string;
   movementSpeed?: number;
   thinkInterval?: number;
+  /** Optional locally controlled combatant sharing the match's authoritative hit simulation. */
+  humanPlayer?: Readonly<{
+    id: string;
+    team: BotSide;
+    spawn: Readonly<{ x: number; y: number; z: number }>;
+  }>;
 }>;
 
 export type BotShot = Readonly<{ shooterId: string; result: HitscanResult }>;
@@ -95,8 +101,10 @@ export function createMapBotRoster(map: GeneratedMap, options: BotRosterOptions)
 export class BotSkirmishSimulation {
   readonly navigation: BotNavigation;
   readonly objective: GridPoint;
+  readonly world: MovementWorld;
+  readonly playerCombatant: Combatant | null;
+  private readonly playerSpawn: Readonly<{ x: number; y: number; z: number }> | null;
   private readonly actors: readonly BotActor[];
-  private readonly world: MovementWorld;
   private readonly movementSpeed: number;
   private readonly thinkInterval: number;
 
@@ -113,8 +121,16 @@ export class BotSkirmishSimulation {
     this.objective = objective;
     this.world = createMapWorld(map);
 
+    const playerSpawn = options.humanPlayer;
+    if (playerSpawn && (![playerSpawn.spawn.x, playerSpawn.spawn.y, playerSpawn.spawn.z].every(Number.isFinite)
+      || !playerSpawn.id.trim()
+      || (playerSpawn.team !== 'friendly' && playerSpawn.team !== 'enemy'))) {
+      throw new Error('Human player requires a valid ID, battle team, and finite spawn position');
+    }
+
     const weapon = getWeaponDefinition(options.weaponId ?? 'honk-47');
     const ids = new Set<string>();
+    if (playerSpawn) ids.add(playerSpawn.id);
     this.actors = Object.freeze(roster.map((spawn) => {
       if (ids.has(spawn.id)) throw new Error(`Duplicate bot id: ${spawn.id}`);
       ids.add(spawn.id);
@@ -134,6 +150,18 @@ export class BotSkirmishSimulation {
         wasFireHeld: false,
       };
     }));
+    this.playerSpawn = playerSpawn ? Object.freeze({ ...playerSpawn.spawn }) : null;
+    this.playerCombatant = playerSpawn ? new Combatant(playerSpawn.id, playerSpawn.team, playerSpawn.spawn) : null;
+  }
+
+  /** All simulation-owned hit targets, including the local player when this is a playable match. */
+  get combatants(): readonly Combatant[] {
+    return this.playerCombatant ? [...this.actors.map((actor) => actor.combatant), this.playerCombatant] : this.actors.map((actor) => actor.combatant);
+  }
+
+  getCombatant(id: string): Combatant | null {
+    if (this.playerCombatant?.id === id) return this.playerCombatant;
+    return this.actors.find((actor) => actor.combatant.id === id)?.combatant ?? null;
   }
 
   get snapshots(): readonly BotSnapshot[] {
@@ -151,31 +179,41 @@ export class BotSkirmishSimulation {
     })));
   }
 
-  /** Revives a dead bot at its team's spawn point and restores half health. */
+  /** Revives a dead bot or the local player at their team's spawn point and restores half health. */
   reviveBot(id: string, healthFraction = 0.5): boolean {
     const actor = this.actors.find((candidate) => candidate.combatant.id === id);
-    if (!actor || actor.combatant.status !== 'dead') return false;
-    const spawn = this.navigation.worldPosition(actor.spawn.cell);
-    if (!spawn || !actor.combatant.revive(healthFraction)) return false;
-    actor.combatant.position.set(spawn.x, spawn.y, spawn.z);
-    this.resetActorAfterLifecycle(actor);
+    if (actor) {
+      const spawn = this.navigation.worldPosition(actor.spawn.cell);
+      if (!spawn || !actor.combatant.revive(healthFraction)) return false;
+      actor.combatant.position.set(spawn.x, spawn.y, spawn.z);
+      this.resetActorAfterLifecycle(actor);
+      return true;
+    }
+    const player = this.playerCombatant;
+    const home = player?.id === id ? this.playerSpawn : null;
+    if (!player || !home || !player.revive(healthFraction)) return false;
+    player.position.set(home.x, home.y, home.z);
     return true;
   }
 
-  /** Respawns a dead bot at its team's spawn point with full health and ammunition. */
+  /** Respawns a dead actor at their team's spawn point; bots also refill their weapon. */
   respawnBot(id: string): boolean {
     const actor = this.actors.find((candidate) => candidate.combatant.id === id);
-    if (!actor) return false;
-    const spawn = this.navigation.worldPosition(actor.spawn.cell);
-    if (!spawn || !actor.combatant.respawn(spawn)) return false;
-    actor.weapon.resetForRespawn();
-    this.resetActorAfterLifecycle(actor);
-    return true;
+    if (actor) {
+      const spawn = this.navigation.worldPosition(actor.spawn.cell);
+      if (!spawn || !actor.combatant.respawn(spawn)) return false;
+      actor.weapon.resetForRespawn();
+      this.resetActorAfterLifecycle(actor);
+      return true;
+    }
+    const player = this.playerCombatant;
+    const home = player?.id === id ? this.playerSpawn : null;
+    return !!player && !!home && player.respawn(home);
   }
 
   step(deltaSeconds: number): BotSimulationStep {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]) });
-    const combatants = this.actors.map((actor) => actor.combatant);
+    const combatants = this.combatants;
     const aliveBefore = new Set(combatants.filter((combatant) => combatant.status === 'alive').map((combatant) => combatant.id));
     const pendingShots: PendingShot[] = [];
 

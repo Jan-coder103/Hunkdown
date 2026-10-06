@@ -61,6 +61,21 @@ describe('PlayerController', () => {
     expect(camera.position.z).toBeCloseTo(currentZ, 8);
   });
 
+  it('clears movement and interpolation when match respawn assigns a new spawn', () => {
+    const { keyboard, input, camera, player } = createHarness();
+    keyDown(keyboard, 'KeyW');
+    for (let frame = 0; frame < 20; frame += 1) tick(player, input);
+    player.setSpawn({ x: -12, y: 1.25, z: 6 });
+    player.render(0);
+
+    expect(player.position.toArray()).toEqual([-12, 1.25, 6]);
+    expect(player.velocity.toArray()).toEqual([0, 0, 0]);
+    expect(player.isGrounded).toBe(true);
+    expect(camera.position.x).toBeCloseTo(-12);
+    expect(camera.position.y).toBeCloseTo(2.83);
+    expect(camera.position.z).toBeCloseTo(6);
+  });
+
   it('stops at an obstacle and stays within the playground boundary', () => {
     const { keyboard, input, player } = createHarness({
       halfExtent: 10,

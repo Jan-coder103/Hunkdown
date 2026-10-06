@@ -50,6 +50,7 @@ type MutableLife = {
   corpseId: string;
   respawnRemaining: number;
   reviveRemaining: number | null;
+  reviverId: string | null;
 };
 
 type MutableCorpse = {
@@ -128,16 +129,16 @@ export class BotSkirmishMatch {
     })));
   }
 
-  /** Starts a friendly bot revive. The existing revive action completes after four seconds by default. */
+  /** Starts a same-team revive. The match completes it after four seconds by default. */
   beginRevive(targetId: string, reviverId: string): boolean {
     if (this.state !== 'active' || this.outcomeState) return false;
     const life = this.lives.get(targetId);
     if (!life || life.reviveRemaining !== null || life.respawnRemaining <= 0) return false;
-    const bots = new Map(this.simulation.snapshots.map((bot) => [bot.id, bot]));
-    const target = bots.get(targetId);
-    const reviver = bots.get(reviverId);
+    const target = this.simulation.getCombatant(targetId);
+    const reviver = this.simulation.getCombatant(reviverId);
     if (!target || target.status !== 'dead' || !reviver || reviver.status !== 'alive' || reviver.team !== target.team) return false;
     life.reviveRemaining = this.rules.reviveDurationSeconds;
+    life.reviverId = reviverId;
     return true;
   }
 
@@ -145,6 +146,7 @@ export class BotSkirmishMatch {
     const life = this.lives.get(targetId);
     if (!life || life.reviveRemaining === null) return false;
     life.reviveRemaining = null;
+    life.reviverId = null;
     return true;
   }
 
@@ -163,7 +165,7 @@ export class BotSkirmishMatch {
     if (this.outcomeState) return EMPTY_STEP;
 
     const result = this.simulation.step(activeDelta);
-    this.recordDeaths(result.killedIds);
+    this.recordDeaths();
     this.advanceCapture(activeDelta);
     if (!this.outcomeState) this.resolveTicketOutcome();
     return result;
@@ -175,32 +177,41 @@ export class BotSkirmishMatch {
       if (corpse.remaining <= TIMER_EPSILON_SECONDS) this.corpses.delete(id);
     }
 
-    for (const [botId, life] of this.lives) {
-      const bot = this.simulation.snapshots.find((candidate) => candidate.id === botId);
-      if (!bot || bot.status !== 'dead') {
-        this.lives.delete(botId);
+    for (const [actorId, life] of this.lives) {
+      const actor = this.simulation.getCombatant(actorId);
+      if (!actor || actor.status !== 'dead') {
+        this.lives.delete(actorId);
         this.corpses.delete(life.corpseId);
         continue;
+      }
+
+      if (life.reviveRemaining !== null) {
+        const reviver = life.reviverId ? this.simulation.getCombatant(life.reviverId) : null;
+        if (!reviver || reviver.status !== 'alive' || reviver.team !== life.team) {
+          life.reviveRemaining = null;
+          life.reviverId = null;
+        }
       }
 
       const reviveCompletes = life.reviveRemaining !== null
         && life.reviveRemaining <= deltaSeconds + TIMER_EPSILON_SECONDS
         && life.reviveRemaining <= life.respawnRemaining + TIMER_EPSILON_SECONDS;
       if (reviveCompletes) {
-        if (this.simulation.reviveBot(botId, this.rules.reviveHealthFraction)) {
-          this.lives.delete(botId);
+        if (this.simulation.reviveBot(actorId, this.rules.reviveHealthFraction)) {
+          this.lives.delete(actorId);
           this.corpses.delete(life.corpseId);
           continue;
         }
         life.reviveRemaining = null;
+        life.reviverId = null;
       }
 
       if (life.respawnRemaining <= deltaSeconds + TIMER_EPSILON_SECONDS) {
-        if (this.simulation.respawnBot(botId)) {
+        if (this.simulation.respawnBot(actorId)) {
           if (life.team === 'friendly') this.friendlyTickets -= 1;
           else this.enemyTickets -= 1;
         }
-        this.lives.delete(botId);
+        this.lives.delete(actorId);
         continue;
       }
 
@@ -210,28 +221,28 @@ export class BotSkirmishMatch {
     this.resolveTicketOutcome();
   }
 
-  private recordDeaths(killedIds: readonly string[]): void {
-    if (killedIds.length === 0) return;
-    const bots = new Map(this.simulation.snapshots.map((bot) => [bot.id, bot]));
-    for (const botId of killedIds) {
-      if (this.lives.has(botId)) continue;
-      const bot = bots.get(botId);
-      if (!bot || bot.status !== 'dead') continue;
-      const deathNumber = (this.deathCounts.get(botId) ?? 0) + 1;
-      this.deathCounts.set(botId, deathNumber);
-      const corpseId = `${botId}-corpse-${deathNumber}`;
-      this.lives.set(botId, {
-        botId,
-        team: bot.team,
+  private recordDeaths(): void {
+    // Scan authoritative actors so external player shots are recorded on the same lifecycle path as bot shots.
+    for (const actor of this.simulation.combatants) {
+      if (actor.status !== 'dead' || this.lives.has(actor.id)) continue;
+      const actorId = actor.id;
+      const deathNumber = (this.deathCounts.get(actorId) ?? 0) + 1;
+      this.deathCounts.set(actorId, deathNumber);
+      const corpseId = `${actorId}-corpse-${deathNumber}`;
+      const team = actor.team as BotSide;
+      this.lives.set(actorId, {
+        botId: actorId,
+        team,
         corpseId,
         respawnRemaining: this.rules.respawnDelaySeconds,
         reviveRemaining: null,
+        reviverId: null,
       });
       this.corpses.set(corpseId, {
         id: corpseId,
-        botId,
-        team: bot.team,
-        position: { ...bot.position },
+        botId: actorId,
+        team,
+        position: { x: actor.position.x, y: actor.position.y, z: actor.position.z },
         remaining: this.rules.corpseLifetimeSeconds,
       });
     }
@@ -242,10 +253,10 @@ export class BotSkirmishMatch {
     if (!center) return;
     let friendlyPresent = false;
     let enemyPresent = false;
-    for (const bot of this.simulation.snapshots) {
-      if (bot.status !== 'alive') continue;
-      if (Math.hypot(bot.position.x - center.x, bot.position.z - center.z) > this.captureRadius) continue;
-      if (bot.team === 'friendly') friendlyPresent = true;
+    for (const actor of this.simulation.combatants) {
+      if (actor.status !== 'alive') continue;
+      if (Math.hypot(actor.position.x - center.x, actor.position.z - center.z) > this.captureRadius) continue;
+      if (actor.team === 'friendly') friendlyPresent = true;
       else enemyPresent = true;
     }
     const winner = this.capture.update(deltaSeconds, friendlyPresent, enemyPresent);

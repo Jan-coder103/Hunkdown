@@ -119,8 +119,13 @@ button, kbd { font: inherit; }
 .mode-toggle { margin-top: .85rem; padding: .58rem .82rem; border: 1px solid #98ad99; border-radius: .65rem; background: #526f52; color: #fffdf5; font-size: .78rem; font-weight: 800; cursor: pointer; }
 .mode-toggle:hover { background: #3e5b43; }
 .mode-toggle:focus-visible { outline: 3px solid #e29e47; outline-offset: 3px; }
+.mode-toggle + .mode-toggle { margin-left: .4rem; background: #b5663d; border-color: #d69a72; }
+.mode-toggle + .mode-toggle:hover { background: #974f32; }
+.mode-toggle[hidden] { display: none; }
 .skirmish-readout { display: block; margin-top: .65rem; color: #506960; font-size: .7rem; line-height: 1.45; }
 .skirmish-readout[hidden] { display: none; }
+.revive-readout { display: block; margin-top: .6rem; color: #8a4d32; font-size: .72rem; font-weight: 750; line-height: 1.4; }
+.revive-readout[hidden] { display: none; }
 #app[data-view-mode="skirmish"] .control-list,
 #app[data-view-mode="skirmish"] .crosshair,
 #app[data-view-mode="skirmish"] .hit-marker,
@@ -147,7 +152,10 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 }
 
 .pause-overlay[hidden] { display: none; }
+.death-overlay { z-index: 2; }
+.pause-overlay:not(.death-overlay) { z-index: 3; }
 .pause-card { width: min(100%, 25rem); padding: 2rem; border-radius: 1.4rem; background: #f8f5e7; box-shadow: 0 2rem 5rem rgb(23 43 39 / 25%); }
+.death-card { border: 1px solid rgb(255 255 255 / 75%); background: rgb(248 245 231 / 94%); }
 .pause-card h2 { margin: 0; font-size: 2rem; letter-spacing: -.045em; }
 .pause-card > p:not(.eyebrow):not(.hint) { margin: .65rem 0 1.4rem; color: #506960; }
 .pause-card button { padding: .75rem 1.1rem; border: 0; border-radius: .75rem; background: #526f52; color: white; font-weight: 750; cursor: pointer; }

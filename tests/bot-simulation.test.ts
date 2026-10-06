@@ -80,4 +80,39 @@ describe('map-backed bot skirmish', () => {
     expect(manual.snapshots.find((bot) => bot.id === 'left')).toMatchObject({ targetId: null, shouldFire: false });
     expect(manual.snapshots.find((bot) => bot.id === 'right')).toMatchObject({ targetId: null, shouldFire: false });
   });
+
+  it('includes the locally controlled player in shared hit targets and lifecycle operations', () => {
+    const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 44, cellSize: 4 }));
+    const simulation = new BotSkirmishSimulation(map, [], {
+      humanPlayer: { id: 'player', team: 'friendly', spawn: { x: -4, y: 0, z: 0 } },
+    });
+    const player = simulation.playerCombatant;
+
+    expect(player).not.toBeNull();
+    expect(simulation.combatants).toContain(player);
+    expect(simulation.getCombatant('player')).toBe(player);
+    player?.applyDamage(100);
+    expect(simulation.reviveBot('player', 0.5)).toBe(true);
+    expect(player?.health).toBe(50);
+    player?.applyDamage(100);
+    expect(simulation.respawnBot('player')).toBe(true);
+    expect(player?.health).toBe(100);
+    expect(player?.position.toArray()).toEqual([-4, 0, 0]);
+  });
+
+  it('lets opposing bots acquire and damage the locally controlled player', () => {
+    const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 16, cellSize: 4 }));
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'enemy-001', team: 'enemy', cell: { x: 3, y: 1 } },
+    ], {
+      seed: 16,
+      thinkInterval: 0.1,
+      humanPlayer: { id: 'player', team: 'friendly', spawn: { x: 2, y: 0, z: 0 } },
+    });
+
+    simulation.step(1 / 60);
+    expect(simulation.snapshots[0]).toMatchObject({ targetId: 'player', shouldFire: true });
+    for (let step = 0; step < 240; step += 1) simulation.step(1 / 60);
+    expect(simulation.playerCombatant?.health).toBeLessThan(100);
+  });
 });

@@ -10,6 +10,8 @@ Main menu → select map/loadout → join → map loads and player spawns at the
 
 Each team begins with 200 tickets. Initial spawns are free; each respawn consumes one ticket, and a team reaching zero tickets ends the round immediately. Simultaneous ticket exhaustion is a draw. Player and bots become eligible to respawn after 20 seconds. A teammate may start a 4-second revive before respawn; it restores 50% health at the team starting point and costs no ticket. Completing a revive removes that death's corpse immediately. Otherwise a body remains for up to 30 seconds, including after its bot respawns. Player death controls and the live bird's-eye loadout screen are part of Phase 10.
 
+The Phase 10 player interaction starts a teammate revive by holding F within 2.5 m of a friendly corpse. Releasing F, moving out of range, changing targets, or dying cancels the revive. The local player shares the match's authoritative hit targets and lifecycle rules; after the 20-second respawn timer, the player returns automatically to the friendly spawn and spends one team ticket. The in-app browser did not support pointer lock during implementation review, so movement, death, and revive interaction still need a human playtest.
+
 The source calls this capture the flag but describes a single central capture point. One team must control it for 30 seconds. A contest pauses both teams' progress, and earned progress persists through contested or neutral time. Completing the capture ends the round.
 
 ## Controls
