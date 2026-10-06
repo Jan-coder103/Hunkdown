@@ -22,7 +22,7 @@ After every feature:
 - Bots/match: reachability, targeting, crowd behavior, countdown, revive/respawn/ticket edge cases, capture/tie rules.
 - UI/progression: complete state transitions, reward idempotency, saved-data recovery.
 - Physics/performance: bounded debris, collision updates, cheap/detailed simulation transitions, 100+ bot stress tests and memory trends.
-- Sound/ability: concurrency limits, missing assets, activation/exit, damage and match end.
+- Sound/ability: gesture unlock, spatial routing, voice caps, missing/unsafe manifest entries, profile migration and volume validation, activation/exit, damage and match end.
 
 Use seeded simulations and fake clocks where useful. Add browser automation once an interactive engine exists; avoid tests that only assert the presence of source text. The foundation has a small shared project configuration test as its initial suite.
 

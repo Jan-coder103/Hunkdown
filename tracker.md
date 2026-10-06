@@ -15,7 +15,9 @@ Updated: 2026-10-06.
 - Phase 9: technical implementation complete; human gameplay review pending.
 - Phase 10: UI/UX and progression shell is technically implemented and verified; human gameplay and reward review remain.
 - Phase 11: first high-quality asset candidate pass is technically complete; human visual review and direction remain.
-- Active phase — 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
+- Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
+- Phase 13: performance and mass-scale implementation is complete; sustained profile verified in the foreground browser, with one near-round-end work spike recorded below.
+- Active phase — 14: audio playback/settings scaffolding is complete; user-provided clips and audible review remain.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -224,9 +226,23 @@ Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repea
 - [x] Add coverage for 100-bot simulation, off-screen simulation continuity, LOD changes without match-state drift, corpse-view reuse, culling, batching, and renderer telemetry.
 - [x] Run `npm run check`: 138 tests across 26 files passed; strict type checking and production build passed. The existing shared 531.02 kB asset/Three.js chunk warning remains.
 - [x] Profile the active match at 1920×1080, DPR 1, in Codex's in-app browser on the reference host (Intel Core i5-3570K, 3.40 GHz): first-person samples held 60 FPS with 2.4–4.0 ms frame work; bird's-eye samples with all 100 bots visible held 60 FPS with 5.6–7.7 ms work, roughly 469–506 draws and 33.7–39.0k triangles.
-- [ ] Confirm sustained 60 FPS in a stable foreground browser session. Later in-app-browser samples had irregular 83 ms to 1 s frame intervals and one 3 s work outlier; subsequent samples showed 1 ms simulation work and 6–8 ms total work while callbacks arrived about once a second. The embedded browser did not provide a reliable extended foreground profile, so that outlier is not attributed to the game or dismissed as tooling. Geometry count rose with accumulated bodies (up to 930 before corpse pooling); the 192-view cap and recycling are now covered, but a post-pooling long-match memory plateau still needs a reliable browser run.
+- [x] Confirm sustained performance in a stable foreground browser session at 1920×1080 on the Intel Core i5-3570K host. A dedicated spectator match ran for about 84 seconds: all interval samples displayed 60 FPS, with 4.8–8.3 ms frame work and 0.3–3.1 ms simulation work. The 100-bot view showed about 480–522 draws and 33.9–42.2k triangles. Geometry settled at 889–890 over the final 30 seconds while 126/126 close/far character views were visible. A separate first-person match stayed at 60 FPS across 50 seconds of samples, with 2.6–4.5 ms frame work.
+- [x] Check browser console and post-pooling geometry: no console warnings/errors; geometry remained at 889–890 during the stable overhead plateau. One 45.1 ms frame-work sample appeared in a separate player match near ticket exhaustion; it did not recur in the dedicated 84-second spectator profile.
 
-Phase 13 technical implementation is complete. Performance acceptance remains pending the stable foreground profile above. No user verification is claimed.
+Phase 13 technical and performance checks are complete. The browser HUD reports a rounded instantaneous rate and the samples were taken every 10 seconds, not as a per-frame histogram. No user verification is claimed.
+
+## Phase 14 — Sound design
+
+- [x] Add a versioned local audio manifest with required source/license attribution for each supplied clip; keep the manifest empty until user-provided files are available.
+- [x] Add gesture-unlocked Web Audio playback with spatial listener/panners, master and effects buses, bounded voice counts, and event throttles. Missing or invalid clip mappings stay silent without requesting a file.
+- [x] Connect gunshots, explosions, reloads, hit feedback, footsteps, UI clicks, and short bot knockout honks to gameplay events.
+- [x] Add saved master/effects volume controls and migrate version-1 browser profiles to version 2 with 80% defaults.
+- [x] Add behavior coverage for audio unlock, spatial routing, volume buses, missing/unsafe mappings, and per-sound/global voice limits.
+- [x] Run `npm run check`: 144 tests across 27 files passed, strict type checking passed, and production build passed. The shared 531.02 kB asset/Three.js chunk warning remains.
+- [x] Browser check at 1920×1080: Settings showed both volume controls at 80%; changing master volume to 79% persisted across reload, then was restored to 80%. Browser console warnings/errors were empty.
+- [ ] Import user-provided clips with source/license records and manually review the audible balance and clarity. `public/audio/manifest.json` currently has no mapped clips, so sound output was not audibly verified.
+
+Phase 14 is active. Its playback and settings infrastructure is technically implemented; sound clip integration and human listening review remain open. No user verification is claimed.
 
 ## Decisions to resolve before affected features
 

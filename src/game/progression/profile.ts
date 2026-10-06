@@ -1,6 +1,7 @@
 export const PROFILE_STORAGE_KEY = 'operation-honkdown-profile';
-export const PROFILE_VERSION = 1;
+export const PROFILE_VERSION = 2;
 export const MAX_RECORDED_MATCHES = 100;
+export const DEFAULT_AUDIO_VOLUME = 0.8;
 
 export type MapPresetId = 'midtown' | 'garden-district';
 export type SkillId = 'field-notes' | 'scrounger';
@@ -21,13 +22,15 @@ export type GameProfile = Readonly<{
   credits: number;
   selectedMap: MapPresetId;
   lookSensitivity: number;
+  masterVolume: number;
+  effectsVolume: number;
   skills: readonly SkillId[];
   rewardedMatchIds: readonly string[];
 }>;
 
 export type ProfileLoadResult = Readonly<{
   profile: GameProfile;
-  recovery: 'loaded' | 'missing' | 'invalid' | 'unsupported' | 'unavailable';
+  recovery: 'loaded' | 'migrated' | 'missing' | 'invalid' | 'unsupported' | 'unavailable';
 }>;
 
 export interface ProfileStorage {
@@ -64,6 +67,8 @@ export function createDefaultProfile(): GameProfile {
     credits: 0,
     selectedMap: 'midtown',
     lookSensitivity: 0.002,
+    masterVolume: DEFAULT_AUDIO_VOLUME,
+    effectsVolume: DEFAULT_AUDIO_VOLUME,
     skills: Object.freeze([]),
     rewardedMatchIds: Object.freeze([]),
   });
@@ -85,9 +90,22 @@ export function loadProfile(storage: ProfileStorage | null): ProfileLoadResult {
   } catch {
     return { profile: createDefaultProfile(), recovery: 'invalid' };
   }
-  if (!isRecord(parsed) || parsed.version !== PROFILE_VERSION) {
+  if (!isRecord(parsed)) {
     return { profile: createDefaultProfile(), recovery: 'unsupported' };
   }
+  if (parsed.version === 1) {
+    if (!isValidProfileData(parsed)) return { profile: createDefaultProfile(), recovery: 'invalid' };
+    return {
+      profile: freezeProfile({
+        ...parsed,
+        version: PROFILE_VERSION,
+        masterVolume: DEFAULT_AUDIO_VOLUME,
+        effectsVolume: DEFAULT_AUDIO_VOLUME,
+      }),
+      recovery: 'migrated',
+    };
+  }
+  if (parsed.version !== PROFILE_VERSION) return { profile: createDefaultProfile(), recovery: 'unsupported' };
   if (!isValidProfile(parsed)) return { profile: createDefaultProfile(), recovery: 'invalid' };
   return { profile: freezeProfile(parsed), recovery: 'loaded' };
 }
@@ -152,18 +170,34 @@ export function purchaseSkill(profile: GameProfile, skillId: SkillId): Readonly<
 
 export function updateProfileSettings(
   profile: GameProfile,
-  updates: Readonly<{ selectedMap?: MapPresetId; lookSensitivity?: number }>,
+  updates: Readonly<{
+    selectedMap?: MapPresetId;
+    lookSensitivity?: number;
+    masterVolume?: number;
+    effectsVolume?: number;
+  }>,
 ): GameProfile {
   const selectedMap = updates.selectedMap ?? profile.selectedMap;
   const lookSensitivity = updates.lookSensitivity ?? profile.lookSensitivity;
+  const masterVolume = updates.masterVolume ?? profile.masterVolume;
+  const effectsVolume = updates.effectsVolume ?? profile.effectsVolume;
   if (!isMapPresetId(selectedMap)) throw new RangeError('Unknown map preset');
   if (!Number.isFinite(lookSensitivity) || lookSensitivity < 0.0005 || lookSensitivity > 0.005) {
     throw new RangeError('Look sensitivity must be between 0.0005 and 0.005');
   }
-  return freezeProfile({ ...profile, selectedMap, lookSensitivity });
+  if (!isUnitInterval(masterVolume) || !isUnitInterval(effectsVolume)) {
+    throw new RangeError('Audio volumes must be between 0 and 1');
+  }
+  return freezeProfile({ ...profile, selectedMap, lookSensitivity, masterVolume, effectsVolume });
 }
 
 function isValidProfile(value: Record<string, unknown>): value is Record<string, unknown> & GameProfile {
+  return isValidProfileData(value)
+    && isUnitInterval(value.masterVolume as number)
+    && isUnitInterval(value.effectsVolume as number);
+}
+
+function isValidProfileData(value: Record<string, unknown>): boolean {
   return Number.isSafeInteger(value.xp) && (value.xp as number) >= 0
     && Number.isSafeInteger(value.credits) && (value.credits as number) >= 0
     && isMapPresetId(value.selectedMap)
@@ -185,6 +219,8 @@ function freezeProfile(value: GameProfile | Record<string, unknown>): GameProfil
     credits: record.credits as number,
     selectedMap: record.selectedMap as MapPresetId,
     lookSensitivity: record.lookSensitivity as number,
+    masterVolume: (record.masterVolume as number | undefined) ?? DEFAULT_AUDIO_VOLUME,
+    effectsVolume: (record.effectsVolume as number | undefined) ?? DEFAULT_AUDIO_VOLUME,
     skills: Object.freeze([...(record.skills as SkillId[])]),
     rewardedMatchIds: Object.freeze([...(record.rewardedMatchIds as string[])]),
   });
@@ -200,6 +236,10 @@ function isMapPresetId(value: unknown): value is MapPresetId {
 
 function isSkillId(value: unknown): value is SkillId {
   return value === 'field-notes' || value === 'scrounger';
+}
+
+function isUnitInterval(value: number): boolean {
+  return Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
 function whole(value: number): number {

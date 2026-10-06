@@ -12,6 +12,7 @@ TypeScript with strict checks, Three.js for rendering and procedural models, Vit
 | `src/game/` | Game states and orchestration |
 | `src/game/player/` | Movement, camera, class abilities |
 | `src/game/combat/` | Weapon use, damage, health and lifecycle |
+| `src/game/audio/` | Gesture-unlocked audio, spatial playback, volume buses, and voice budgets |
 | `src/game/bots/` | AI, perception, navigation, simulation budgets |
 | `src/game/match/` | Round countdown, objectives, tickets, respawn and scoring |
 | `src/game/world/` | Cells, generation, collision, destruction |
@@ -34,6 +35,7 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - Fixed-step simulation owns authoritative bird positions, health, team membership, round countdown, objective and ticket state. In a playable match the local player is another combatant in the shared hit-target set; `BotSkirmishMatch` owns player death, revive, corpse, respawn, and ticket transitions just as it does for bots. Rendering interpolates state and owns GPU resources.
 - The 20-second round countdown advances only while match simulation steps run; bots remain at their spawn positions until it completes. Pausing the engine therefore pauses the countdown.
 - `ChickenCharacterView` is rendering-only: player/combatant state drives separate first-person wing sleeves or a third-person chicken rig, while locomotion, jump flaps, aim, reload, damage, and death poses never change gameplay state.
+- `AudioManager` owns browser audio context lifetime, spatial listener updates, master/effects buses, clip loading from `public/audio/manifest.json`, and bounded sound voices. The app unlocks audio after a pointer or keyboard gesture; missing manifest entries remain silent.
 - Hidden/cullable meshes do not remove entities from simulation. Cheap/detailed simulation transitions preserve one entity identity and damage/ticket accounting.
 - Keep visual LOD (exactly two tiers) distinct from AI update frequency/simulation fidelity.
 - Seed random map choices and test scenarios. Generate geometry/collision/navigation from the same cell data.
@@ -42,7 +44,7 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - Asset definitions validate finite min/max bounds, positive collision box sizes contained by those bounds, and exactly `close` and `far` LOD builders. A generated asset owns the render objects and unique geometry/material resources for both tiers; dispose it once when a preview or runtime instance is replaced.
 - Lifecycle changes must be atomic: death, revive, respawn, and cleanup cannot duplicate a bird or spend a ticket twice.
 - Save map/progression/settings with versioned schemas and validation; unknown/invalid data needs explicit recovery.
-- Phase 10's browser profile is version 1 in `operation-honkdown-profile`; it stores local sensitivity, selected map, XP, credits, progression skills, and a bounded 100-match reward idempotency history. Storage failures fall back to an in-memory profile with a user-facing notice.
+- The versioned browser profile is `operation-honkdown-profile`; version 2 stores local sensitivity, selected map, master/effects volumes, XP, credits, progression skills, and a bounded 100-match reward idempotency history. Version 1 profiles migrate with 80% audio defaults. Storage failures fall back to an in-memory profile with a user-facing notice.
 - Escape/tools and browser focus changes must release pointer lock and suppress stuck inputs. Audio unlocks on a user gesture.
 
 ## Initial decisions

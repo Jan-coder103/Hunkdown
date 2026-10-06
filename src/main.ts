@@ -7,11 +7,13 @@ import { ChickenCharacterView } from './game/player/chicken-character-view';
 import { PointerLockControls } from './game/player/pointer-lock-controls';
 import { createWeaponModel, getWeaponDefinition } from './content/weapons/registry';
 import { CombatFeedback } from './game/combat/combat-feedback';
+import { AudioManager } from './game/audio/audio-manager';
 import { createCombatPracticeRange } from './game/combat/combat-practice-range';
 import { CombatSession } from './game/combat/combat-session';
 import { GrenadeView, WeaponView } from './game/combat/weapon-view';
 import { generateMap, worldPosition } from './game/world/map-generator';
 import { BotSkirmishView } from './game/bots/bot-skirmish-view';
+import type { BotSimulationStep } from './game/bots/bot-simulation';
 import { createSkirmishShowcaseMap } from './game/bots/skirmish-showcase';
 import {
   claimMatchReward,
@@ -87,6 +89,11 @@ export function mountApp(root: HTMLElement) {
               <p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
               <label class="setting-row" for="sensitivity-setting"><span><strong>Look sensitivity</strong><small>Applies immediately · aiming still slows look by 20%</small></span><output id="sensitivity-value">0.0020</output></label>
               <input id="sensitivity-setting" type="range" min="0.0005" max="0.005" step="0.0001" value="0.002" aria-label="Look sensitivity">
+              <label class="setting-row" for="master-volume-setting"><span><strong>Master volume</strong><small>Overall game audio level</small></span><output id="master-volume-value">80%</output></label>
+              <input id="master-volume-setting" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
+              <label class="setting-row" for="effects-volume-setting"><span><strong>Effects volume</strong><small>Combat, chicken, and interface sounds</small></span><output id="effects-volume-value">80%</output></label>
+              <input id="effects-volume-setting" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Effects volume">
+              <p class="menu-footnote">Sound playback starts after your first input. Audio clips will play when they are added to this build.</p>
               <p class="menu-footnote">Settings are saved in this browser on this device.</p>
             </section>
             <section data-menu-panel="maps" aria-labelledby="maps-title" hidden>
@@ -173,6 +180,10 @@ export function mountApp(root: HTMLElement) {
   const profileCredits = root.querySelector<HTMLElement>('#profile-credits');
   const sensitivitySetting = root.querySelector<HTMLInputElement>('#sensitivity-setting');
   const sensitivityValue = root.querySelector<HTMLOutputElement>('#sensitivity-value');
+  const masterVolumeSetting = root.querySelector<HTMLInputElement>('#master-volume-setting');
+  const masterVolumeValue = root.querySelector<HTMLOutputElement>('#master-volume-value');
+  const effectsVolumeSetting = root.querySelector<HTMLInputElement>('#effects-volume-setting');
+  const effectsVolumeValue = root.querySelector<HTMLOutputElement>('#effects-volume-value');
   const resultsOverlay = root.querySelector<HTMLElement>('#results-overlay');
   const resultsOutcome = root.querySelector<HTMLElement>('#results-outcome');
   const leaderboardContent = root.querySelector<HTMLElement>('#leaderboard-content');
@@ -187,6 +198,7 @@ export function mountApp(root: HTMLElement) {
     !viewport || !hud || !stateOutput || !pointerOutput || !modeToggle || !joinMatchButton || !skirmishReadout || !reviveReadout || !modeHeading || !classOutput || !weaponOutput || !combatReadout ||
     !diagnosticsOutput || !positionOutput || !hitMarker || !combatFlash || !pauseOverlay || !resumeButton || !pauseSettingsButton || !returnMenuButton ||
     !mainMenu || !menuJoinButton || !profileNotice || !profileLevel || !profileCredits || !sensitivitySetting || !sensitivityValue ||
+    !masterVolumeSetting || !masterVolumeValue || !effectsVolumeSetting || !effectsVolumeValue ||
     !resultsOverlay || !resultsOutcome || !leaderboardContent || !leaderboardsScreen || !continueResultsButton || !rewardScreen || !rewardSummary || !resultsMenuButton || !deathOverlay || !deathReadout
   ) {
     throw new Error('Missing combat practice element');
@@ -199,6 +211,10 @@ export function mountApp(root: HTMLElement) {
   const creditsEl = profileCredits!;
   const sensitivityInput = sensitivitySetting!;
   const sensitivityOutput = sensitivityValue!;
+  const masterVolumeInput = masterVolumeSetting!;
+  const masterVolumeOutput = masterVolumeValue!;
+  const effectsVolumeInput = effectsVolumeSetting!;
+  const effectsVolumeOutput = effectsVolumeValue!;
   const resultsEl = resultsOverlay!;
   const outcomeEl = resultsOutcome!;
   const leaderboardEl = leaderboardContent!;
@@ -210,6 +226,20 @@ export function mountApp(root: HTMLElement) {
   try { profileStorage = globalThis.localStorage; } catch { /* Browser storage can be disabled by the host. */ }
   const loadedProfile = loadProfile(profileStorage);
   let profile: GameProfile = loadedProfile.profile;
+  const audioManager = new AudioManager();
+  audioManager.setVolumes(profile.masterVolume, profile.effectsVolume);
+  const handleAudioGesture = () => { void audioManager.unlock(); };
+  const handleUiSound = (event: MouseEvent) => {
+    if ((event.target as Element | null)?.closest('button')) audioManager.play('ui');
+  };
+  window.addEventListener('pointerdown', handleAudioGesture);
+  window.addEventListener('keydown', handleAudioGesture);
+  root.addEventListener('click', handleUiSound);
+  if (loadedProfile.recovery === 'migrated') {
+    profileNotice.textContent = saveProfile(profileStorage, profile)
+      ? 'Saved profile updated with audio volume settings.'
+      : 'Audio volume settings are ready but could not be saved in this browser.';
+  }
   let menuOpenedFromPause = false;
   let currentMatchId: string | null = null;
   let resultsShown = false;
@@ -232,6 +262,7 @@ export function mountApp(root: HTMLElement) {
   let sceneView: SceneView | null = null;
   const feedback = new CombatFeedback();
   const aimDirection = new Vector3();
+  const audioForward = new Vector3(0, 0, -1);
   const tabButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-menu-tab]')];
   const tabPanels = [...root.querySelectorAll<HTMLElement>('[data-menu-panel]')];
   const mapButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-map-option]')];
@@ -249,6 +280,11 @@ export function mountApp(root: HTMLElement) {
     creditsEl.textContent = `${profile.credits.toLocaleString()} credits`;
     sensitivityInput.value = String(profile.lookSensitivity);
     sensitivityOutput.value = profile.lookSensitivity.toFixed(4);
+    masterVolumeInput.value = String(profile.masterVolume);
+    masterVolumeOutput.value = `${Math.round(profile.masterVolume * 100)}%`;
+    effectsVolumeInput.value = String(profile.effectsVolume);
+    effectsVolumeOutput.value = `${Math.round(profile.effectsVolume * 100)}%`;
+    audioManager.setVolumes(profile.masterVolume, profile.effectsVolume);
     for (const button of mapButtons) {
       button.setAttribute('aria-pressed', String(button.dataset.mapOption === profile.selectedMap));
     }
@@ -384,6 +420,7 @@ export function mountApp(root: HTMLElement) {
     for (const event of result.weaponEvents) {
       if (event.type === 'shot') {
         weaponView?.fire();
+        audioManager.play('gunshot', { position: camera.position });
         activePlayer.applyImpulse({ x: -aimDirection.x, y: 0.45, z: -aimDirection.z }, 0.86);
         activePlayer.applyRecoil(
           weaponDefinition.recoilPitchRadians * (event.aimed ? 0.75 : 1),
@@ -392,15 +429,18 @@ export function mountApp(root: HTMLElement) {
       } else if (event.type === 'reload-started') {
         weaponView?.beginReload();
         playerCharacter?.beginReload(weaponDefinition.reloadSeconds);
+        audioManager.play('reload', { position: activePlayer.position });
       }
     }
     for (const shot of result.shots) {
       if (!shot.targetId) continue;
+      audioManager.play('hit');
       feedback.registerHit();
       hitMarker.classList.add('active');
       combatFlash.classList.add('active');
     }
     for (const explosion of result.explosions) {
+      audioManager.play('explosion', { position: explosion.position });
       const distance = camera.position.distanceTo(explosion.position);
       feedback.registerExplosion(distance, CombatSession.grenadeBlastRadius);
       if (explosion.damagedIds.length > 0) {
@@ -411,6 +451,33 @@ export function mountApp(root: HTMLElement) {
     if (!feedback.freezeWeaponPose) weaponView?.update(stepSeconds);
     root.dataset.aiming = String(pointerControls?.isAiming ?? false);
     root.dataset.hitFlash = String(feedback.showHitFlash);
+  };
+
+  const playBotAudio = (battle: BotSkirmishView, events: BotSimulationStep): void => {
+    const camera = sceneView?.camera;
+    if (!camera) return;
+    let nearestShooter = null as ReturnType<typeof battle.simulation.getCombatant>;
+    let nearestDistanceSquared = 90 * 90;
+    for (const shot of events.shots) {
+      const shooter = battle.simulation.getCombatant(shot.shooterId);
+      if (!shooter) continue;
+      const dx = shooter.position.x - camera.position.x;
+      const dy = shooter.position.y - camera.position.y;
+      const dz = shooter.position.z - camera.position.z;
+      const distanceSquared = dx * dx + dy * dy + dz * dz;
+      if (distanceSquared < nearestDistanceSquared) {
+        nearestDistanceSquared = distanceSquared;
+        nearestShooter = shooter;
+      }
+    }
+    if (nearestShooter) audioManager.play('gunshot', { position: nearestShooter.position, volume: 0.72 });
+
+    const firstKillId = events.killedIds[0];
+    if (firstKillId) {
+      const chicken = battle.simulation.getCombatant(firstKillId);
+      if (chicken) audioManager.play('honk', { position: chicken.position });
+    }
+    if (isPlayerMatchMode && events.shots.some((shot) => shot.result.targetId === 'player')) audioManager.play('hit');
   };
 
   let runtime: EngineRuntime;
@@ -448,6 +515,8 @@ export function mountApp(root: HTMLElement) {
 
       return {
         render(interpolationAlpha: number) {
+          view.camera.getWorldDirection(audioForward);
+          audioManager.updateListener(view.camera.position, audioForward);
           if (!isSkirmishMode && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive')) {
             player?.render(interpolationAlpha);
           }
@@ -490,7 +559,8 @@ export function mountApp(root: HTMLElement) {
     updateSimulation: (stepSeconds, random, input) => {
       feedback.update(stepSeconds);
       if (isSkirmishMode) {
-        skirmishView?.step(stepSeconds);
+        const battle = skirmishView;
+        if (battle) playBotAudio(battle, battle.step(stepSeconds));
         return;
       }
 
@@ -503,6 +573,9 @@ export function mountApp(root: HTMLElement) {
 
         if (aliveBeforeStep && battle.match.matchState === 'active') {
           activePlayer.update(stepSeconds, input, pointerControls?.isAiming ?? false);
+          if (activePlayer.isGrounded && activePlayer.horizontalSpeed > 0.8) {
+            audioManager.play('footstep', { position: activePlayer.position });
+          }
           playerActor.position.copy(activePlayer.position);
           playerCharacter?.setPose({
             movementSpeed: activePlayer.horizontalSpeed,
@@ -537,7 +610,7 @@ export function mountApp(root: HTMLElement) {
           activeReviveTargetId = null;
         }
 
-        battle.step(stepSeconds);
+        playBotAudio(battle, battle.step(stepSeconds));
         if (playerActor.status === 'alive' && playerActor.velocity.lengthSq() > 0) {
           const impactSpeed = playerActor.velocity.length();
           activePlayer.applyImpulse(playerActor.velocity, impactSpeed);
@@ -579,6 +652,9 @@ export function mountApp(root: HTMLElement) {
 
       player?.update(stepSeconds, input, pointerControls?.isAiming ?? false);
       if (player) {
+        if (player.isGrounded && player.horizontalSpeed > 0.8) {
+          audioManager.play('footstep', { position: player.position });
+        }
         playerCharacter?.setPose({
           movementSpeed: player.horizontalSpeed,
           sprinting: player.horizontalSpeed > 5.8,
@@ -915,6 +991,16 @@ export function mountApp(root: HTMLElement) {
     player?.setLookSensitivity(value);
     persistNewProfile(profile, 'Sensitivity saved.');
   };
+  const handleMasterVolume = () => {
+    profile = updateProfileSettings(profile, { masterVolume: masterVolumeInput.valueAsNumber });
+    audioManager.setVolumes(profile.masterVolume, profile.effectsVolume);
+    persistNewProfile(profile, 'Audio settings saved.');
+  };
+  const handleEffectsVolume = () => {
+    profile = updateProfileSettings(profile, { effectsVolume: effectsVolumeInput.valueAsNumber });
+    audioManager.setVolumes(profile.masterVolume, profile.effectsVolume);
+    persistNewProfile(profile, 'Audio settings saved.');
+  };
   const handleMapSelect = (event: Event) => {
     const button = (event.currentTarget as HTMLButtonElement);
     const mapId = button.dataset.mapOption;
@@ -945,6 +1031,8 @@ export function mountApp(root: HTMLElement) {
   resultsMenuButton.addEventListener('click', returnToMainMenu);
   continueResultsButton.addEventListener('click', handleContinueResults);
   sensitivitySetting.addEventListener('input', handleSensitivity);
+  masterVolumeInput.addEventListener('input', handleMasterVolume);
+  effectsVolumeInput.addEventListener('input', handleEffectsVolume);
   runtime.start();
   runtimeHasStarted = true;
   runtime.pause();
@@ -962,9 +1050,15 @@ export function mountApp(root: HTMLElement) {
       continueResultsButton.removeEventListener('click', handleContinueResults);
       menuJoinButton.removeEventListener('click', handleMenuJoin);
       sensitivitySetting.removeEventListener('input', handleSensitivity);
+      masterVolumeInput.removeEventListener('input', handleMasterVolume);
+      effectsVolumeInput.removeEventListener('input', handleEffectsVolume);
+      window.removeEventListener('pointerdown', handleAudioGesture);
+      window.removeEventListener('keydown', handleAudioGesture);
+      root.removeEventListener('click', handleUiSound);
       modeToggle.removeEventListener('click', handleModeToggle);
       joinMatchButton.removeEventListener('click', handleJoinMatch);
       runtime.dispose();
+      audioManager.dispose();
       root.replaceChildren();
     },
   };

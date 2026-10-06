@@ -5,6 +5,7 @@ import {
   calculateMatchReward,
   claimMatchReward,
   createDefaultProfile,
+  DEFAULT_AUDIO_VOLUME,
   loadProfile,
   purchaseSkill,
   saveProfile,
@@ -33,6 +34,30 @@ describe('versioned local profile', () => {
     expect(saveProfile(blocked, createDefaultProfile())).toBe(false);
   });
 
+  it('migrates version-1 saves and adds safe audio defaults', () => {
+    const storage = new MemoryStorage();
+    storage.values.set(PROFILE_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      xp: 120,
+      credits: 45,
+      selectedMap: 'garden-district',
+      lookSensitivity: 0.003,
+      skills: [],
+      rewardedMatchIds: ['old-match'],
+    }));
+
+    const loaded = loadProfile(storage);
+    expect(loaded.recovery).toBe('migrated');
+    expect(loaded.profile).toMatchObject({
+      version: PROFILE_VERSION,
+      xp: 120,
+      credits: 45,
+      selectedMap: 'garden-district',
+      masterVolume: DEFAULT_AUDIO_VOLUME,
+      effectsVolume: DEFAULT_AUDIO_VOLUME,
+    });
+  });
+
   it('round-trips validated settings and progression through storage', () => {
     const storage = new MemoryStorage();
     const profile = updateProfileSettings(createDefaultProfile(), {
@@ -44,6 +69,11 @@ describe('versioned local profile', () => {
     storage.values.set(PROFILE_STORAGE_KEY, JSON.stringify({ ...profile, credits: -1 }));
     expect(loadProfile(storage).recovery).toBe('invalid');
     expect(() => updateProfileSettings(profile, { lookSensitivity: 0.01 })).toThrow(RangeError);
+    expect(updateProfileSettings(profile, { masterVolume: 0, effectsVolume: 0.4 })).toMatchObject({
+      masterVolume: 0,
+      effectsVolume: 0.4,
+    });
+    expect(() => updateProfileSettings(profile, { masterVolume: 1.1 })).toThrow(RangeError);
   });
 
   it('uses the transparent placeholder formula and applies purchased progression bonuses', () => {

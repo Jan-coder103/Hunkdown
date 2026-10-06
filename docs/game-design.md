@@ -43,6 +43,12 @@ Match results show top-five damage, kills, healing, and deaths leaderboards, fol
 
 Crouch defaults to hold; the controller also supports a configurable toggle mode. The Phase 3 movement test class enables boosted double jump and wall jump so both can be evaluated. Final class assignments remain open for later class/progression design. Jump timing windows, grenade cancellation, and control rebinding should be defined during the relevant input/UI work.
 
+## Sound and audio settings
+
+Master volume and effects volume are saved with the local profile and apply immediately. Audio starts after the first pointer or keyboard gesture. Combat playback covers gunshots, nearby explosions, reloads, hit feedback, player footsteps, UI clicks, and short bot knockout honks; spatial effects use distance and stereo position with a bounded voice count.
+
+Sound files are supplied by the user and listed in `public/audio/manifest.json` with a local filename, source, and license for each clip. The manifest currently has no clips, so this implementation remains silent until approved files are added. Expected event names are `gunshot`, `explosion`, `honk`, `reload`, `footstep`, `hit`, and `ui`; missing entries do not request a file or interrupt gameplay.
+
 ## City and tools
 
 Dense tiled urban city with predefined paths and randomly selected edge-to-edge buildings. Decoration includes trees, cafes, fountains, and wall-leaning bikes. Keep open routes wide enough for crowds. Buildings, collision, doors, slopes, and navigation must agree.
