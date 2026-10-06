@@ -6,6 +6,15 @@ import { generateMap } from '../src/game/world/map-generator';
 import { createEmptyMap } from '../src/game/world/map-types';
 
 describe('rendered bot skirmish', () => {
+  it('generates both selectable match map presets with connected routes', () => {
+    const midtown = generateMap(createSkirmishShowcaseMap(91, 'midtown'));
+    const garden = generateMap(createSkirmishShowcaseMap(91, 'garden-district'));
+    expect(midtown.source.id).not.toBe(garden.source.id);
+    expect(midtown.navigationNodes.length).toBeGreaterThan(20);
+    expect(garden.navigationNodes.length).toBeGreaterThan(20);
+    expect(garden.navigationNodes.some((cell) => cell.x === 0 && cell.y === 4)).toBe(true);
+  });
+
   it('renders team characters on the generated city and follows live simulation positions', () => {
     const scene = new Scene();
     const map = generateMap(createSkirmishShowcaseMap());

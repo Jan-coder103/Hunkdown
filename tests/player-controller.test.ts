@@ -222,6 +222,14 @@ describe('PlayerController', () => {
     expect(aimed.camera.fov).toBeGreaterThan(48);
   });
 
+  it('updates look sensitivity safely while settings are open', () => {
+    const { player } = createHarness();
+    player.setLookSensitivity(0.003);
+    player.handleMouseMove(100, 0);
+    expect(Math.abs(player.yaw)).toBeCloseTo(0.3);
+    expect(() => player.setLookSensitivity(0)).toThrow(RangeError);
+  });
+
   it('applies weapon recoil to the live aim ray and smoothly returns to the look direction', () => {
     const { input, camera, player } = createHarness();
     player.applyRecoil(0.08, 0.03);

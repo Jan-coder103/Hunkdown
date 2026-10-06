@@ -13,7 +13,7 @@ Updated: 2026-10-06.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
-- Active phase — 10: UI/UX and progression shell. The playable player lifecycle slice is technically complete; menus, results, and persistent progression remain.
+- Active phase — 10: UI/UX and progression shell. Menu, results, local profile, and once-only placeholder rewards are technically implemented; human gameplay and reward review remain.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -170,19 +170,25 @@ The Phase 9 preview remains a spectator bot match; Phase 10 adds a separate play
 - [x] On player death, release pointer lock and switch to the live bird's-eye city view while the battle continues; return the player to the friendly spawn after the existing 20-second delay and charge one ticket.
 - [x] Add behavior coverage for a human player as a shared hit target, player-initiated teammate revive, player death/respawn, ticket accounting, and movement-state reset on spawn.
 - [x] Run `npm run check`: 111 tests across 24 files passed; strict type checking and production build passed. The 514.84 kB shared Three.js/asset chunk warning remains.
-- [x] Browser check in Codex's in-app browser at `http://127.0.0.1:5185/`: joined a live 16-bot match, saw the first-person match view and active objective/ticket HUD at 60 FPS.
+- [x] Add four main menu tabs, local look-sensitivity setting, two selectable seeded map presets, Escape pause settings, asset viewer navigation, and return-to-main-menu flow. Loadout accurately exposes the only current weapon and identifies later class/weapon work.
+- [x] Track damage, kills, healing/revives, and deaths per combatant; show top-five leaderboards on a results screen, then a separate reward screen.
+- [x] Add a version-1 local profile with invalid/unsupported/unavailable save recovery, map/settings persistence, skill purchases, and a bounded 100-match reward history. Duplicate result claims do not pay twice.
+- [x] Add the user-selected provisional economy: 100 XP +25/kill +1 per 10 damage +20/revive; 50 credits +10/kill +25/revive. Field Notes costs 250 credits for +25% XP; Scrounger costs 400 credits for +25% credits. Bonuses round down and do not affect combat.
+- [x] Add behavior coverage for profile recovery/round-trip, settings bounds, formulas, skill purchase, reward idempotency, all four leaderboard rankings, match score attribution, and selectable map navigation.
+- [x] Run `npm run check`: 120 tests across 26 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
+- [x] Browser check in Codex's in-app browser at `http://127.0.0.1:5186/`: the menu and all tab content rendered; selected Garden District persisted across reload and launched the matching city; Escape opened pause; Settings opened from pause and Resume returned to the live match. Console error/warning log was empty; sample match view showed about 60 FPS.
+- [ ] Manually observe a completed round, the two results screens, and the visible payout. Automated coverage verifies leaderboard ordering and reward idempotency; the naturally played round did not end during this check.
 - [ ] Human playtest movement, combat, revive range/hold behavior, player death view, and respawn feel. The in-app browser did not acquire pointer lock, so movement, death, and revive were not driven manually in this pass.
-- [ ] Build the main menu tabs for loadout, settings, map selection, and skill tree; add Escape settings/tools navigation, results leaderboards, and the menu-to-results flow.
-- [ ] Add versioned local settings/progression storage and once-only match rewards. The user selected a simple placeholder economy direction; reward amounts and skill effects are not yet implemented.
+- [ ] Human review the provisional XP/credit rates and skill costs/effects, menu presentation, and complete result-to-next-round loop.
 
-Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires holding F for the shared four-second revive duration. The player automatically returns at the spawn point when the 20-second eligibility timer completes; pointer lock must be reacquired by clicking the scene. These rules reuse Phase 9 lifecycle timing and remain open for human review.
+Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires holding F for the shared four-second revive duration. The player automatically returns at the spawn point when the 20-second eligibility timer completes; pointer lock must be reacquired by clicking the scene. The selected economy and skill bonuses are provisional placeholders, kept progression-only and easy to adjust. These rules remain open for human review.
 
 ## Decisions to resolve before affected features
 
 1. **Objective — resolved for Phase 9:** one central point needs 30 seconds of control; contests and neutral time pause progress, and accumulated progress persists. Capture ends the round.
 2. **Death timing — resolved for Phase 9:** 20-second respawn eligibility; teammate revive can complete before respawn, takes four seconds, and restores 50% health at team spawn; a completed revive removes its corpse. Unrevived bodies are cleaned up after 30 seconds.
 3. **Tickets — resolved for Phase 9:** 200 per team; initial spawns are free; each respawn costs one; revives cost none; a team reaching zero ends the round. Simultaneous exhaustion is treated as a draw.
-4. **Progression/classes:** the user selected a simple placeholder economy for Phase 10. Provisional XP/currency formulas, skill effects, and unlock costs remain to be implemented and documented; class effects and save/reset behavior need human review.
+4. **Progression/classes:** the user selected a simple placeholder economy for Phase 10. The provisional formulas and two progression-only bonuses are implemented and documented; rates, costs, class effects, and save/reset behavior need human review.
 5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
 6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.
 

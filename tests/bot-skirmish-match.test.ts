@@ -1,9 +1,37 @@
 import { describe, expect, it } from 'vitest';
+import { Vector3 } from 'three';
 import { BotSkirmishMatch } from '../src/game/match/bot-skirmish-match';
 import { generateMap } from '../src/game/world/map-generator';
 import { createEmptyMap } from '../src/game/world/map-types';
 
 describe('bot skirmish match start', () => {
+  it('records player combat scores and ranks every leaderboard consistently', () => {
+    const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 87, cellSize: 4 }));
+    const match = new BotSkirmishMatch(
+      map,
+      { friendlyCount: 0, enemyCount: 1, seed: 87 },
+      { seed: 87, humanPlayer: { id: 'player', team: 'friendly', spawn: { x: -8, y: 0, z: 0 } }, thinkInterval: 100 },
+      0.01,
+      { captureDurationSeconds: 100, captureRadius: 0.1 },
+    );
+    match.step(0.02);
+    const enemy = match.simulation.getCombatant('enemy-001');
+    expect(enemy).not.toBeNull();
+    enemy?.applyDamage(35);
+    match.recordPlayerCombat('player', [{
+      direction: new Vector3(1, 0, 0), distance: 2, blocked: false, targetId: 'enemy-001', damage: 35, killed: false,
+    }]);
+    enemy?.applyDamage(65);
+    match.recordPlayerCombat('player', [{
+      direction: new Vector3(1, 0, 0), distance: 2, blocked: false, targetId: 'enemy-001', damage: 65, killed: true,
+    }]);
+    match.step(0.01);
+
+    expect(match.scoreSnapshots.find((score) => score.id === 'player')).toMatchObject({ damage: 100, kills: 1, deaths: 0 });
+    expect(match.scoreSnapshots.find((score) => score.id === 'enemy-001')).toMatchObject({ deaths: 1 });
+    expect(match.scoreSnapshots.map((score) => score.id)).toEqual(['enemy-001', 'player']);
+  });
+
   it('holds bots at their spawns during countdown, then advances the battle', () => {
     const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 44, cellSize: 4 }));
     const match = new BotSkirmishMatch(
@@ -141,6 +169,7 @@ describe('bot skirmish match start', () => {
     expect(match.beginRevive('friendly-001', 'player')).toBe(true);
     match.step(0.1);
     expect(teammate?.status).toBe('alive');
+    expect(match.scoreSnapshots.find((score) => score.id === 'player')).toMatchObject({ healing: 50, revives: 1 });
     expect(match.corpseSnapshots.some((corpse) => corpse.botId === 'friendly-001')).toBe(false);
 
     player?.applyDamage(100);
@@ -150,5 +179,6 @@ describe('bot skirmish match start', () => {
     expect(player?.status).toBe('alive');
     expect(player?.health).toBe(100);
     expect(match.tickets.friendly).toBe(3);
+    expect(match.scoreSnapshots.find((score) => score.id === 'player')?.deaths).toBe(1);
   });
 });

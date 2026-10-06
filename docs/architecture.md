@@ -42,6 +42,7 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - Asset definitions validate finite min/max bounds, positive collision box sizes contained by those bounds, and exactly `close` and `far` LOD builders. A generated asset owns the render objects and unique geometry/material resources for both tiers; dispose it once when a preview or runtime instance is replaced.
 - Lifecycle changes must be atomic: death, revive, respawn, and cleanup cannot duplicate a bird or spend a ticket twice.
 - Save map/progression/settings with versioned schemas and validation; unknown/invalid data needs explicit recovery.
+- Phase 10's browser profile is version 1 in `operation-honkdown-profile`; it stores local sensitivity, selected map, XP, credits, progression skills, and a bounded 100-match reward idempotency history. Storage failures fall back to an in-memory profile with a user-facing notice.
 - Escape/tools and browser focus changes must release pointer lock and suppress stuck inputs. Audio unlocks on a user gesture.
 
 ## Initial decisions

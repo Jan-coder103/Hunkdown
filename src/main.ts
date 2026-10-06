@@ -13,6 +13,19 @@ import { GrenadeView, WeaponView } from './game/combat/weapon-view';
 import { generateMap, worldPosition } from './game/world/map-generator';
 import { BotSkirmishView } from './game/bots/bot-skirmish-view';
 import { createSkirmishShowcaseMap } from './game/bots/skirmish-showcase';
+import {
+  claimMatchReward,
+  loadProfile,
+  purchaseSkill,
+  saveProfile,
+  SKILL_CATALOG,
+  updateProfileSettings,
+  type GameProfile,
+  type MatchPerformance,
+  type ProfileStorage,
+  type SkillId,
+} from './game/progression/profile';
+import { buildMatchLeaderboards } from './game/progression/leaderboards';
 import './style.css';
 
 export function mountApp(root: HTMLElement) {
@@ -49,13 +62,74 @@ export function mountApp(root: HTMLElement) {
         <output id="engine-diagnostics" class="diagnostics">Waiting for first frame…</output>
         <output id="position-readout" class="position-readout"></output>
       </section>
+      <section id="main-menu" class="menu-overlay" aria-labelledby="menu-title">
+        <div class="menu-card">
+          <div class="menu-header">
+            <div><p class="eyebrow">OPERATION HONKDOWN</p><h2 id="menu-title">Pick your next bad idea.</h2></div>
+            <div class="profile-balance"><span id="profile-level">Rookie · 0 XP</span><strong id="profile-credits">0 credits</strong></div>
+          </div>
+          <nav class="menu-tabs" aria-label="Main menu">
+            <button type="button" data-menu-tab="loadout" aria-selected="true">Loadout</button>
+            <button type="button" data-menu-tab="settings" aria-selected="false">Settings</button>
+            <button type="button" data-menu-tab="maps" aria-selected="false">Maps</button>
+            <button type="button" data-menu-tab="skills" aria-selected="false">Skill tree</button>
+          </nav>
+          <div class="menu-panels">
+            <section data-menu-panel="loadout" aria-labelledby="loadout-title">
+              <p class="menu-kicker">READY ROOM</p><h3 id="loadout-title">Loadout</h3>
+              <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Reliable, loud, and currently the whole armory.</span></div><b>PRIMARY</b></div>
+              <p class="menu-footnote">More weapons and class abilities arrive in later phases. Your current field rig includes the movement test jumps.</p>
+            </section>
+            <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
+              <p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
+              <label class="setting-row" for="sensitivity-setting"><span><strong>Look sensitivity</strong><small>Applies immediately · aiming still slows look by 20%</small></span><output id="sensitivity-value">0.0020</output></label>
+              <input id="sensitivity-setting" type="range" min="0.0005" max="0.005" step="0.0001" value="0.002" aria-label="Look sensitivity">
+              <p class="menu-footnote">Settings are saved in this browser on this device.</p>
+            </section>
+            <section data-menu-panel="maps" aria-labelledby="maps-title" hidden>
+              <p class="menu-kicker">CHOOSE THE BATTLEGROUND</p><h3 id="maps-title">Map selection</h3>
+              <div class="map-options">
+                <button type="button" data-map-option="midtown" aria-pressed="true"><span class="map-art map-art-midtown" aria-hidden="true"></span><strong>Midtown</strong><small>Compact city blocks · seeded layout</small></button>
+                <button type="button" data-map-option="garden-district" aria-pressed="false"><span class="map-art map-art-garden" aria-hidden="true"></span><strong>Garden District</strong><small>Open side lanes · seeded layout</small></button>
+              </div>
+            </section>
+            <section data-menu-panel="skills" aria-labelledby="skills-title" hidden>
+              <p class="menu-kicker">SPEND MATCH EARNINGS</p><h3 id="skills-title">Skill tree</h3>
+              <div class="skill-list">
+                <article class="skill-card"><div><strong>Field Notes</strong><p>Earn 25% more XP after each match.</p></div><button type="button" data-buy-skill="field-notes">250 credits</button></article>
+                <article class="skill-card"><div><strong>Scrounger</strong><p>Earn 25% more credits after each match.</p></div><button type="button" data-buy-skill="scrounger">400 credits</button></article>
+              </div>
+              <p class="menu-footnote">Provisional bonuses only; they do not change combat. Rewards start at 100 XP + 25 per kill + 1 per 10 damage + 20 per revive, and 50 credits + 10 per kill + 25 per revive.</p>
+            </section>
+          </div>
+          <p id="profile-notice" class="profile-notice" role="status"></p>
+          <div class="menu-footer"><span>16-bird battle · 8 on each side</span><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div>
+        </div>
+      </section>
       <section id="pause-overlay" class="pause-overlay" aria-labelledby="pause-title" hidden>
         <div class="pause-card">
           <p class="eyebrow">SIMULATION PAUSED</p>
           <h2 id="pause-title">Take a breather.</h2>
           <p>The world stops while you are away.</p>
           <button id="resume-button" type="button">Resume</button>
+          <button id="pause-settings-button" type="button" class="secondary-action">Settings</button>
+          <a class="pause-link" href="/asset-viewer.html" target="_blank" rel="noreferrer">Open asset viewer ↗</a>
+          <button id="return-menu-button" type="button" class="secondary-action">Return to main menu</button>
           <p class="hint">You can also press <kbd>Esc</kbd>.</p>
+        </div>
+      </section>
+      <section id="results-overlay" class="results-overlay" aria-labelledby="results-title" hidden>
+        <div class="results-card">
+          <header class="results-header"><div><p class="eyebrow">FIELD REPORT · ROUND COMPLETE</p><h2 id="results-title">The dust settled.</h2></div><strong id="results-outcome"></strong></header>
+          <div id="leaderboards-screen">
+            <div id="leaderboard-content" class="leaderboard-grid"></div>
+            <button id="continue-results-button" class="join-button results-next" type="button">See your rewards →</button>
+          </div>
+          <div id="reward-screen" hidden>
+            <p class="menu-kicker">YOUR ROUND PAYOUT</p><h3>Good work, bird.</h3>
+            <div id="reward-summary" class="reward-summary" aria-live="polite"></div>
+            <button id="results-menu-button" class="join-button" type="button">Return to main menu</button>
+          </div>
         </div>
       </section>
       <section id="death-overlay" class="pause-overlay death-overlay" aria-labelledby="death-title" hidden>
@@ -87,14 +161,55 @@ export function mountApp(root: HTMLElement) {
   const combatFlash = root.querySelector<HTMLElement>('#combat-flash');
   const pauseOverlay = root.querySelector<HTMLElement>('#pause-overlay');
   const resumeButton = root.querySelector<HTMLButtonElement>('#resume-button');
+  const pauseSettingsButton = root.querySelector<HTMLButtonElement>('#pause-settings-button');
+  const returnMenuButton = root.querySelector<HTMLButtonElement>('#return-menu-button');
+  const mainMenu = root.querySelector<HTMLElement>('#main-menu');
+  const menuJoinButton = root.querySelector<HTMLButtonElement>('#menu-join-button');
+  const profileNotice = root.querySelector<HTMLElement>('#profile-notice');
+  const profileLevel = root.querySelector<HTMLElement>('#profile-level');
+  const profileCredits = root.querySelector<HTMLElement>('#profile-credits');
+  const sensitivitySetting = root.querySelector<HTMLInputElement>('#sensitivity-setting');
+  const sensitivityValue = root.querySelector<HTMLOutputElement>('#sensitivity-value');
+  const resultsOverlay = root.querySelector<HTMLElement>('#results-overlay');
+  const resultsOutcome = root.querySelector<HTMLElement>('#results-outcome');
+  const leaderboardContent = root.querySelector<HTMLElement>('#leaderboard-content');
+  const leaderboardsScreen = root.querySelector<HTMLElement>('#leaderboards-screen');
+  const continueResultsButton = root.querySelector<HTMLButtonElement>('#continue-results-button');
+  const rewardScreen = root.querySelector<HTMLElement>('#reward-screen');
+  const rewardSummary = root.querySelector<HTMLElement>('#reward-summary');
+  const resultsMenuButton = root.querySelector<HTMLButtonElement>('#results-menu-button');
   const deathOverlay = root.querySelector<HTMLElement>('#death-overlay');
   const deathReadout = root.querySelector<HTMLElement>('#death-readout');
   if (
     !viewport || !hud || !stateOutput || !pointerOutput || !modeToggle || !joinMatchButton || !skirmishReadout || !reviveReadout || !modeHeading || !classOutput || !weaponOutput || !combatReadout ||
-    !diagnosticsOutput || !positionOutput || !hitMarker || !combatFlash || !pauseOverlay || !resumeButton || !deathOverlay || !deathReadout
+    !diagnosticsOutput || !positionOutput || !hitMarker || !combatFlash || !pauseOverlay || !resumeButton || !pauseSettingsButton || !returnMenuButton ||
+    !mainMenu || !menuJoinButton || !profileNotice || !profileLevel || !profileCredits || !sensitivitySetting || !sensitivityValue ||
+    !resultsOverlay || !resultsOutcome || !leaderboardContent || !leaderboardsScreen || !continueResultsButton || !rewardScreen || !rewardSummary || !resultsMenuButton || !deathOverlay || !deathReadout
   ) {
     throw new Error('Missing combat practice element');
   }
+  const menuEl = mainMenu!;
+  const pauseEl = pauseOverlay!;
+  const menuJoinEl = menuJoinButton!;
+  const noticeEl = profileNotice!;
+  const levelEl = profileLevel!;
+  const creditsEl = profileCredits!;
+  const sensitivityInput = sensitivitySetting!;
+  const sensitivityOutput = sensitivityValue!;
+  const resultsEl = resultsOverlay!;
+  const outcomeEl = resultsOutcome!;
+  const leaderboardEl = leaderboardContent!;
+  const leaderboardsEl = leaderboardsScreen!;
+  const rewardScreenEl = rewardScreen!;
+  const rewardEl = rewardSummary!;
+
+  let profileStorage: ProfileStorage | null = null;
+  try { profileStorage = globalThis.localStorage; } catch { /* Browser storage can be disabled by the host. */ }
+  const loadedProfile = loadProfile(profileStorage);
+  let profile: GameProfile = loadedProfile.profile;
+  let menuOpenedFromPause = false;
+  let currentMatchId: string | null = null;
+  let resultsShown = false;
 
   classOutput.textContent = `${MOVEMENT_PLAYGROUND_CLASS.name} · double jump and wall jump enabled`;
   const weaponDefinition = getWeaponDefinition('honk-47');
@@ -114,6 +229,130 @@ export function mountApp(root: HTMLElement) {
   let sceneView: SceneView | null = null;
   const feedback = new CombatFeedback();
   const aimDirection = new Vector3();
+  const tabButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-menu-tab]')];
+  const tabPanels = [...root.querySelectorAll<HTMLElement>('[data-menu-panel]')];
+  const mapButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-map-option]')];
+  const skillButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-buy-skill]')];
+
+  const persistProfile = () => {
+    const saved = saveProfile(profileStorage, profile);
+    if (!saved) noticeEl.textContent = 'Browser storage is unavailable; changes last only until this page closes.';
+    refreshProfileUi();
+  };
+
+  function refreshProfileUi(): void {
+    const level = Math.floor(profile.xp / 1000) + 1;
+    levelEl.textContent = `Rookie · level ${level} · ${profile.xp.toLocaleString()} XP`;
+    creditsEl.textContent = `${profile.credits.toLocaleString()} credits`;
+    sensitivityInput.value = String(profile.lookSensitivity);
+    sensitivityOutput.value = profile.lookSensitivity.toFixed(4);
+    for (const button of mapButtons) {
+      button.setAttribute('aria-pressed', String(button.dataset.mapOption === profile.selectedMap));
+    }
+    for (const button of skillButtons) {
+      const id = button.dataset.buySkill as SkillId | undefined;
+      if (!id) continue;
+      const skill = SKILL_CATALOG.find((entry) => entry.id === id);
+      const owned = profile.skills.includes(id);
+      button.textContent = owned ? 'Owned' : `${skill?.cost ?? 0} credits`;
+      button.disabled = owned || profile.credits < (skill?.cost ?? Number.MAX_SAFE_INTEGER);
+    }
+  }
+
+  function openMenuTab(tab: 'loadout' | 'settings' | 'maps' | 'skills'): void {
+    for (const button of tabButtons) button.setAttribute('aria-selected', String(button.dataset.menuTab === tab));
+    for (const panel of tabPanels) panel.hidden = panel.dataset.menuPanel !== tab;
+  }
+
+  function openMainMenu(tab: 'loadout' | 'settings' | 'maps' | 'skills', fromPause = false): void {
+    menuOpenedFromPause = fromPause;
+    menuEl.hidden = false;
+    pauseEl.hidden = true;
+    resultsEl.hidden = true;
+    root.dataset.menuOpen = 'true';
+    menuJoinEl.innerHTML = fromPause ? 'Resume round <span aria-hidden="true">→</span>' : 'Join round <span aria-hidden="true">→</span>';
+    openMenuTab(tab);
+    refreshProfileUi();
+  }
+
+  function closeMainMenu(): void {
+    menuEl.hidden = true;
+    root.dataset.menuOpen = 'false';
+    menuOpenedFromPause = false;
+  }
+
+  function persistNewProfile(next: GameProfile, message = ''): void {
+    profile = next;
+    noticeEl.textContent = message;
+    persistProfile();
+    if (message) noticeEl.textContent = message;
+  }
+
+  function matchIdentifier(): string {
+    const cryptoApi = globalThis.crypto;
+    if (cryptoApi && 'randomUUID' in cryptoApi) return cryptoApi.randomUUID();
+    return `match-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function showMatchResults(battle: BotSkirmishView): void {
+    if (resultsShown) return;
+    resultsShown = true;
+    pointerControls?.releaseLock();
+    pauseEl.hidden = true;
+    resultsEl.hidden = false;
+    leaderboardsEl.hidden = false;
+    rewardScreenEl.hidden = true;
+    const outcome = battle.match.outcome;
+    outcomeEl.textContent = outcome?.winner === 'draw'
+      ? 'Draw'
+      : `${outcome?.winner === 'friendly' ? 'Squad victory' : 'Enemy victory'}`;
+    const boards = buildMatchLeaderboards(battle.match.scoreSnapshots);
+    leaderboardEl.replaceChildren();
+    for (const board of boards) {
+      const panel = document.createElement('section');
+      panel.className = 'leaderboard-panel';
+      const title = document.createElement('h3');
+      title.textContent = board.label;
+      const rows = document.createElement('ol');
+      for (const score of board.entries) {
+        const item = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = score.id === 'player'
+          ? 'You'
+          : `${score.team === 'friendly' ? 'Friendly' : 'Enemy'} ${score.id.replace(/^(friendly|enemy)-/, '')}`;
+        const value = document.createElement('strong');
+        value.textContent = board.metric === 'damage' || board.metric === 'healing'
+          ? Math.round(score[board.metric]).toLocaleString()
+          : score[board.metric].toLocaleString();
+        if (score.id === 'player') item.classList.add('is-player');
+        item.append(name, value);
+        rows.append(item);
+      }
+      panel.append(title, rows);
+      leaderboardEl.append(panel);
+    }
+
+    const playerScore = battle.match.scoreSnapshots.find((score) => score.id === 'player');
+    const performance: MatchPerformance = {
+      damage: playerScore?.damage ?? 0,
+      kills: playerScore?.kills ?? 0,
+      healing: playerScore?.healing ?? 0,
+      deaths: playerScore?.deaths ?? 0,
+      revives: playerScore?.revives ?? 0,
+    };
+    const claim = claimMatchReward(profile, currentMatchId ?? matchIdentifier(), performance);
+    profile = claim.profile;
+    const persisted = saveProfile(profileStorage, profile);
+    refreshProfileUi();
+    rewardEl.textContent = claim.alreadyClaimed
+      ? 'Rewards for this match were already collected.'
+      : `Match rewards · +${claim.reward.xp} XP · +${claim.reward.credits} credits  |  Wallet: ${profile.xp.toLocaleString()} XP · ${profile.credits.toLocaleString()} credits${persisted ? '' : ' · Browser storage unavailable; progress is temporary.'}`;
+  }
+
+  if (loadedProfile.recovery === 'invalid') profileNotice.textContent = 'Saved profile was unreadable; a fresh profile is ready.';
+  else if (loadedProfile.recovery === 'unsupported') profileNotice.textContent = 'Saved profile version is newer; a fresh profile is ready for this build.';
+  else if (loadedProfile.recovery === 'unavailable') profileNotice.textContent = 'Browser storage is unavailable; progress will last only until this page closes.';
+  refreshProfileUi();
 
   const stepPlayerCombat = (
     stepSeconds: number,
@@ -132,6 +371,7 @@ export function mountApp(root: HTMLElement) {
       grenadeTogglePressed: input.wasPressed('KeyG'),
       aiming: pointerControls?.isAiming ?? false,
     }, camera.position, aimDirection, random);
+    if (isPlayerMatchMode) skirmishView?.match.recordPlayerCombat('player', result.shots, result.explosions);
     for (const event of result.weaponEvents) {
       if (event.type === 'shot') {
         weaponView?.fire();
@@ -163,7 +403,9 @@ export function mountApp(root: HTMLElement) {
     root.dataset.hitFlash = String(feedback.showHitFlash);
   };
 
-  const runtime = new EngineRuntime({
+  let runtime: EngineRuntime;
+  let runtimeHasStarted = false;
+  runtime = new EngineRuntime({
     createView: () => {
       const view = new SceneView({ container: viewport });
       sceneView = view;
@@ -177,6 +419,7 @@ export function mountApp(root: HTMLElement) {
         spawn: { x: 0, y: 0, z: 8 },
         crouchMode: MOVEMENT_PLAYGROUND_CLASS.crouchMode,
         capabilities: MOVEMENT_PLAYGROUND_CLASS.capabilities,
+        lookSensitivity: profile.lookSensitivity,
       });
       pointerControls = new PointerLockControls(view.renderer.domElement as HTMLCanvasElement, {
         onLook: (movementX, movementY, aiming) => player?.handleMouseMove(movementX, movementY, aiming),
@@ -334,9 +577,15 @@ export function mountApp(root: HTMLElement) {
     },
     onStateChange: (state) => {
       stateOutput.textContent = state === 'running' ? 'Running' : state === 'paused' ? 'Paused' : state;
-      pauseOverlay.hidden = state !== 'paused';
+      pauseOverlay.hidden = state !== 'paused' || resultsShown || !mainMenu.hidden;
       root.dataset.engineState = state;
       if (state === 'paused') pointerControls?.releaseLock();
+      if (state === 'running' && runtimeHasStarted && !mainMenu.hidden) {
+        const resumeMatch = menuOpenedFromPause && isPlayerMatchMode
+          && skirmishView?.match.simulation.playerCombatant?.status === 'alive';
+        closeMainMenu();
+        if (resumeMatch) pointerControls?.requestLock();
+      }
     },
     onDiagnostics: (snapshot) => {
       if (snapshot.frameCount % 10 !== 0) return;
@@ -411,6 +660,10 @@ export function mountApp(root: HTMLElement) {
           weaponOutput.textContent = 'Match complete';
           combatReadout.textContent = `${match.outcome?.winner === 'draw' ? 'Draw' : `${match.outcome?.winner} victory`} · ${match.outcome?.reason === 'capture' ? 'objective captured' : 'tickets exhausted'}`;
           deathReadout.textContent = `Round over · ${match.outcome?.winner === 'draw' ? 'draw' : `${match.outcome?.winner} victory`}`;
+          if (!resultsShown) {
+            showMatchResults(battle);
+            runtime.pause();
+          }
         } else {
           classOutput.textContent = `Friendly squad · ${Math.round(playerActor?.health ?? 0)} health`;
           const ammo = combat?.weapon.snapshot;
@@ -521,6 +774,7 @@ export function mountApp(root: HTMLElement) {
         spawn: { x: 0, y: 0, z: 8 },
         crouchMode: MOVEMENT_PLAYGROUND_CLASS.crouchMode,
         capabilities: MOVEMENT_PLAYGROUND_CLASS.capabilities,
+        lookSensitivity: profile.lookSensitivity,
       });
       if (playerCharacter) {
         playerCharacter.object.visible = true;
@@ -545,7 +799,10 @@ export function mountApp(root: HTMLElement) {
 
     if (isSkirmishMode) handleModeToggle();
     pointerControls?.releaseLock();
-    const generated = generateMap(createSkirmishShowcaseMap());
+    currentMatchId = matchIdentifier();
+    resultsShown = false;
+    resultsOverlay.hidden = true;
+    const generated = generateMap(createSkirmishShowcaseMap(undefined, profile.selectedMap));
     const spawnCell = generated.navigationNodes
       .filter((cell) => cell.x === 0)
       .sort((a, b) => Math.abs(a.y - (generated.source.height - 1) / 2) - Math.abs(b.y - (generated.source.height - 1) / 2))[0]
@@ -569,6 +826,7 @@ export function mountApp(root: HTMLElement) {
       spawn: playerSpawn,
       crouchMode: MOVEMENT_PLAYGROUND_CLASS.crouchMode,
       capabilities: MOVEMENT_PLAYGROUND_CLASS.capabilities,
+      lookSensitivity: profile.lookSensitivity,
     });
     if (playerCharacter) {
       playerCharacter.object.visible = true;
@@ -579,9 +837,9 @@ export function mountApp(root: HTMLElement) {
     camera.up.set(0, 1, 0);
     player.render(1);
     const countdown = Math.ceil(skirmishView.match.countdown.secondsRemaining);
-    modeHeading.textContent = 'Midtown match';
-    viewport.setAttribute('aria-label', 'First-person view of a live Midtown match');
-    hud.setAttribute('aria-label', 'Live Midtown match status and controls');
+    modeHeading.textContent = `${generated.source.name} match`;
+    viewport.setAttribute('aria-label', `First-person view of a live ${generated.source.name} match`);
+    hud.setAttribute('aria-label', `Live ${generated.source.name} match status and controls`);
     modeToggle.hidden = true;
     joinMatchButton.textContent = 'Leave match';
     pointerOutput.textContent = 'Click the scene to capture the mouse.';
@@ -596,6 +854,7 @@ export function mountApp(root: HTMLElement) {
   modeToggle.addEventListener('click', handleModeToggle);
   joinMatchButton.addEventListener('click', handleJoinMatch);
   root.dataset.viewMode = 'practice';
+  root.dataset.menuOpen = 'true';
 
   const handleResume = () => {
     if (!runtime.resume()) return;
@@ -603,7 +862,70 @@ export function mountApp(root: HTMLElement) {
     pointerControls?.requestLock();
   };
   resumeButton.addEventListener('click', handleResume);
+  const handleMenuJoin = () => {
+    if (menuOpenedFromPause) {
+      closeMainMenu();
+      const playerCanPlay = !isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive';
+      if (runtime.resume() && playerCanPlay) pointerControls?.requestLock();
+      return;
+    }
+    closeMainMenu();
+    handleJoinMatch();
+    runtime.resume();
+  };
+  const handlePauseSettings = () => openMainMenu('settings', true);
+  const handleContinueResults = () => {
+    leaderboardsEl.hidden = true;
+    rewardScreenEl.hidden = false;
+  };
+  const returnToMainMenu = () => {
+    resultsShown = false;
+    resultsOverlay.hidden = true;
+    if (isPlayerMatchMode) handleJoinMatch();
+    else if (isSkirmishMode) handleModeToggle();
+    currentMatchId = null;
+    if (runtime.state === 'running') runtime.pause();
+    openMainMenu('loadout');
+  };
+  const handleSensitivity = () => {
+    const value = Number(sensitivitySetting.value);
+    profile = updateProfileSettings(profile, { lookSensitivity: value });
+    player?.setLookSensitivity(value);
+    persistNewProfile(profile, 'Sensitivity saved.');
+  };
+  const handleMapSelect = (event: Event) => {
+    const button = (event.currentTarget as HTMLButtonElement);
+    const mapId = button.dataset.mapOption;
+    if (mapId !== 'midtown' && mapId !== 'garden-district') return;
+    profile = updateProfileSettings(profile, { selectedMap: mapId });
+    persistNewProfile(profile, `${mapId === 'midtown' ? 'Midtown' : 'Garden District'} selected for the next round.`);
+  };
+  const handleSkillPurchase = (event: Event) => {
+    const skillId = (event.currentTarget as HTMLButtonElement).dataset.buySkill as SkillId | undefined;
+    if (skillId !== 'field-notes' && skillId !== 'scrounger') return;
+    const result = purchaseSkill(profile, skillId);
+    const message = result.reason === 'purchased'
+      ? `${SKILL_CATALOG.find((skill) => skill.id === skillId)?.name} unlocked.`
+      : result.reason === 'owned'
+        ? 'This skill is already owned.'
+        : 'Earn more credits before buying this skill.';
+    persistNewProfile(result.profile, message);
+  };
+  for (const button of tabButtons) button.addEventListener('click', () => {
+    const tab = button.dataset.menuTab;
+    if (tab === 'loadout' || tab === 'settings' || tab === 'maps' || tab === 'skills') openMenuTab(tab);
+  });
+  for (const button of mapButtons) button.addEventListener('click', handleMapSelect);
+  for (const button of skillButtons) button.addEventListener('click', handleSkillPurchase);
+  menuJoinButton.addEventListener('click', handleMenuJoin);
+  pauseSettingsButton.addEventListener('click', handlePauseSettings);
+  returnMenuButton.addEventListener('click', returnToMainMenu);
+  resultsMenuButton.addEventListener('click', returnToMainMenu);
+  continueResultsButton.addEventListener('click', handleContinueResults);
+  sensitivitySetting.addEventListener('input', handleSensitivity);
   runtime.start();
+  runtimeHasStarted = true;
+  runtime.pause();
 
   let disposed = false;
   return {
@@ -612,6 +934,12 @@ export function mountApp(root: HTMLElement) {
       if (disposed) return;
       disposed = true;
       resumeButton.removeEventListener('click', handleResume);
+      pauseSettingsButton.removeEventListener('click', handlePauseSettings);
+      returnMenuButton.removeEventListener('click', returnToMainMenu);
+      resultsMenuButton.removeEventListener('click', returnToMainMenu);
+      continueResultsButton.removeEventListener('click', handleContinueResults);
+      menuJoinButton.removeEventListener('click', handleMenuJoin);
+      sensitivitySetting.removeEventListener('input', handleSensitivity);
       modeToggle.removeEventListener('click', handleModeToggle);
       joinMatchButton.removeEventListener('click', handleJoinMatch);
       runtime.dispose();

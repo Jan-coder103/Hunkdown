@@ -47,7 +47,7 @@ export class PlayerController {
   readonly velocity = new Vector3();
   readonly capabilities: MovementCapabilities;
   readonly crouchMode: CrouchMode;
-  readonly lookSensitivity: number;
+  lookSensitivity: number;
 
   isGrounded = true;
   isCrouched = false;
@@ -92,6 +92,13 @@ export class PlayerController {
     this.camera.fov = BASE_FOV;
     this.previousPosition.copy(this.position);
     this.syncCamera();
+  }
+
+  setLookSensitivity(value: number): void {
+    if (!Number.isFinite(value) || value < 0.0005 || value > 0.005) {
+      throw new RangeError('Look sensitivity must be between 0.0005 and 0.005');
+    }
+    this.lookSensitivity = value;
   }
 
   get horizontalSpeed(): number {

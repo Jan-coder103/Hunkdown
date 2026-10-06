@@ -2,6 +2,8 @@ import type { GeneratedMap } from '../world/map-generator';
 import { BotSkirmishSimulation, createBotSkirmish, type BotRosterOptions, type BotSide, type BotSimulationOptions, type BotSimulationStep } from '../bots/bot-simulation';
 import { CapturePoint, type CapturePointSnapshot } from './capture-point';
 import { RoundCountdown, ROUND_COUNTDOWN_SECONDS } from './round-countdown';
+import type { HitscanResult } from '../combat/hitscan';
+import type { GrenadeExplosion } from '../combat/grenades';
 
 const EMPTY_STEP: BotSimulationStep = Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]) });
 const TIMER_EPSILON_SECONDS = 1e-9;
@@ -22,6 +24,16 @@ export type BotLifeSnapshot = Readonly<{
   respawnSecondsRemaining: number;
   reviveProgress: number | null;
 }>;
+export type CombatantScore = Readonly<{
+  id: string;
+  team: BotSide;
+  damage: number;
+  kills: number;
+  healing: number;
+  deaths: number;
+  revives: number;
+}>;
+type MutableCombatantScore = { damage: number; kills: number; healing: number; deaths: number; revives: number };
 
 export type BotSkirmishMatchRules = Readonly<{
   captureDurationSeconds: number;
@@ -75,6 +87,7 @@ export class BotSkirmishMatch {
   private readonly lives = new Map<string, MutableLife>();
   private readonly corpses = new Map<string, MutableCorpse>();
   private readonly deathCounts = new Map<string, number>();
+  private readonly scores = new Map<string, MutableCombatantScore>();
 
   constructor(
     map: GeneratedMap,
@@ -92,6 +105,9 @@ export class BotSkirmishMatch {
     this.capture = new CapturePoint(this.rules.captureDurationSeconds);
     this.friendlyTickets = this.rules.initialTickets;
     this.enemyTickets = this.rules.initialTickets;
+    for (const actor of this.simulation.combatants) {
+      this.scores.set(actor.id, { damage: 0, kills: 0, healing: 0, deaths: 0, revives: 0 });
+    }
   }
 
   get matchState(): BotSkirmishMatchState {
@@ -127,6 +143,33 @@ export class BotSkirmishMatch {
       respawnSecondsRemaining: life.respawnRemaining,
       reviveProgress: life.reviveRemaining === null ? null : 1 - life.reviveRemaining / this.rules.reviveDurationSeconds,
     })));
+  }
+
+  get scoreSnapshots(): readonly CombatantScore[] {
+    return Object.freeze(this.simulation.combatants.map((actor) => {
+      const score = this.scores.get(actor.id);
+      return Object.freeze({
+        id: actor.id,
+        team: actor.team as BotSide,
+        damage: score?.damage ?? 0,
+        kills: score?.kills ?? 0,
+        healing: score?.healing ?? 0,
+        deaths: score?.deaths ?? 0,
+        revives: score?.revives ?? 0,
+      });
+    }));
+  }
+
+  /** Records local-player hits and grenade impacts resolved outside the bot simulation step. */
+  recordPlayerCombat(shooterId: string, shots: readonly HitscanResult[], explosions: readonly GrenadeExplosion[] = []): void {
+    if (this.state !== 'active' || this.outcomeState) return;
+    const shooter = this.simulation.getCombatant(shooterId);
+    if (!shooter || shooter.team !== 'friendly') return;
+    for (const shot of shots) this.recordHit(shooterId, shot.targetId, shot.damage, shot.killed);
+    for (const explosion of explosions) {
+      const killed = new Set(explosion.killedIds);
+      for (const hit of explosion.damageById) this.recordHit(shooterId, hit.id, hit.amount, killed.has(hit.id));
+    }
   }
 
   /** Starts a same-team revive. The match completes it after four seconds by default. */
@@ -165,6 +208,7 @@ export class BotSkirmishMatch {
     if (this.outcomeState) return EMPTY_STEP;
 
     const result = this.simulation.step(activeDelta);
+    for (const shot of result.shots) this.recordHit(shot.shooterId, shot.result.targetId, shot.result.damage, shot.result.killed);
     this.recordDeaths();
     this.advanceCapture(activeDelta);
     if (!this.outcomeState) this.resolveTicketOutcome();
@@ -198,6 +242,11 @@ export class BotSkirmishMatch {
         && life.reviveRemaining <= life.respawnRemaining + TIMER_EPSILON_SECONDS;
       if (reviveCompletes) {
         if (this.simulation.reviveBot(actorId, this.rules.reviveHealthFraction)) {
+          const reviverScore = life.reviverId ? this.scores.get(life.reviverId) : null;
+          if (reviverScore) {
+            reviverScore.healing += actor.maxHealth * this.rules.reviveHealthFraction;
+            reviverScore.revives += 1;
+          }
           this.lives.delete(actorId);
           this.corpses.delete(life.corpseId);
           continue;
@@ -228,6 +277,8 @@ export class BotSkirmishMatch {
       const actorId = actor.id;
       const deathNumber = (this.deathCounts.get(actorId) ?? 0) + 1;
       this.deathCounts.set(actorId, deathNumber);
+      const score = this.scores.get(actorId);
+      if (score) score.deaths += 1;
       const corpseId = `${actorId}-corpse-${deathNumber}`;
       const team = actor.team as BotSide;
       this.lives.set(actorId, {
@@ -277,6 +328,14 @@ export class BotSkirmishMatch {
     if (this.outcomeState) return;
     this.outcomeState = Object.freeze(outcome);
     this.state = 'complete';
+  }
+
+  private recordHit(shooterId: string, targetId: string | null, damage: number, killed: boolean): void {
+    if (!targetId || !Number.isFinite(damage) || damage <= 0) return;
+    const score = this.scores.get(shooterId);
+    if (!score) return;
+    score.damage += damage;
+    if (killed) score.kills += 1;
   }
 }
 

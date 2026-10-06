@@ -16,6 +16,7 @@ export type GrenadeExplosion = Readonly<{
   position: Vector3;
   damagedIds: readonly string[];
   killedIds: readonly string[];
+  damageById: readonly Readonly<{ id: string; amount: number }>[];
 }>;
 
 type Projectile = {
@@ -149,6 +150,7 @@ function initialVelocity(direction: Readonly<{ x: number; y: number; z: number }
 function detonate(position: Vector3, world: MovementWorld, combatants: readonly Combatant[], shooterTeam: Combatant['team']): GrenadeExplosion {
   const damagedIds: string[] = [];
   const killedIds: string[] = [];
+  const damageById: { id: string; amount: number }[] = [];
   for (const target of combatants) {
     if (target.status !== 'alive' || !areOpponents(shooterTeam, target.team)) continue;
     const center = target.position.clone().add(new Vector3(0, target.height * 0.5, 0));
@@ -162,8 +164,11 @@ function detonate(position: Vector3, world: MovementWorld, combatants: readonly 
     const falloff = 1 - distance / GRENADE_RULES.blastRadius;
     const damage = GRENADE_RULES.maximumDamage * falloff;
     const outcome = target.applyDamage(damage, distance > 1e-6 ? offset : { x: 0, y: 1, z: 0 }, 9 * falloff);
-    if (outcome.applied > 0) damagedIds.push(target.id);
+    if (outcome.applied > 0) {
+      damagedIds.push(target.id);
+      damageById.push({ id: target.id, amount: outcome.applied });
+    }
     if (outcome.killed) killedIds.push(target.id);
   }
-  return { position: position.clone(), damagedIds, killedIds };
+  return { position: position.clone(), damagedIds, killedIds, damageById };
 }
