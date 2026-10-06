@@ -40,5 +40,6 @@ None yet. Record failures, deferred checks, user feedback, and relevant reproduc
 - `npm run check`: passed (1 initial test, strict type checking, production build).
 - Dependency install audit: zero reported vulnerabilities after updating test tooling.
 - Browser: Codex in-app browser at `http://127.0.0.1:5173/`; visible foundation page renders correctly and captured warning/error logs are empty.
+- Revalidated 2026-10-06: `npm ci --offline` completed from the lockfile (70 packages added; zero reported vulnerabilities), and `npm run check` passed (1 test, typecheck, production build). The foundation page rendered in the Codex in-app browser at `http://127.0.0.1:5174/` because port 5173 was already occupied; its heading, Phase 1 status, 100+ bot target, Three.js version, and visual direction were visible.
 - No gameplay or performance playtest applies yet. No user verification has been claimed.
 - Network installation and local server required elevated execution because the sandbox blocks registry DNS and listening sockets; both succeeded. The reserved `.git` directory also required elevated Git initialization/writes.

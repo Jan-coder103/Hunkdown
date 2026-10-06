@@ -1,17 +1,13 @@
 # Latest handoff
 
-## Last work
+## Current status
 
-Read the complete original game brief and converted it into a 17-phase plan. Created the agent entry points, progress tracker, design/architecture/testing references, and a minimal TypeScript/Three.js project scaffold. The original brief is unchanged.
-
-## Current boundary
-
-Phase 1 is technically complete; human review is pending. No movement, combat, bots, editor, asset viewer, or match loop is implemented. The landing page is a foundation status page. Dependencies and lockfile are installed. `npm run check` passed: one initial test, strict type checking, and production build. The in-app browser displayed the page correctly with no captured warning/error logs. Dependency audit reports zero vulnerabilities. Git is initialized on `main`; this handoff belongs to the foundation commit.
+Phase 1 is technically complete; human review of the foundation and plan is still pending. This turn reconfirmed a lockfile-based clean install and all automated gates, and opened the foundation page in the Codex in-app browser at `http://127.0.0.1:5174/` (port 5173 was already occupied). The page shows the project identity, Phase 1 status, 100+ bot target, Three.js r180, and bright low-poly direction. No gameplay is implemented.
 
 ## Next work
 
-Next implementation is Phase 2: renderer/scene/camera lifecycle, fixed-step simulation, input lifecycle, pause/state handling, and diagnostics with tests. Read `agent.md`, `plan.md`, and `docs/architecture.md` before editing. The development server was started at `http://127.0.0.1:5173/`; restart with `npm run dev` if no longer running.
+After human review, continue with Phase 2: renderer/scene/camera lifecycle, fixed-step simulation, input lifecycle, pause/state handling, and timing diagnostics. Read `agent.md`, `plan.md`, and `docs/architecture.md` before editing.
 
 ## Design issues
 
-`tracker.md` records unresolved objective rules, corpse/respawn timing, tickets, progression, performance targets, and plane ability details. No user approvals have been recorded. Resolve these before the relevant phase, without blocking unrelated foundation/engine work.
+`tracker.md` records unresolved objective rules, corpse/respawn timing, tickets, progression, performance targets, and plane ability details. Resolve each before its affected phase; these do not block Phase 2.
