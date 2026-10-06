@@ -237,13 +237,21 @@ export function mountApp(root: HTMLElement) {
       }
       if (isSkirmishMode && skirmishView) {
         const bots = skirmishView.snapshots;
-        const friendlies = bots.filter((bot) => bot.team === 'friendly');
-        const enemies = bots.filter((bot) => bot.team === 'enemy');
-        const friendlyAlive = friendlies.filter((bot) => bot.status === 'alive').length;
-        const enemyAlive = enemies.filter((bot) => bot.status === 'alive').length;
-        const firing = bots.filter((bot) => bot.shouldFire).length;
-        weaponOutput.textContent = 'Bird’s-eye spectator · fixed-step bot battle';
-        combatReadout.textContent = `Friendly ${friendlyAlive}/${friendlies.length} · Enemy ${enemyAlive}/${enemies.length} · ${skirmishView.totalKills} eliminations · ${firing} engaging`;
+        if (skirmishView.match.matchState === 'countdown') {
+          const remaining = Math.ceil(skirmishView.match.countdown.secondsRemaining);
+          classOutput.textContent = 'Round countdown · bots are holding their starts';
+          weaponOutput.textContent = 'ROUND STARTING';
+          combatReadout.textContent = `Battle begins in ${remaining} ${remaining === 1 ? 'second' : 'seconds'} · 8 friendly · 8 enemy`;
+        } else {
+          const friendlies = bots.filter((bot) => bot.team === 'friendly');
+          const enemies = bots.filter((bot) => bot.team === 'enemy');
+          const friendlyAlive = friendlies.filter((bot) => bot.status === 'alive').length;
+          const enemyAlive = enemies.filter((bot) => bot.status === 'alive').length;
+          const firing = bots.filter((bot) => bot.shouldFire).length;
+          classOutput.textContent = 'Round active · bot-only simulation preview';
+          weaponOutput.textContent = 'Bird’s-eye spectator · fixed-step bot battle';
+          combatReadout.textContent = `Friendly ${friendlyAlive}/${friendlies.length} · Enemy ${enemyAlive}/${enemies.length} · ${skirmishView.totalKills} eliminations · ${firing} engaging`;
+        }
         positionOutput.textContent = `Seeded Midtown · ${skirmishView.map.navigationNodes.length} reachable city cells · ${skirmishView.tracerCount} active tracers`;
         skirmishReadout.textContent = 'Bots use generated routes, cover, line of sight, and Honk-47 combat rules. Capture and respawn rules are not active in this preview.';
       } else if (combat) {
@@ -285,6 +293,9 @@ export function mountApp(root: HTMLElement) {
       hud.setAttribute('aria-label', 'Live bot skirmish status');
       pointerOutput.textContent = 'Bird’s-eye spectator · press Esc to pause';
       classOutput.textContent = 'Live seeded skirmish · 8 friendly bots vs 8 enemy bots';
+      weaponOutput.textContent = 'ROUND STARTING';
+      const remaining = Math.ceil(skirmishView.match.countdown.secondsRemaining);
+      combatReadout.textContent = `Battle begins in ${remaining} seconds · 8 friendly · 8 enemy`;
       skirmishReadout.hidden = false;
       root.dataset.viewMode = 'skirmish';
     } else {

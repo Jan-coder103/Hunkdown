@@ -9,7 +9,7 @@ describe('rendered bot skirmish', () => {
   it('renders team characters on the generated city and follows live simulation positions', () => {
     const scene = new Scene();
     const map = generateMap(createSkirmishShowcaseMap());
-    const view = new BotSkirmishView(scene, map, { friendlyCount: 3, enemyCount: 3, seed: 61 });
+    const view = new BotSkirmishView(scene, map, { friendlyCount: 3, enemyCount: 3, seed: 61, countdownSeconds: 0.1 });
     const before = view.snapshots;
     expect(before).toHaveLength(6);
     expect(scene.getObjectByName('central skirmish meeting point')).toBeTruthy();
@@ -38,6 +38,7 @@ describe('rendered bot skirmish', () => {
       friendlyCount: 1,
       enemyCount: 1,
       seed: 44,
+      countdownSeconds: 0.1,
     });
     let sawTracer = false;
     let sawRenderedTracer = false;

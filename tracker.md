@@ -12,7 +12,7 @@ Updated: 2026-10-06.
 - Phase 6: technically complete; human review pending.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
-- Active phase — 9: bot navigation and tactics are implemented, and a rendered 16-bot preview is integrated; match policy and lifecycle remain open.
+- Active phase — 9: bot navigation and tactics, rendered 16-bot preview, and 20-second round countdown are integrated; objective and lifecycle policy remain open.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -148,13 +148,15 @@ Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, fri
 - [x] Add behavior coverage for blocked routes, door/slope connectivity, deterministic route variation/spawns/skirmishes, building cover and sight blocking, objective seeking, imperfect aim, cover seeking, and crowd avoidance.
 - [x] Add a switchable bird's-eye browser preview with generated city blocks, team-marked chicken views, live simulation positions, damage poses, and transient team-colored shot tracers. The existing combat practice view remains available.
 - [x] Add behavior coverage for live scene synchronization, bot movement, visible shot tracers, and resource cleanup.
-- [x] Run `npm run check`: 97 tests across 21 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
-- [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5183/`: switched from practice to the 16-bot bird's-eye preview and back; saw live team counts, eliminations, and tracers. A sample HUD read 60 FPS and 7.7 ms frame work; this is not a formal 100+ bot performance test.
+- [x] Add a 20-second fixed-step round countdown; bots hold their spawn positions and do not fire before it completes.
+- [x] Add countdown and match-gating behavior coverage, including exact 60 Hz completion and stationary bots before round start.
+- [x] Run `npm run check`: 100 tests across 23 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
+- [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5183/`: saw the countdown start at 20 seconds, then transition to active bot combat with live eliminations. A sample HUD read 60 FPS and 7.4 ms frame work; this is not a formal 100+ bot performance test.
 - [ ] Profile 100+ bots after the match simulation is integrated; no scaling claim has been made.
-- [ ] Implement countdown, objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
+- [ ] Implement objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
 - [ ] Human playtest bot routes, accuracy, retreat behavior, and match rules.
 
-The browser preview demonstrates the existing bot navigation and combat simulation; it does not yet include the human player, countdown, respawn/revive lifecycle, tickets, capture progress, or match outcomes. Those rules remain pending user direction. Phases 1–8 still have human-review items open.
+The browser preview now gates bot combat behind the 20-second countdown, but it does not yet include the human player, respawn/revive lifecycle, tickets, capture progress, or match outcomes. Those rules remain pending user direction. Phases 1–8 still have human-review items open.
 
 ## Decisions to resolve before affected features
 

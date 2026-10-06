@@ -21,7 +21,8 @@ import type { GeneratedAsset } from '../../content/assets/asset-types';
 import { ChickenCharacterView } from '../player/chicken-character-view';
 import { generateMap, worldPosition, type GeneratedMap } from '../world/map-generator';
 import { createEnterableBuilding, createSlopeGeometry } from '../../tools/map-editor/map-geometry';
-import { BotSkirmishSimulation, createBotSkirmish, type BotShot, type BotSide, type BotSimulationOptions, type BotSimulationStep, type BotSnapshot } from './bot-simulation';
+import { BotSkirmishSimulation, type BotShot, type BotSide, type BotSimulationOptions, type BotSimulationStep, type BotSnapshot } from './bot-simulation';
+import { BotSkirmishMatch } from '../match/bot-skirmish-match';
 
 const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
   street: '#c4cdbc',
@@ -36,12 +37,14 @@ export type BotSkirmishViewOptions = Readonly<{
   friendlyCount?: number;
   enemyCount?: number;
   seed?: number;
+  countdownSeconds?: number;
   simulation?: BotSimulationOptions;
 }>;
 
 /** Scene presentation for the deterministic bot-only match preview. */
 export class BotSkirmishView {
   readonly simulation: BotSkirmishSimulation;
+  readonly match: BotSkirmishMatch;
   readonly map: GeneratedMap;
   private readonly root = new Group();
   private readonly characters = new Map<string, ChickenCharacterView>();
@@ -63,11 +66,12 @@ export class BotSkirmishView {
     this.map = map;
     const seed = options.seed ?? map.source.seed;
     this.weaponRange = getWeaponDefinition(options.simulation?.weaponId ?? 'honk-47').range;
-    this.simulation = createBotSkirmish(map, {
+    this.match = new BotSkirmishMatch(map, {
       friendlyCount: options.friendlyCount ?? 8,
       enemyCount: options.enemyCount ?? 8,
       seed,
-    }, { ...options.simulation, seed });
+    }, { ...options.simulation, seed }, options.countdownSeconds);
+    this.simulation = this.match.simulation;
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
@@ -92,7 +96,7 @@ export class BotSkirmishView {
     const before = this.simulation.snapshots;
     for (const bot of before) this.previousPositions.set(bot.id, new Vector3(bot.position.x, bot.position.y, bot.position.z));
 
-    const result = this.simulation.step(deltaSeconds);
+    const result = this.match.step(deltaSeconds);
     this.kills += result.killedIds.length;
     const after = this.simulation.snapshots;
     const byId = new Map(after.map((bot) => [bot.id, bot]));

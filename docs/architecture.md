@@ -13,7 +13,7 @@ TypeScript with strict checks, Three.js for rendering and procedural models, Vit
 | `src/game/player/` | Movement, camera, class abilities |
 | `src/game/combat/` | Weapon use, damage, health and lifecycle |
 | `src/game/bots/` | AI, perception, navigation, simulation budgets |
-| `src/game/match/` | Objectives, tickets, respawn and scoring |
+| `src/game/match/` | Round countdown, objectives, tickets, respawn and scoring |
 | `src/game/world/` | Cells, generation, collision, destruction |
 | `src/content/weapons/` | One typed definition per weapon and startup discovery |
 | `src/content/assets/` | TypeScript asset factories, collision metadata, and exactly two render LODs |
@@ -31,7 +31,8 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - `EngineRuntime` owns animation-frame scheduling, keyboard listener lifetime, fixed-step updates, pause/resume transitions, and timing diagnostics. One-shot keyboard presses persist until a fixed step runs, then clear between catch-up steps. Pausing clears held input and resets the accumulator; rendering may continue while world updates stop.
 - `SceneView` owns the Three.js renderer, scene, camera, lighting, resize observer, and canvas lifecycle. Render calls receive a fixed-step interpolation alpha; simulation does not depend on renderer visibility or timing.
 - Phase 3's `PlayerController` and `MovementWorld` own kinematic player movement, camera interpolation, collision, walkable ramps, and class-gated jump abilities. `PointerLockControls` owns mouse capture, look deltas, held aim, left-button fire edges, and focus/visibility recovery; dispose it with its view.
-- Fixed-step simulation owns authoritative bird positions, health, team membership, objective and ticket state. Rendering interpolates state and owns GPU resources.
+- Fixed-step simulation owns authoritative bird positions, health, team membership, round countdown, objective and ticket state. Rendering interpolates state and owns GPU resources.
+- The 20-second round countdown advances only while match simulation steps run; bots remain at their spawn positions until it completes. Pausing the engine therefore pauses the countdown.
 - `ChickenCharacterView` is rendering-only: player/combatant state drives separate first-person wing sleeves or a third-person chicken rig, while locomotion, jump flaps, aim, reload, damage, and death poses never change gameplay state.
 - Hidden/cullable meshes do not remove entities from simulation. Cheap/detailed simulation transitions preserve one entity identity and damage/ticket accounting.
 - Keep visual LOD (exactly two tiers) distinct from AI update frequency/simulation fidelity.
