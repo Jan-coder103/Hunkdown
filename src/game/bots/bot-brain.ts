@@ -25,6 +25,8 @@ export type BotIntent = Readonly<{
 /** Produces one fixed-step tactical decision for a bot; movement and firing stay in their systems. */
 export class BotBrain {
   private readonly random: RandomSource;
+  private routeGoal: GridPoint | null = null;
+  private routeWaypoint: GridPoint | null = null;
 
   constructor(readonly navigation: BotNavigation, seed: number) {
     this.random = createSeededRandom(seed >>> 0);
@@ -65,14 +67,20 @@ export class BotBrain {
       const routeSeed = seedFromId(bot.id);
       const cover = this.navigation.findCover(bot.position, threatPosition, routeSeed);
       if (cover) {
+        const reachedCover = this.navigation.isAtCell(bot.position, cover);
+        const destination = reachedCover
+          ? null
+          : this.nextAlongRoute(bot.position, cover, routeSeed, occupiedCells);
+        if (reachedCover) this.clearRoute();
         return Object.freeze({
           behavior: 'seek-cover',
-          destination: sameCell(this.navigation.nearestCell(bot.position), cover) ? null : cover,
+          destination,
           targetId: target.other.id,
           shouldFire: false,
           aimPoint: null,
         });
       }
+      this.clearRoute();
       const retreat = this.chooseRetreat(bot, visibleEnemies.map(({ other }) => other));
       return Object.freeze({
         behavior: 'retreat',
@@ -86,18 +94,27 @@ export class BotBrain {
     if (!target) {
       return Object.freeze({
         behavior: 'advance',
-        destination: this.navigation.nextWaypoint(bot.position, objective, seedFromId(bot.id), occupiedCells),
+        destination: this.nextAlongRoute(bot.position, objective, seedFromId(bot.id), occupiedCells),
         targetId: null,
         shouldFire: false,
         aimPoint: null,
       });
     }
 
-    const destination = target.distance < BOT_RULES.keepDistance
-      ? this.chooseRetreat(bot, [target.other])
-      : target.distance > BOT_RULES.engageRange
-        ? this.navigation.nextWaypoint(bot.position, this.navigation.nearestCell(target.other.position) ?? objective, seedFromId(bot.id), occupiedCells)
-        : null;
+    let destination: GridPoint | null = null;
+    if (target.distance < BOT_RULES.keepDistance) {
+      this.clearRoute();
+      destination = this.chooseRetreat(bot, [target.other]);
+    } else if (target.distance > BOT_RULES.engageRange) {
+      destination = this.nextAlongRoute(
+        bot.position,
+        this.navigation.nearestCell(target.other.position) ?? objective,
+        seedFromId(bot.id),
+        occupiedCells,
+      );
+    } else {
+      this.clearRoute();
+    }
     return Object.freeze({
       behavior: 'engage',
       destination,
@@ -127,6 +144,25 @@ export class BotBrain {
     }
     return best;
   }
+
+  private nextAlongRoute(
+    position: Readonly<{ x: number; z: number }>,
+    goal: GridPoint,
+    routeSeed: number,
+    occupiedCells: readonly GridPoint[],
+  ): GridPoint | null {
+    if (this.routeWaypoint && samePoint(this.routeGoal, goal) && !this.navigation.isAtCell(position, this.routeWaypoint)) {
+      return this.routeWaypoint;
+    }
+    this.routeGoal = goal;
+    this.routeWaypoint = this.navigation.nextWaypoint(position, goal, routeSeed, occupiedCells);
+    return this.routeWaypoint;
+  }
+
+  private clearRoute(): void {
+    this.routeGoal = null;
+    this.routeWaypoint = null;
+  }
 }
 
 function noisyAimPoint(observer: Combatant, target: Combatant, random: RandomSource): Readonly<{ x: number; y: number; z: number }> {
@@ -146,13 +182,13 @@ function seedFromId(id: string): number {
   return hash;
 }
 
+function samePoint(a: GridPoint | null, b: GridPoint): boolean {
+  return a?.x === b.x && a.y === b.y;
+}
+
 function nearestThreatDistance(position: Readonly<{ x: number; z: number }>, threats: readonly Combatant[]): number {
   if (threats.length === 0) return 0;
   return Math.min(...threats.map((threat) => Math.hypot(position.x - threat.position.x, position.z - threat.position.z)));
-}
-
-function sameCell(a: GridPoint | null, b: GridPoint): boolean {
-  return a?.x === b.x && a.y === b.y;
 }
 
 function idleIntent(): BotIntent {

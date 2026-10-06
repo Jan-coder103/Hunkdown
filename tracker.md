@@ -143,14 +143,16 @@ Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, fri
 - [x] Build door- and slope-aware bot routes on the generated navigation graph; seeded route weights let bots choose repeatable alternate lanes.
 - [x] Add tactical bot intents for objective movement, visible-enemy selection, engagement, imperfect aim, local crowd avoidance, keeping distance, and low-health/outnumbered cover seeking.
 - [x] Derive cover from reachable cells shielded by solid buildings; preserve entity state by leaving movement, weapon firing, and match lifecycle to their owning systems.
-- [x] Add behavior coverage for blocked routes, door/slope connectivity, deterministic route variation, building cover, objective seeking, enemy visibility, inaccurate aim, cover seeking, and crowd avoidance.
-- [x] Run `npm run check`: 90 tests across 19 files passed; strict typecheck and production build passed. The existing 505.04 kB Honk-47 bundle warning remains.
-- [ ] Integrate bot intents with a live match simulation and verify multi-route movement, targeting/fire cadence, crowd behavior, and 100+ bot scaling.
-- [ ] Implement map-derived combatant spawns and cover/line-of-sight observations for the integrated bot runtime.
+- [x] Add a data-only skirmish simulation with deterministic team spawns on cells connected to the center objective, route-following movement through generated colliders/ramps, building-blocked visibility, Honk-47 cadence/reload, and shared hitscan damage.
+- [x] Keep route waypoints until bots reach cell centers; add regression coverage for traversing a generated enterable-house door without clipping its walls.
+- [x] Add behavior coverage for blocked routes, door/slope connectivity, deterministic route variation/spawns/skirmishes, building cover and sight blocking, objective seeking, imperfect aim, cover seeking, and crowd avoidance.
+- [x] Run `npm run check`: 95 tests across 20 files passed; strict typecheck and production build passed. The existing 505.04 kB Honk-47 bundle warning remains.
+- [ ] Integrate the data-only skirmish into a rendered match and manually verify bot routes, targeting, crowd behavior, and combat presentation.
+- [ ] Profile 100+ bots after the match simulation is integrated; no scaling claim has been made.
 - [ ] Implement countdown, objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
 - [ ] Human playtest bot routes, accuracy, retreat behavior, and match rules.
 
-Phase 9 progress so far is simulation logic only. The current browser game is still the Phase 4 combat practice range; no live bot match exists to manually playtest. Objective and lifecycle rules remain pending user direction, and Phases 1–8 still have human-review items open.
+Phase 9 has a data-only bot skirmish runner, but it is not connected to the rendered browser game, so interactive playtesting is not yet possible. Objective and lifecycle rules remain pending user direction, and Phases 1–8 still have human-review items open.
 
 ## Decisions to resolve before affected features
 

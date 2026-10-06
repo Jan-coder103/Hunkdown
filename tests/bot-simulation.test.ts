@@ -1,0 +1,83 @@
+import { describe, expect, it } from 'vitest';
+import { BotSkirmishSimulation, createMapBotRoster, createBotSkirmish, type BotSpawn } from '../src/game/bots/bot-simulation';
+import { generateMap } from '../src/game/world/map-generator';
+import { createEmptyMap, paintMapCell } from '../src/game/world/map-types';
+
+describe('map-backed bot skirmish', () => {
+  it('creates repeatable opposing spawn rosters from cells connected to the center objective', () => {
+    const map = generateMap(createEmptyMap({ width: 9, height: 7, seed: 35, cellSize: 8 }));
+    const first = createMapBotRoster(map, { friendlyCount: 12, enemyCount: 12, seed: 928 });
+    const replay = createMapBotRoster(map, { friendlyCount: 12, enemyCount: 12, seed: 928 });
+    const simulation = createBotSkirmish(map, { friendlyCount: 12, enemyCount: 12, seed: 928 });
+
+    expect(replay).toEqual(first);
+    expect(first).toHaveLength(24);
+    expect(first.filter((bot) => bot.team === 'friendly')).toHaveLength(12);
+    expect(first.filter((bot) => bot.team === 'enemy')).toHaveLength(12);
+    expect(first.filter((bot) => bot.team === 'friendly').every((bot) => bot.cell.x <= 2)).toBe(true);
+    expect(first.filter((bot) => bot.team === 'enemy').every((bot) => bot.cell.x >= 6)).toBe(true);
+    expect(simulation.snapshots).toHaveLength(24);
+  });
+
+  it('moves, fires, applies damage, and replays the same skirmish deterministically', () => {
+    const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 44, cellSize: 4 }));
+    const roster: readonly BotSpawn[] = [
+      { id: 'friendly-1', team: 'friendly', cell: { x: 1, y: 1 } },
+      { id: 'enemy-1', team: 'enemy', cell: { x: 2, y: 1 } },
+    ];
+    const first = new BotSkirmishSimulation(map, roster, { seed: 18 });
+    const replay = new BotSkirmishSimulation(map, roster, { seed: 18 });
+    let aimedShots = 0;
+    for (let step = 0; step < 120; step += 1) {
+      aimedShots += first.step(1 / 60).shots.filter((shot) => shot.result.targetId !== null).length;
+      replay.step(1 / 60);
+    }
+
+    expect(aimedShots).toBeGreaterThan(0);
+    expect(first.snapshots.some((bot) => bot.health < 100)).toBe(true);
+    expect(first.snapshots).toEqual(replay.snapshots);
+  });
+
+  it('moves through a generated enterable-house door gap without clipping its wall colliders', () => {
+    let draft = createEmptyMap({ width: 5, height: 3, seed: 18, cellSize: 8 });
+    draft = paintMapCell(draft, 2, 1, 'enterable-house', 'west-east');
+    const map = generateMap(draft);
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'visitor', team: 'friendly', cell: { x: 1, y: 1 } },
+    ]);
+
+    for (let step = 0; step < 120; step += 1) simulation.step(1 / 60);
+    const visitor = simulation.snapshots[0];
+    expect(visitor?.position.x).toBeCloseTo(0, 1);
+    expect(visitor?.position.z).toBeCloseTo(0, 1);
+  });
+
+  it('follows generated ramp surfaces between raised and street cells', () => {
+    let draft = createEmptyMap({ width: 5, height: 3, seed: 40, cellSize: 8 });
+    draft = paintMapCell(draft, 3, 1, 'elevation');
+    const map = generateMap(draft);
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'runner', team: 'friendly', cell: { x: 4, y: 1 } },
+    ]);
+
+    for (let step = 0; step < 240; step += 1) simulation.step(1 / 60);
+    const runner = simulation.snapshots[0];
+    expect(runner?.position.x).toBeCloseTo(0, 1);
+    expect(runner?.position.y).toBeCloseTo(0, 2);
+  });
+
+  it('uses generated building collision to stop bots targeting through solid cover', () => {
+    let draft = createEmptyMap({ width: 7, height: 5, seed: 3, cellSize: 8 });
+    draft = paintMapCell(draft, 3, 2, 'solid-house');
+    const map = generateMap(draft);
+    // Place one bot on either side of the central building to isolate its sight blocking.
+    const manual = new BotSkirmishSimulation(map, [
+      { id: 'left', team: 'friendly', cell: { x: 1, y: 2 } },
+      { id: 'right', team: 'enemy', cell: { x: 5, y: 2 } },
+    ]);
+
+    manual.step(1 / 60);
+    expect(manual.snapshots.find((bot) => bot.id === 'left')).toMatchObject({ targetId: null, shouldFire: false });
+    expect(manual.snapshots.find((bot) => bot.id === 'right')).toMatchObject({ targetId: null, shouldFire: false });
+  });
+});

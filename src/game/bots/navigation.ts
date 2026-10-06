@@ -54,8 +54,33 @@ export class BotNavigation {
     return this.nodes.has(keyOf(cell));
   }
 
+  reachableCells(start: GridPoint): readonly GridPoint[] {
+    const startKey = keyOf(start);
+    if (!this.nodes.has(startKey)) return Object.freeze([]);
+    const visited = new Set<string>([startKey]);
+    const queue = [startKey];
+    for (let index = 0; index < queue.length; index += 1) {
+      const current = queue[index];
+      if (!current) continue;
+      for (const edge of this.edges.get(current) ?? []) {
+        if (visited.has(edge.to)) continue;
+        visited.add(edge.to);
+        queue.push(edge.to);
+      }
+    }
+    return Object.freeze(queue.map((key) => this.nodes.get(key)!.cell));
+  }
+
   /** Maps a world position to the nearest reachable map cell. */
   nearestCell(position: Readonly<{ x: number; z: number }>): GridPoint | null {
+    const cellSize = this.map.source.cellSize;
+    const gridCell = {
+      x: Math.round(position.x / cellSize + (this.map.source.width - 1) / 2),
+      y: Math.round(position.z / cellSize + (this.map.source.height - 1) / 2),
+    };
+    const direct = this.nodes.get(keyOf(gridCell));
+    if (direct) return direct.cell;
+
     let nearest: Node | null = null;
     let nearestDistanceSq = Number.POSITIVE_INFINITY;
     for (const node of this.nodes.values()) {
@@ -68,6 +93,11 @@ export class BotNavigation {
       }
     }
     return nearest?.cell ?? null;
+  }
+
+  isAtCell(position: Readonly<{ x: number; z: number }>, cell: GridPoint, tolerance = 0.45): boolean {
+    const node = this.nodes.get(keyOf(cell));
+    return Boolean(node && Math.hypot(node.x - position.x, node.z - position.z) <= tolerance);
   }
 
   /**
