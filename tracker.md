@@ -6,7 +6,8 @@ Updated: 2026-10-06.
 
 - Phase 1: technically complete; human review pending.
 - Phase 2: technically complete; human review pending.
-- Phases 3–17: not started.
+- Phase 3: technically complete; human movement review pending.
+- Phases 4–17: not started.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -14,7 +15,7 @@ Updated: 2026-10-06.
 
 Technical acceptance is complete. Human review of the foundation and plan remains pending; see Foundation verification below.
 
-## Active phase — 2
+## Phase 2
 
 - [x] Create Three.js renderer, blank scene, perspective camera, lighting, resize handling, and explicit disposal.
 - [x] Add bounded fixed-step simulation and pass interpolation alpha to rendering.
@@ -24,6 +25,19 @@ Technical acceptance is complete. Human review of the foundation and plan remain
 - [x] Add behavior tests, rerun the full suite, type checking, and production build.
 - [x] Verify the browser scene and Escape/Resume behavior.
 - [ ] Human review of the engine shell.
+
+## Active phase — 3
+
+- [x] Build the flat movement playground with test walls, low obstacles, and a traversable ramp plus matching collision surfaces.
+- [x] Implement fixed-step WASD movement, jumping, held sprint, default hold crouch, sprint-to-slide, Q/E lean, aim FOV and 80% look sensitivity, collision, ramp traversal, and render interpolation.
+- [x] Add pointer-lock mouse look and held right-mouse aim with blur/visibility recovery and explicit listener cleanup.
+- [x] Add configurable class-gated boosted double jump and wall jump; the Movement Test Class enables both for evaluation.
+- [x] Add behavior tests for collision/ramp traversal, frame-rate consistency, movement/capabilities, camera interpolation, pointer lock lifecycle, and playground resource disposal.
+- [x] Run `npm run check`: 39 tests across 12 files passed; strict typecheck and production build passed. Vite emitted a non-blocking bundle-size warning (506.67 kB minified JS).
+- [x] Browser page rendered at `http://127.0.0.1:5174/` at about 60 FPS. Escape paused simulation (0 fixed steps); Resume returned it to Running.
+- [ ] Human review of movement feel and visual playground.
+
+Browser limitation: pointer-lock acquisition was attempted by clicking the scene and using Resume in the in-app browser, but `document.pointerLockElement` remained `null`; the in-app browser automation did not provide a successful pointer-lock session. As a result, mouse look, aim, held movement/jump, collision, slope traversal, and focus recovery have not been manually playtested in-browser. Their logic is covered by automated tests, but interactive acceptance remains open.
 
 ## Decisions to resolve before affected features
 
@@ -43,7 +57,7 @@ None yet. Record failures, deferred checks, user feedback, and relevant reproduc
 - `npm run check`: passed (21 tests across 8 files, strict type checking, production build).
 - Browser: Codex in-app browser at `http://127.0.0.1:5174/`; blank scene and live diagnostics rendered. Escape opened the pause overlay, and the Resume button returned the engine to Running. The displayed frame rate was about 60 FPS.
 - Automated lifecycle checks repeat start/dispose three times and verify animation-frame cancellation, keyboard listener removal, and view disposal. SceneView tests verify resize updates, zero-size hosts, and disposal.
-- Browser viewport resizing and console logs were not checked in this pass. No movement or gameplay exists yet; those begin in Phase 3.
+- Browser viewport resizing and console logs were not checked in this pass.
 - Human review and user verification remain pending.
 
 ## Foundation verification

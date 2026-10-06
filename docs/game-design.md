@@ -22,7 +22,7 @@ The source calls this capture the flag but describes a single capture point; cap
 | Right mouse, held | Aim/zoom; mouse sensitivity reduced by 20% |
 | Left mouse | Shoot; throw when grenade equipped |
 | Shift, held | Sprint |
-| C | Crouch; slide while sprinting |
+| C, held | Crouch; pressing while sprinting slides |
 | R | Reload |
 | F | Interact/open doors/revive; enter vehicles in future |
 | G | Equip grenade and show predicted arc |
@@ -31,7 +31,7 @@ The source calls this capture the flag but describes a single capture point; cap
 | Second Space press | Boosted double jump if class allows |
 | Space against wall after jumping | Wall jump with speed boost if class allows |
 
-Crouch toggle/hold, jump timing windows, grenade cancellation, and control rebinding should be defined during the relevant input/UI work.
+Crouch defaults to hold; the controller also supports a configurable toggle mode. The Phase 3 movement test class enables boosted double jump and wall jump so both can be evaluated. Final class assignments remain open for later class/progression design. Jump timing windows, grenade cancellation, and control rebinding should be defined during the relevant input/UI work.
 
 ## City and tools
 

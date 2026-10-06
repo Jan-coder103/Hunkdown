@@ -16,7 +16,7 @@ export interface FrameScheduler {
 
 export type EngineRuntimeOptions = Readonly<{
   createView: () => EngineView;
-  updateSimulation?: (stepSeconds: number, random: RandomSource) => void;
+  updateSimulation?: (stepSeconds: number, random: RandomSource, input: KeyboardInput) => void;
   frameScheduler?: FrameScheduler;
   inputTargets?: KeyboardInputTargets;
   now?: () => number;
@@ -39,7 +39,7 @@ export class EngineRuntime {
   private readonly scheduler: FrameScheduler;
   private readonly now: () => number;
   private readonly random: RandomSource;
-  private readonly updateSimulation: (stepSeconds: number, random: RandomSource) => void;
+  private readonly updateSimulation: (stepSeconds: number, random: RandomSource, input: KeyboardInput) => void;
   private view: EngineView | null = null;
   private scheduledFrame: number | null = null;
   private lastFrameTimestamp: number | null = null;
@@ -145,7 +145,7 @@ export class EngineRuntime {
     if (this.state === 'running') {
       fixedStepResult = this.simulation.advance(elapsedSeconds, (stepSeconds) => {
         const simulationStartedAt = this.now();
-        this.updateSimulation(stepSeconds, this.random);
+        this.updateSimulation(stepSeconds, this.random, this.input);
         simulationTimeMs += Math.max(0, this.now() - simulationStartedAt);
       });
     } else {

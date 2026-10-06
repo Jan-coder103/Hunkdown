@@ -2,12 +2,14 @@
 
 ## Current status
 
-Phase 2 is technically complete; human review is pending. It adds a Three.js scene/view lifecycle, a bounded fixed-step runtime with interpolation alpha and seeded randomness, keyboard focus cleanup, pause/resume states, and frame/simulation diagnostics. `npm run check` passes (21 tests, typecheck, and build). The browser page at `http://127.0.0.1:5174/` renders the blank scene; Escape pauses it and Resume returns it to Running. No player movement or gameplay is implemented.
+Phase 3 is technically complete; human review of movement feel and the playground is pending. The browser at `http://127.0.0.1:5174/` renders the playground at about 60 FPS, and Escape/Resume pause and resume correctly. Automated acceptance passes: 39 tests across 12 files, typecheck, and production build. Pointer lock did not engage through in-app browser automation, so mouse look and hands-on movement checks remain open; see `tracker.md`.
+
+The test class uses hold crouch and enables boosted double jump and wall jump. Crouch mode and ability flags remain configurable; final class assignments are not yet defined.
 
 ## Next work
 
-Phase 3 is next: movement test map, pointer-lock look, WASD, jump, sprint, crouch/slide, lean, aim sensitivity, and class-gated jump extension points. Add collision and frame-rate behavior tests; resolve movement details during implementation without inventing class progression rules.
+Phase 4: define the shared weapon schema and startup registry, then build the first weapon, shooting/reload, damage/lifecycle primitives, combat feedback, and grenade trajectory/throw. Add behavior tests and retain the full verification/commit workflow.
 
 ## Open design issues
 
-`tracker.md` retains the capture-point rules, death/revive/corpse timing, ticket edge cases, progression/class effects, performance target, and plane ability policy. None block Phase 3 engine work.
+`tracker.md` retains the capture-point rules, death/revive/corpse timing, ticket edge cases, progression/class effects, performance target, and plane ability policy. None block Phase 4 weapon groundwork.
