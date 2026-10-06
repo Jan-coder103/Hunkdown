@@ -1,0 +1,44 @@
+# Current progress
+
+Updated: 2026-10-06.
+
+## Summary
+
+- Phase 1: technically complete; human review pending.
+- Phases 2–17: not started.
+- User verification: none yet.
+- Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## Active phase — 1
+
+- [x] Read and preserve `idea_notes.md`.
+- [x] Create `agent.md`, `AGENTS.md`, `plan.md`, `tracker.md`, and `handoff.md`.
+- [x] Consolidate design, architecture, and testing expectations.
+- [x] Create TypeScript/Three.js scaffold and project folders.
+- [x] Install dependencies and record a lockfile.
+- [x] Run full tests, type checking, and build.
+- [x] Verify the foundation page in a browser.
+- [x] Initialize Git on `main`; this handoff is included in the foundation commit.
+- [ ] Human review of foundation and plan.
+
+## Decisions to resolve before affected features
+
+1. **Objective:** notes call the mode capture the flag, but describe one central capture point ending the round. Planning uses a central capture-point mode. Confirm capture duration, contested behavior, decay, and tie resolution before Phase 9.
+2. **Death timing:** notes require respawn after 20 seconds and bodies remaining for 30 seconds. Proposed rule: 20-second respawn eligibility, revive available only before respawn, visual corpse cleanup at 30 seconds. A revive removes the corpse immediately. Confirm before Phase 9; never create a duplicate live bird.
+3. **Tickets:** 200 per team, one ticket per respawn, none for revives. Proposed initial spawns cost no tickets and tickets reaching zero end the round immediately; confirm edge cases before Phase 9.
+4. **Progression/classes:** classes, skill tree effects, XP/money formulas, unlock costs, and persistence/reset behavior need definition before Phase 10.
+5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
+6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.
+
+## Revision queue
+
+None yet. Record failures, deferred checks, user feedback, and relevant reproduction details here as work proceeds.
+
+## Foundation verification
+
+- Node.js 22.19.0; Vite 8.3.3; Vitest 5.0.3; Three.js r180; TypeScript 5.9.x.
+- `npm run check`: passed (1 initial test, strict type checking, production build).
+- Dependency install audit: zero reported vulnerabilities after updating test tooling.
+- Browser: Codex in-app browser at `http://127.0.0.1:5173/`; visible foundation page renders correctly and captured warning/error logs are empty.
+- No gameplay or performance playtest applies yet. No user verification has been claimed.
+- Network installation and local server required elevated execution because the sandbox blocks registry DNS and listening sockets; both succeeded. The reserved `.git` directory also required elevated Git initialization/writes.

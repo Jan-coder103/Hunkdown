@@ -1,0 +1,14 @@
+:root { font-family: system-ui, sans-serif; color: #253f3b; background: #f4eedf; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { min-height: 100vh; display: grid; place-items: center; padding: 2rem; background: radial-gradient(ellipse at 85% 15%, #c6ded5 0%, transparent 55%); }
+.intro { width: min(100%, 850px); }
+.eyebrow { font-size: .75rem; font-weight: 750; letter-spacing: .15em; }
+h1 { font-size: clamp(3rem, 8vw, 6rem); line-height: .98; letter-spacing: -.065em; margin: 2rem 0; }
+.tagline { font-size: clamp(1.2rem, 3vw, 1.75rem); font-weight: 650; }
+.description, .note { line-height: 1.6; color: #4c635d; }
+.status { display: inline-flex; align-items: center; gap: .6rem; margin-top: 2rem; padding: .7rem 1rem; background: #dae7c1; border-radius: 2rem; font-weight: 650; }
+.dot { height: .5rem; width: .5rem; border-radius: 50%; background: #416847; }
+dl { display: flex; flex-wrap: wrap; gap: 2rem; border-top: 1px solid #aabeb0; margin-top: 2rem; padding-top: 1.5rem; }
+dt { font-size: .8rem; color: #4c635d; }
+dd { margin: .4rem 0 0; font-weight: 650; }
