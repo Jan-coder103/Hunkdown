@@ -17,6 +17,7 @@ export type GrenadeExplosion = Readonly<{
   damagedIds: readonly string[];
   killedIds: readonly string[];
   damageById: readonly Readonly<{ id: string; amount: number }>[];
+  destroyedObstacleIds: readonly string[];
 }>;
 
 type Projectile = {
@@ -151,6 +152,7 @@ function detonate(position: Vector3, world: MovementWorld, combatants: readonly 
   const damagedIds: string[] = [];
   const killedIds: string[] = [];
   const damageById: { id: string; amount: number }[] = [];
+  const propDamage: { id: string; amount: number }[] = [];
   for (const target of combatants) {
     if (target.status !== 'alive' || !areOpponents(shooterTeam, target.team)) continue;
     const center = target.position.clone().add(new Vector3(0, target.height * 0.5, 0));
@@ -170,5 +172,20 @@ function detonate(position: Vector3, world: MovementWorld, combatants: readonly 
     }
     if (outcome.killed) killedIds.push(target.id);
   }
-  return { position: position.clone(), damagedIds, killedIds, damageById };
+  for (const obstacle of world.destructibleObstacles) {
+    const offset = new Vector3(obstacle.center.x, obstacle.center.y, obstacle.center.z).sub(position);
+    const distance = Math.max(0, offset.length() - obstacle.radius);
+    if (distance > GRENADE_RULES.blastRadius) continue;
+    const centerDistance = offset.length();
+    if (centerDistance > 1e-6) {
+      const occlusion = world.raycast(position, offset, centerDistance, obstacle.id);
+      if (occlusion && occlusion.distance < centerDistance - obstacle.radius - 0.08) continue;
+    }
+    propDamage.push({ id: obstacle.id, amount: GRENADE_RULES.maximumDamage * (1 - distance / GRENADE_RULES.blastRadius) });
+  }
+  const destroyedObstacleIds: string[] = [];
+  for (const impact of propDamage) {
+    if (world.damageObstacle(impact.id, impact.amount)) destroyedObstacleIds.push(impact.id);
+  }
+  return { position: position.clone(), damagedIds, killedIds, damageById, destroyedObstacleIds };
 }

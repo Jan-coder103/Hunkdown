@@ -38,6 +38,26 @@ describe('map-backed bot skirmish', () => {
     expect(first.snapshots).toEqual(replay.snapshots);
   });
 
+  it('gives an actively firing bot a bounded recoil push away from its target', () => {
+    const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 33, cellSize: 4 }));
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'friendly-1', team: 'friendly', cell: { x: 1, y: 1 } },
+    ], {
+      seed: 33,
+      movementSpeed: 0.001,
+      humanPlayer: { id: 'player-target', team: 'enemy', spawn: { x: 1, y: 0, z: 0 } },
+    });
+    const start = simulation.snapshots[0]?.position;
+    if (!start) throw new Error('Expected the firing bot');
+    const fired = simulation.step(1 / 60).shots.find((shot) => shot.shooterId === 'friendly-1');
+    expect(fired?.result.targetId).toBe('player-target');
+    simulation.step(1 / 60);
+    const after = simulation.snapshots.find((bot) => bot.id === 'friendly-1')?.position;
+    if (!after || !fired) throw new Error('Expected the bot recoil step');
+    const displacementTowardTarget = (after.x - start.x) * fired.result.direction.x + (after.z - start.z) * fired.result.direction.z;
+    expect(displacementTowardTarget).toBeLessThan(0);
+  });
+
   it('moves through a generated enterable-house door gap without clipping its wall colliders', () => {
     let draft = createEmptyMap({ width: 5, height: 3, seed: 18, cellSize: 8 });
     draft = paintMapCell(draft, 2, 1, 'enterable-house', 'west-east');
@@ -50,6 +70,18 @@ describe('map-backed bot skirmish', () => {
     const visitor = simulation.snapshots[0];
     expect(visitor?.position.x).toBeCloseTo(0, 1);
     expect(visitor?.position.z).toBeCloseTo(0, 1);
+  });
+
+  it('updates bot route connectivity after a player or bot destroys an enterable-house panel', () => {
+    const draft = paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 19, cellSize: 8 }), 2, 1, 'enterable-house', 'north-south');
+    const map = generateMap(draft);
+    const simulation = new BotSkirmishSimulation(map, []);
+    const wall = map.collisions.find((collision) => collision.cell.x === 2 && collision.cell.y === 1 && collision.id?.endsWith('-west-full'));
+    if (!wall?.id) throw new Error('Expected the closed west wall panel');
+
+    expect(simulation.navigation.neighborCells({ x: 2, y: 1 })).not.toContainEqual({ x: 1, y: 1 });
+    simulation.applyDestroyedObstacles([wall.id]);
+    expect(simulation.navigation.neighborCells({ x: 2, y: 1 })).toContainEqual({ x: 1, y: 1 });
   });
 
   it('follows generated ramp surfaces between raised and street cells', () => {

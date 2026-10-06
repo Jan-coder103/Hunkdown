@@ -41,6 +41,7 @@ export type BotShot = Readonly<{ shooterId: string; result: HitscanResult }>;
 export type BotSimulationStep = Readonly<{
   shots: readonly BotShot[];
   killedIds: readonly string[];
+  destroyedObstacleIds: readonly string[];
 }>;
 
 export type BotSnapshot = Readonly<{
@@ -75,6 +76,7 @@ type PendingShot = Readonly<{
 
 const DEFAULT_THINK_INTERVAL = 0.2;
 const DEFAULT_MOVEMENT_SPEED = 4.2;
+const BOT_IMPACT_DRAG = 4.2;
 
 /** Builds deterministic opposing spawn groups on navigable map cells connected to mid-map. */
 export function createMapBotRoster(map: GeneratedMap, options: BotRosterOptions): readonly BotSpawn[] {
@@ -164,6 +166,11 @@ export class BotSkirmishSimulation {
     return this.actors.find((actor) => actor.combatant.id === id)?.combatant ?? null;
   }
 
+  /** Updates bot routes after player or bot fire opens an enterable-house wall. */
+  applyDestroyedObstacles(ids: readonly string[]): void {
+    for (const id of ids) this.navigation.openDestroyedWall(id);
+  }
+
   get snapshots(): readonly BotSnapshot[] {
     return Object.freeze(this.actors.map(({ combatant, intent, weapon }) => Object.freeze({
       id: combatant.id,
@@ -212,7 +219,7 @@ export class BotSkirmishSimulation {
   }
 
   step(deltaSeconds: number): BotSimulationStep {
-    if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]) });
+    if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]), destroyedObstacleIds: Object.freeze([]) });
     const combatants = this.combatants;
     const aliveBefore = new Set(combatants.filter((combatant) => combatant.status === 'alive').map((combatant) => combatant.id));
     const pendingShots: PendingShot[] = [];
@@ -259,9 +266,8 @@ export class BotSkirmishSimulation {
       }
     }
 
-    const shots = pendingShots.map(({ actor, origin, direction }) => Object.freeze({
-      shooterId: actor.combatant.id,
-      result: resolveHitscan({
+    const shots = pendingShots.map(({ actor, origin, direction }) => {
+      const result = resolveHitscan({
         world: this.world,
         combatants,
         shooterTeam: actor.combatant.team,
@@ -271,13 +277,17 @@ export class BotSkirmishSimulation {
         spreadRadians: actor.weapon.definition.hipSpreadRadians,
         random: actor.random,
         damage: actor.weapon.definition.damage,
-        knockback: 1.8,
-      }),
-    }));
+        knockback: 3.2,
+      });
+      actor.combatant.applyImpulse({ x: -result.direction.x, y: 0.8, z: -result.direction.z }, 1.15);
+      return Object.freeze({ shooterId: actor.combatant.id, result });
+    });
     const killedIds = combatants
       .filter((combatant) => aliveBefore.has(combatant.id) && combatant.status === 'dead')
       .map((combatant) => combatant.id);
-    return Object.freeze({ shots: Object.freeze(shots), killedIds: Object.freeze(killedIds) });
+    const destroyedObstacleIds = [...new Set(shots.flatMap(({ result }) => result.destroyedObstacleId ? [result.destroyedObstacleId] : []))];
+    this.applyDestroyedObstacles(destroyedObstacleIds);
+    return Object.freeze({ shots: Object.freeze(shots), killedIds: Object.freeze(killedIds), destroyedObstacleIds: Object.freeze(destroyedObstacleIds) });
   }
 
   private canSee(observer: Combatant, target: Combatant): boolean {
@@ -298,6 +308,7 @@ export class BotSkirmishSimulation {
 
   private moveTowardIntent(bot: Combatant, destination: GridPoint | null, deltaSeconds: number): void {
     if (!destination) return;
+    if (bot.position.y > this.groundHeightAt(bot.position.x, bot.position.z) + 0.01 || Math.hypot(bot.velocity.x, bot.velocity.z) > 1.1) return;
     const target = this.navigation.worldPosition(destination);
     if (!target) return;
     const deltaX = target.x - bot.position.x;
@@ -339,8 +350,22 @@ export class BotSkirmishSimulation {
     );
     bot.position.x = moved.x;
     bot.position.z = moved.z;
-    bot.position.y = this.groundHeightAt(moved.x, moved.z);
-    bot.velocity.multiplyScalar(Math.exp(-7 * deltaSeconds));
+    if (moved.wallNormalX !== 0) bot.velocity.x = 0;
+    if (moved.wallNormalZ !== 0) bot.velocity.z = 0;
+    const groundY = this.groundHeightAt(moved.x, moved.z);
+    if (bot.position.y <= groundY + 0.025 && bot.velocity.y <= 0) {
+      bot.position.y = groundY;
+      bot.velocity.y = 0;
+    } else {
+      bot.position.y += bot.velocity.y * deltaSeconds;
+      bot.velocity.y -= 18 * deltaSeconds;
+      if (bot.position.y <= groundY) {
+        bot.position.y = groundY;
+        bot.velocity.y = Math.max(0, -bot.velocity.y * 0.24);
+        if (bot.velocity.y < 0.55) bot.velocity.y = 0;
+      }
+    }
+    bot.velocity.multiplyScalar(Math.exp(-BOT_IMPACT_DRAG * deltaSeconds));
   }
 
   private groundHeightAt(x: number, z: number): number {
@@ -373,12 +398,15 @@ function appendSide(team: BotSide, count: number, cells: readonly GridPoint[], s
 
 function createMapWorld(map: GeneratedMap): MovementWorld {
   const obstacles: RectangleObstacle[] = map.collisions
-    .filter((collision) => collision.role === 'solid-building' || collision.role === 'enterable-wall')
+    .filter((collision) => collision.role === 'solid-building' || collision.role === 'enterable-wall' || collision.role === 'destructible-prop')
     .map((collision) => Object.freeze({
+      ...(collision.id ? { id: collision.id } : {}),
+      ...(collision.health ? { health: collision.health } : {}),
       minX: collision.center.x - collision.size.x / 2,
       maxX: collision.center.x + collision.size.x / 2,
       minZ: collision.center.z - collision.size.z / 2,
       maxZ: collision.center.z + collision.size.z / 2,
+      minY: collision.center.y - collision.size.y / 2,
       maxY: collision.center.y + collision.size.y / 2,
     }));
   const ramps: RampSurface[] = map.slopes.map((slope) => {

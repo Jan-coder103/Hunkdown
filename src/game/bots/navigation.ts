@@ -1,6 +1,6 @@
 import type { GeneratedMap } from '../world/map-generator';
 import { worldPosition } from '../world/map-generator';
-import type { GridPoint } from '../world/map-types';
+import type { DoorSide, GridPoint } from '../world/map-types';
 
 type Node = Readonly<{ cell: GridPoint; x: number; y: number; z: number }>;
 type Edge = Readonly<{ to: string; viaSlope: boolean }>;
@@ -10,6 +10,7 @@ type QueueItem = { key: string; score: number };
 export class BotNavigation {
   private readonly nodes = new Map<string, Node>();
   private readonly edges = new Map<string, Edge[]>();
+  private readonly destroyedWalls = new Set<string>();
   private readonly coverCells: readonly GridPoint[];
 
   constructor(readonly map: GeneratedMap) {
@@ -200,6 +201,43 @@ export class BotNavigation {
       .filter((neighbor): neighbor is GridPoint => neighbor !== undefined));
   }
 
+  /** Adds a safe, flat route through an enterable-house wall panel that has collapsed. */
+  openDestroyedWall(id: string): boolean {
+    const match = /^house-(\d+)-(\d+)-(north|east|south|west)-(?:left|right|full)$/.exec(id);
+    if (!match) return false;
+    if (!this.map.collisions.some((collision) => collision.role === 'enterable-wall' && collision.id === id)) return false;
+    const cell = { x: Number(match[1]), y: Number(match[2]) };
+    const side = match[3] as DoorSide;
+    this.destroyedWalls.add(id);
+    const adjacent = neighborAcross(cell, side);
+    const from = keyOf(cell);
+    const to = keyOf(adjacent);
+    const fromNode = this.nodes.get(from);
+    const toNode = this.nodes.get(to);
+    if (!fromNode || !toNode || Math.abs(fromNode.y - toNode.y) > 0.01) return false;
+    if ((this.edges.get(from) ?? []).some((edge) => edge.to === to)) return false;
+
+    if (!this.isSidePassable(cell, side)) return false;
+    const adjacentCell = this.map.source.cells[adjacent.y * this.map.source.width + adjacent.x];
+    if (adjacentCell?.kind === 'enterable-house' && !this.isSidePassable(adjacent, oppositeSide(side))) return false;
+    this.edges.get(from)?.push(Object.freeze({ to, viaSlope: false }));
+    this.edges.get(to)?.push(Object.freeze({ to: from, viaSlope: false }));
+    return true;
+  }
+
+  private isSidePassable(cell: GridPoint, side: DoorSide): boolean {
+    const sourceCell = this.map.source.cells[cell.y * this.map.source.width + cell.x];
+    if (sourceCell?.kind !== 'enterable-house') return false;
+    const building = this.map.buildings.find((candidate) => candidate.cell.x === cell.x && candidate.cell.y === cell.y);
+    if (building?.doors.includes(side)) return true;
+    const panels = this.map.collisions
+      .filter((collision) => collision.role === 'enterable-wall'
+        && collision.cell.x === cell.x && collision.cell.y === cell.y
+        && collision.id?.startsWith(`house-${cell.x}-${cell.y}-${side}-`))
+      .map((collision) => collision.id!);
+    return panels.length > 0 && panels.every((panel) => this.destroyedWalls.has(panel));
+  }
+
   worldPosition(cell: GridPoint): Readonly<{ x: number; y: number; z: number }> | null {
     const node = this.nodes.get(keyOf(cell));
     return node ? Object.freeze({ x: node.x, y: node.y, z: node.z }) : null;
@@ -264,6 +302,20 @@ function keyOf(point: GridPoint): string {
 
 function samePoint(a: GridPoint, b: GridPoint): boolean {
   return a.x === b.x && a.y === b.y;
+}
+
+function neighborAcross(cell: GridPoint, side: DoorSide): GridPoint {
+  if (side === 'north') return { x: cell.x, y: cell.y - 1 };
+  if (side === 'east') return { x: cell.x + 1, y: cell.y };
+  if (side === 'south') return { x: cell.x, y: cell.y + 1 };
+  return { x: cell.x - 1, y: cell.y };
+}
+
+function oppositeSide(side: DoorSide): DoorSide {
+  if (side === 'north') return 'south';
+  if (side === 'east') return 'west';
+  if (side === 'south') return 'north';
+  return 'east';
 }
 
 function stableEdgeBias(seed: number, from: string, to: string): number {

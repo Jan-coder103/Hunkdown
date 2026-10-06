@@ -10,6 +10,7 @@ export function createEnterableBuilding(generated: GeneratedMap, cell: GridPoint
   for (const wall of generated.collisions) {
     if (wall.role !== 'enterable-wall' || wall.cell.x !== cell.x || wall.cell.y !== cell.y) continue;
     const mesh = new Mesh(new BoxGeometry(wall.size.x, wall.size.y, wall.size.z), material);
+    if (wall.id) mesh.name = `destructible building part ${wall.id}`;
     mesh.position.set(wall.center.x, wall.center.y, wall.center.z);
     root.add(mesh);
   }

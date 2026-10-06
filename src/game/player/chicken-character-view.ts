@@ -23,6 +23,7 @@ export type ChickenCharacterPose = Readonly<{
   grounded?: boolean;
   aiming?: boolean;
   dead?: boolean;
+  deathImpulse?: Readonly<{ x: number; y: number; z: number }>;
 }>;
 
 /** Camera arms or a third-person body driven by presentation state, separate from gameplay simulation. */
@@ -33,6 +34,7 @@ export class ChickenCharacterView {
   readonly representation: ChickenCharacterRepresentation;
   private pose: ChickenCharacterPose = {};
   private elapsed = 0;
+  private deathElapsed = 0;
   private damageRemaining = 0;
   private reloadRemaining = 0;
   private reloadDuration = 0;
@@ -59,6 +61,8 @@ export class ChickenCharacterView {
 
   setPose(pose: ChickenCharacterPose): void {
     if (this.disposed) return;
+    if (pose.dead === true && this.pose.dead !== true) this.deathElapsed = 0;
+    if (pose.dead === false) this.deathElapsed = 0;
     this.pose = { ...this.pose, ...pose };
   }
 
@@ -80,6 +84,7 @@ export class ChickenCharacterView {
   update(deltaSeconds: number): void {
     if (this.disposed || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.elapsed += deltaSeconds;
+    if (this.pose.dead) this.deathElapsed = Math.min(1.2, this.deathElapsed + deltaSeconds);
     this.damageRemaining = Math.max(0, this.damageRemaining - deltaSeconds);
     if (this.damageRemaining === 0) this.damageMaterial.emissiveIntensity = 0;
     this.reloadRemaining = Math.max(0, this.reloadRemaining - deltaSeconds);
@@ -99,8 +104,15 @@ export class ChickenCharacterView {
 
     if (this.thirdPersonRig) {
       const rig = this.thirdPersonRig;
-      rig.root.position.y = dead ? -0.08 : (moving ? Math.abs(stride) * 0.025 : 0) + (airborne ? 0.045 : 0);
-      rig.root.rotation.x = 0;
+      const deathProgress = dead ? Math.min(1, this.deathElapsed / 0.8) : 0;
+      const deathImpulse = this.pose.deathImpulse ?? { x: 0.6, y: 0.2, z: -0.6 };
+      const impulseLength = Math.max(0.001, Math.hypot(deathImpulse.x, deathImpulse.y, deathImpulse.z));
+      const flop = deathProgress * (0.48 + Math.min(0.5, impulseLength * 0.035));
+      const bounce = dead ? Math.sin(this.deathElapsed * 13) * 0.11 * Math.exp(-4.2 * this.deathElapsed) : 0;
+      rig.root.position.y = dead ? -0.08 + bounce : (moving ? Math.abs(stride) * 0.025 : 0) + (airborne ? 0.045 : 0);
+      rig.root.rotation.x = dead ? (deathImpulse.z / impulseLength) * flop : 0;
+      rig.root.rotation.y = dead ? Math.sin(this.deathElapsed * 19) * 0.16 * Math.exp(-3.8 * this.deathElapsed) : 0;
+      rig.root.rotation.z = dead ? (-deathImpulse.x / impulseLength) * flop : 0;
       rig.body.rotation.x = dead ? -0.48 : aiming ? -0.12 : crouched ? 0.14 : 0;
       rig.body.rotation.z = dead ? 0.52 : moving ? stride * 0.045 : 0;
       rig.head.rotation.x = dead ? 0.36 : aiming ? -0.08 : 0;

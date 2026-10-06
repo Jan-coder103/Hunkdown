@@ -59,4 +59,20 @@ describe('MovementWorld', () => {
     expect(world.raycast({ x: 0, y: 3, z: 0 }, { x: 0, y: 0, z: -1 }, 20)).toBeNull();
     expect(world.raycast({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 0.5)).toBeNull();
   });
+
+  it('keeps a destructible obstacle blocking movement and rays until its health reaches zero', () => {
+    const world = new MovementWorld({
+      halfExtent: 10,
+      obstacles: [{ id: 'street-kiosk', health: 68, minX: -1, maxX: 1, minZ: -1, maxZ: 1, maxY: 2 }],
+    });
+    const ray = { origin: { x: 0, y: 1, z: 3 }, direction: { x: 0, y: 0, z: -1 } };
+    expect(world.raycast(ray.origin, ray.direction, 10)).toMatchObject({ obstacleId: 'street-kiosk', destructible: true });
+    expect(world.damageObstacle('street-kiosk', 34)).toBe(false);
+    expect(world.moveHorizontal(-2, 0, 2, 0, 0, 1.75, 0.34).x).toBe(-2);
+    expect(world.raycast(ray.origin, ray.direction, 10)?.obstacleId).toBe('street-kiosk');
+
+    expect(world.damageObstacle('street-kiosk', 34)).toBe(true);
+    expect(world.raycast(ray.origin, ray.direction, 10)).toBeNull();
+    expect(world.moveHorizontal(-2, 0, 2, 0, 0, 1.75, 0.34).x).toBe(0);
+  });
 });

@@ -372,9 +372,16 @@ export function mountApp(root: HTMLElement) {
       aiming: pointerControls?.isAiming ?? false,
     }, camera.position, aimDirection, random);
     if (isPlayerMatchMode) skirmishView?.match.recordPlayerCombat('player', result.shots, result.explosions);
+    const destroyedObstacleIds = [
+      ...result.shots.flatMap((shot) => shot.destroyedObstacleId ? [shot.destroyedObstacleId] : []),
+      ...result.explosions.flatMap((explosion) => explosion.destroyedObstacleIds),
+    ];
+    if (isPlayerMatchMode) skirmishView?.match.simulation.applyDestroyedObstacles(destroyedObstacleIds);
+    skirmishView?.showDestruction(destroyedObstacleIds);
     for (const event of result.weaponEvents) {
       if (event.type === 'shot') {
         weaponView?.fire();
+        activePlayer.applyImpulse({ x: -aimDirection.x, y: 0.45, z: -aimDirection.z }, 0.86);
         activePlayer.applyRecoil(
           weaponDefinition.recoilPitchRadians * (event.aimed ? 0.75 : 1),
           (random() * 2 - 1) * weaponDefinition.recoilYawRadians,
@@ -527,6 +534,11 @@ export function mountApp(root: HTMLElement) {
         }
 
         battle.step(stepSeconds);
+        if (playerActor.status === 'alive' && playerActor.velocity.lengthSq() > 0) {
+          const impactSpeed = playerActor.velocity.length();
+          activePlayer.applyImpulse(playerActor.velocity, impactSpeed);
+          playerActor.velocity.set(0, 0, 0);
+        }
         if (playerActor.status === 'alive' && battle.match.matchState === 'active') {
           stepPlayerCombat(stepSeconds, random, input);
         }

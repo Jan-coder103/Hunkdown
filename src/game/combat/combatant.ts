@@ -16,6 +16,11 @@ export type DamageOutcome = Readonly<{
   killed: boolean;
 }>;
 
+export const MAX_COMBATANT_IMPULSE_SPEED = 12;
+const COMBATANT_GRAVITY = 18;
+const GROUND_BOUNCE = 0.24;
+const IMPACT_DRAG = 4.2;
+
 /** Simulation-owned health, position, and short impact motion shared by players and bots. */
 export class Combatant {
   readonly position: Vector3;
@@ -50,10 +55,7 @@ export class Combatant {
     }
     const applied = Math.min(amount, this.health);
     this.health = Math.max(0, this.health - applied);
-    if (knockbackDirection && Number.isFinite(knockback) && knockback > 0) {
-      const impulse = new Vector3(knockbackDirection.x, knockbackDirection.y, knockbackDirection.z);
-      if (impulse.lengthSq() > 0) this.velocity.addScaledVector(impulse.normalize(), knockback);
-    }
+    if (knockbackDirection && Number.isFinite(knockback) && knockback > 0) this.applyImpulse(knockbackDirection, knockback);
     const killed = this.health === 0;
     if (killed) {
       this.status = 'dead';
@@ -62,11 +64,29 @@ export class Combatant {
     return { applied, health: this.health, killed };
   }
 
+  /** Adds a cinematic impact kick while keeping stacked hits inside a fixed speed budget. */
+  applyImpulse(direction: Readonly<{ x: number; y: number; z: number }>, speed: number): void {
+    if (![direction.x, direction.y, direction.z, speed].every(Number.isFinite) || speed <= 0) return;
+    const impulse = new Vector3(direction.x, direction.y, direction.z);
+    if (impulse.lengthSq() === 0) return;
+    this.velocity.addScaledVector(impulse.normalize(), speed);
+    if (this.velocity.length() > MAX_COMBATANT_IMPULSE_SPEED) this.velocity.setLength(MAX_COMBATANT_IMPULSE_SPEED);
+  }
+
   /** Applies a short, damped impact impulse without changing the combatant's identity. */
   update(deltaSeconds: number): void {
     if (this.status !== 'alive' || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
-    this.position.addScaledVector(this.velocity, deltaSeconds);
-    this.velocity.multiplyScalar(Math.exp(-7 * deltaSeconds));
+    this.position.x += this.velocity.x * deltaSeconds;
+    this.position.z += this.velocity.z * deltaSeconds;
+    this.position.y += this.velocity.y * deltaSeconds;
+    this.velocity.x *= Math.exp(-IMPACT_DRAG * deltaSeconds);
+    this.velocity.z *= Math.exp(-IMPACT_DRAG * deltaSeconds);
+    if (this.position.y > 0 || this.velocity.y > 0) this.velocity.y -= COMBATANT_GRAVITY * deltaSeconds;
+    if (this.position.y <= 0) {
+      this.position.y = 0;
+      if (this.velocity.y < 0) this.velocity.y = -this.velocity.y * GROUND_BOUNCE;
+      if (this.velocity.y < 0.55) this.velocity.y = 0;
+    }
     if (this.velocity.lengthSq() < 0.0004) this.velocity.set(0, 0, 0);
   }
 

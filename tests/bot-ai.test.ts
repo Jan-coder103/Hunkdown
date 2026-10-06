@@ -38,6 +38,19 @@ describe('bot navigation', () => {
     expect(navigation.findPath({ x: 3, y: 2 }, { x: 4, y: 2 })).not.toBeNull();
   });
 
+  it('opens a new flat route after an enterable-house wall panel collapses', () => {
+    const draft = paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 19, cellSize: 8 }), 2, 1, 'enterable-house', 'north-south');
+    const map = generateMap(draft);
+    const navigation = new BotNavigation(map);
+    const wall = map.collisions.find((collision) => collision.cell.x === 2 && collision.cell.y === 1 && collision.id?.endsWith('-west-full'));
+    if (!wall?.id) throw new Error('Expected the closed west wall panel');
+
+    expect(navigation.neighborCells({ x: 2, y: 1 })).not.toContainEqual({ x: 1, y: 1 });
+    expect(navigation.openDestroyedWall(wall.id)).toBe(true);
+    expect(navigation.neighborCells({ x: 2, y: 1 })).toContainEqual({ x: 1, y: 1 });
+    expect(navigation.openDestroyedWall(wall.id)).toBe(false);
+  });
+
   it('finds reachable solid-building cover between a bot and a threat', () => {
     let map = createEmptyMap({ width: 7, height: 5, seed: 3, cellSize: 8 });
     map = paintMapCell(map, 3, 2, 'solid-house');

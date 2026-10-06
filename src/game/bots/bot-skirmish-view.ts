@@ -15,6 +15,7 @@ import {
   type Material,
   type Object3D,
 } from 'three';
+import { createSeededRandom } from '../../engine/seeded-random';
 import { getWeaponDefinition } from '../../content/weapons/registry';
 import { createAsset } from '../../content/assets/registry';
 import type { GeneratedAsset } from '../../content/assets/asset-types';
@@ -32,6 +33,14 @@ const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 type Tracer = { line: Line<BufferGeometry, LineBasicMaterial>; remaining: number; duration: number };
+type DebrisParticle = {
+  mesh: Mesh<BoxGeometry, MeshStandardMaterial>;
+  velocity: Vector3;
+  spin: Vector3;
+  groundY: number;
+  remaining: number;
+};
+const MAX_DEBRIS_PARTICLES = 32;
 
 export type BotSkirmishViewOptions = Readonly<{
   friendlyCount?: number;
@@ -56,6 +65,10 @@ export class BotSkirmishView {
   private readonly ownedGeometries = new Set<BufferGeometry>();
   private readonly ownedMaterials = new Set<Material>();
   private readonly tracers: Tracer[] = [];
+  private readonly decorationViews = new Map<string, Object3D>();
+  private readonly buildingPartViews = new Map<string, Object3D>();
+  private readonly debris: DebrisParticle[] = [];
+  private debrisRandom: () => number;
   private disposed = false;
   private kills = 0;
   private readonly weaponRange: number;
@@ -67,6 +80,7 @@ export class BotSkirmishView {
   ) {
     this.map = map;
     const seed = options.seed ?? map.source.seed;
+    this.debrisRandom = createSeededRandom((seed ^ 0xd3b215) >>> 0);
     this.weaponRange = getWeaponDefinition(options.simulation?.weaponId ?? 'honk-47').range;
     this.match = new BotSkirmishMatch(map, {
       friendlyCount: options.friendlyCount ?? 8,
@@ -77,6 +91,7 @@ export class BotSkirmishView {
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
+    this.buildDebrisPool();
     this.addCharacters();
   }
 
@@ -92,20 +107,59 @@ export class BotSkirmishView {
     return this.tracers.length;
   }
 
+  get debrisCount(): number {
+    return this.debris.reduce((count, particle) => count + Number(particle.mesh.visible), 0);
+  }
+
   step(deltaSeconds: number): BotSimulationStep {
-    if (this.disposed) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]) });
+    if (this.disposed) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]), destroyedObstacleIds: Object.freeze([]) });
     this.updateTracers(deltaSeconds);
+    this.updateDebris(deltaSeconds);
     const before = this.simulation.snapshots;
     for (const bot of before) this.previousPositions.set(bot.id, new Vector3(bot.position.x, bot.position.y, bot.position.z));
 
     const result = this.match.step(deltaSeconds);
     this.kills += result.killedIds.length;
+    this.showDestruction(result.destroyedObstacleIds);
     const after = this.simulation.snapshots;
     const byId = new Map(after.map((bot) => [bot.id, bot]));
     for (const bot of after) this.syncCharacter(bot, byId, deltaSeconds);
     this.syncCorpses(this.match.corpseSnapshots, deltaSeconds);
     for (const shot of result.shots) this.addTracer(shot, byId);
     return result;
+  }
+
+  /** Hides broken props or wall segments and emits a fixed-budget debris burst. */
+  showDestruction(ids: readonly string[]): void {
+    if (this.disposed) return;
+    for (const id of new Set(ids)) {
+      const model = this.decorationViews.get(id) ?? this.buildingPartViews.get(id);
+      if (!model?.visible) continue;
+      model.visible = false;
+      const placement = this.map.decorations.find((candidate) => candidate.id === id);
+      const collider = this.map.collisions.find((candidate) => candidate.id === id);
+      if (!placement && !collider) continue;
+      const position = placement?.position ?? collider!.center;
+      const groundY = placement?.position.y ?? Math.max(0, collider!.center.y - collider!.size.y / 2);
+      const originY = placement ? groundY + 0.55 : collider!.center.y;
+      for (let index = 0; index < 4; index += 1) {
+        const particle = this.debris.find((candidate) => !candidate.mesh.visible);
+        if (!particle) break;
+        const angle = this.debrisRandom() * Math.PI * 2;
+        const speed = 1.4 + this.debrisRandom() * 2.6;
+        particle.mesh.visible = true;
+        particle.mesh.position.set(
+          position.x + Math.cos(angle) * 0.18,
+          originY + this.debrisRandom() * 0.25,
+          position.z + Math.sin(angle) * 0.18,
+        );
+        particle.mesh.rotation.set(this.debrisRandom() * Math.PI, this.debrisRandom() * Math.PI, this.debrisRandom() * Math.PI);
+        particle.velocity.set(Math.cos(angle) * speed, 1.8 + this.debrisRandom() * 2.8, Math.sin(angle) * speed);
+        particle.spin.set((this.debrisRandom() - 0.5) * 9, (this.debrisRandom() - 0.5) * 9, (this.debrisRandom() - 0.5) * 9);
+        particle.groundY = groundY;
+        particle.remaining = 1.35;
+      }
+    }
   }
 
   dispose(): void {
@@ -117,6 +171,8 @@ export class BotSkirmishView {
     this.corpseViews.clear();
     for (const tracer of this.tracers) this.disposeTracer(tracer);
     this.tracers.length = 0;
+    this.decorationViews.clear();
+    this.buildingPartViews.clear();
     this.scene.remove(this.root);
     for (const asset of this.generatedAssets) asset.dispose();
     this.generatedAssets.length = 0;
@@ -180,6 +236,11 @@ export class BotSkirmishView {
     for (const placement of this.map.buildings) {
       if (placement.enterable) {
         const model = createEnterableBuilding(this.map, placement.cell);
+        for (const collision of this.map.collisions) {
+          if (collision.role !== 'enterable-wall' || collision.cell.x !== placement.cell.x || collision.cell.y !== placement.cell.y || !collision.id) continue;
+          const part = model.getObjectByName(`destructible building part ${collision.id}`);
+          if (part) this.buildingPartViews.set(collision.id, part);
+        }
         this.trackObjectResources(model);
         this.root.add(model);
         continue;
@@ -204,10 +265,47 @@ export class BotSkirmishView {
       const asset = createAsset(placement.assetId);
       this.generatedAssets.push(asset);
       const model = asset.lods.close;
+      model.name = `destructible prop ${placement.id}`;
       model.rotation.y = placement.rotation;
       model.scale.setScalar(Math.min(1, this.map.source.cellSize / 4));
       model.position.set(placement.position.x, placement.position.y + 0.02, placement.position.z);
+      this.decorationViews.set(placement.id, model);
       this.root.add(model);
+    }
+  }
+
+  private buildDebrisPool(): void {
+    const geometry = this.ownGeometry(new BoxGeometry(0.16, 0.16, 0.16));
+    const palette = ['#b88a66', '#d5bc8e', '#819783', '#bf785c', '#a8aa8e']
+      .map((color) => this.ownMaterial(new MeshStandardMaterial({ color, roughness: 0.88 })) as MeshStandardMaterial);
+    for (let index = 0; index < MAX_DEBRIS_PARTICLES; index += 1) {
+      const mesh = new Mesh(geometry, palette[index % palette.length]!);
+      mesh.name = 'reusable destruction debris';
+      mesh.visible = false;
+      this.root.add(mesh);
+      this.debris.push({ mesh, velocity: new Vector3(), spin: new Vector3(), groundY: 0, remaining: 0 });
+    }
+  }
+
+  private updateDebris(deltaSeconds: number): void {
+    if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
+    const step = Math.min(deltaSeconds, 0.1);
+    for (const particle of this.debris) {
+      if (!particle.mesh.visible) continue;
+      particle.remaining -= deltaSeconds;
+      particle.velocity.y -= 9.8 * step;
+      particle.mesh.position.addScaledVector(particle.velocity, step);
+      particle.mesh.rotation.x += particle.spin.x * step;
+      particle.mesh.rotation.y += particle.spin.y * step;
+      particle.mesh.rotation.z += particle.spin.z * step;
+      if (particle.mesh.position.y <= particle.groundY + 0.08) {
+        particle.mesh.position.y = particle.groundY + 0.08;
+        particle.velocity.y = Math.max(0, -particle.velocity.y * 0.2);
+        particle.velocity.x *= 0.66;
+        particle.velocity.z *= 0.66;
+        if (particle.velocity.y < 0.55) particle.velocity.y = 0;
+      }
+      if (particle.remaining <= 0) particle.mesh.visible = false;
     }
   }
 
@@ -285,7 +383,7 @@ export class BotSkirmishView {
         view = new ChickenCharacterView(this.scene, corpse.team, 'third-person');
         view.object.name = `skirmish corpse ${corpse.id}`;
         view.object.position.set(corpse.position.x, corpse.position.y, corpse.position.z);
-        view.setPose({ grounded: true, dead: true });
+        view.setPose({ grounded: true, dead: true, deathImpulse: corpse.deathImpulse });
         this.corpseViews.set(corpse.id, view);
       }
       view.update(deltaSeconds);

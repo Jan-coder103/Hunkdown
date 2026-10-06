@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BotSkirmishView } from '../src/game/bots/bot-skirmish-view';
 import { createSkirmishShowcaseMap } from '../src/game/bots/skirmish-showcase';
 import { generateMap } from '../src/game/world/map-generator';
-import { createEmptyMap } from '../src/game/world/map-types';
+import { createEmptyMap, paintMapCell } from '../src/game/world/map-types';
 
 describe('rendered bot skirmish', () => {
   it('generates both selectable match map presets with connected routes', () => {
@@ -62,6 +62,44 @@ describe('rendered bot skirmish', () => {
     view.dispose();
     expect(view.tracerCount).toBe(0);
     expect(scene.children).toEqual([anchor]);
+  });
+
+  it('hides destroyed props and reuses a fixed debris pool until particles settle', () => {
+    const scene = new Scene();
+    const map = generateMap(createEmptyMap({ width: 9, height: 7, seed: 37, cellSize: 8 }));
+    const view = new BotSkirmishView(scene, map, { friendlyCount: 0, enemyCount: 0, seed: 37 });
+    const prop = map.decorations[0];
+    if (!prop) throw new Error('Expected the seeded city to include a destructible street prop');
+    const model = scene.getObjectByName(`destructible prop ${prop.id}`);
+    expect(model?.visible).toBe(true);
+
+    view.showDestruction([prop.id]);
+    expect(model?.visible).toBe(false);
+    expect(view.debrisCount).toBe(4);
+    view.showDestruction([prop.id]);
+    expect(view.debrisCount).toBe(4);
+    view.step(1.5);
+    expect(view.debrisCount).toBe(0);
+
+    view.dispose();
+    expect(scene.children).toHaveLength(0);
+  });
+
+  it('removes a destroyed enterable-house wall segment from the rendered shell', () => {
+    const scene = new Scene();
+    const draft = paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 18, cellSize: 8 }), 2, 1, 'enterable-house', 'west-east');
+    const map = generateMap(draft);
+    const wall = map.collisions.find((collision) => collision.role === 'enterable-wall');
+    if (!wall?.id) throw new Error('Expected the enterable house to have a named wall segment');
+    const view = new BotSkirmishView(scene, map, { friendlyCount: 0, enemyCount: 0, seed: 18 });
+    const wallView = scene.getObjectByName(`destructible building part ${wall.id}`);
+    expect(wallView?.visible).toBe(true);
+
+    view.showDestruction([wall.id]);
+    expect(wallView?.visible).toBe(false);
+    expect(view.debrisCount).toBe(4);
+    view.dispose();
+    expect(scene.children).toHaveLength(0);
   });
 
   it('keeps a separate dead body through respawn eligibility and removes it at corpse cleanup', () => {

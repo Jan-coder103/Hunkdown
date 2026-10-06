@@ -76,6 +76,20 @@ describe('PlayerController', () => {
     expect(camera.position.z).toBeCloseTo(6);
   });
 
+  it('carries recoil impulses through input movement and can pop the player into the air', () => {
+    const { input, player } = createHarness(undefined, { spawn: { x: 0, y: 0, z: 0 } });
+    player.applyImpulse({ x: 0, y: 0, z: -1 }, 4);
+    for (let frame = 0; frame < 12; frame += 1) tick(player, input);
+    expect(player.position.z).toBeLessThan(-0.35);
+
+    player.setSpawn({ x: 0, y: 0, z: 0 });
+    player.applyImpulse({ x: 0.1, y: 1, z: 0 }, 3);
+    for (let frame = 0; frame < 8; frame += 1) tick(player, input);
+    expect(player.position.y).toBeGreaterThan(0.15);
+    expect(player.isGrounded).toBe(false);
+    input.dispose();
+  });
+
   it('stops at an obstacle and stays within the playground boundary', () => {
     const { keyboard, input, player } = createHarness({
       halfExtent: 10,

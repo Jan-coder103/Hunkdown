@@ -87,6 +87,37 @@ describe('hitscan and combatant lifecycle', () => {
     expect(enemy.velocity.z).toBeLessThan(0);
   });
 
+  it('caps stacked impact impulses while still moving the combatant', () => {
+    const target = combatant('target', 'enemy', 0, 0);
+    target.applyImpulse({ x: 0, y: 0.2, z: -1 }, 10);
+    target.applyImpulse({ x: 0, y: 0.2, z: -1 }, 10);
+    expect(target.velocity.length()).toBeCloseTo(12);
+    target.update(0.1);
+    expect(target.position.z).toBeLessThan(0);
+    expect(target.velocity.length()).toBeLessThan(12);
+  });
+
+  it('lets repeated rifle shots break prop cover before subsequent shots reach a target', () => {
+    const target = combatant('enemy', 'enemy', 0, -5);
+    const world = new MovementWorld({
+      halfExtent: 10,
+      obstacles: [{ id: 'plaza-fountain-1', health: 68, minX: -1, maxX: 1, minZ: -2, maxZ: -1.5, maxY: 2 }],
+    });
+    const options = {
+      world, combatants: [target], shooterTeam: 'player' as const,
+      origin: { x: 0, y: 1, z: 0 }, direction: { x: 0, y: 0, z: -1 }, range: 20, damage: 34,
+    };
+    const first = resolveHitscan(options);
+    const second = resolveHitscan(options);
+    const third = resolveHitscan(options);
+
+    expect(first.blocked).toBe(true);
+    expect(first.destroyedObstacleId).toBeUndefined();
+    expect(second.destroyedObstacleId).toBe('plaza-fountain-1');
+    expect(third.targetId).toBe('enemy');
+    expect(target.health).toBe(66);
+  });
+
   it('respects cover and reports the nearest obstruction instead of applying damage', () => {
     const target = combatant('enemy', 'enemy', 0, -5);
     const world = new MovementWorld({
@@ -195,6 +226,20 @@ describe('grenades and presentation feedback', () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.damagedIds).toContain('enemy');
     expect(target.health).toBeLessThan(100);
+  });
+
+  it('lets a grenade destroy nearby prop collision at the same detonation event', () => {
+    const grenade = new GrenadeSystem();
+    const world = new MovementWorld({
+      halfExtent: 20,
+      obstacles: [{ id: 'street-tree-1', health: 50, minX: -0.6, maxX: 0.6, minZ: -10.8, maxZ: -9.8, maxY: 1.5 }],
+    });
+    grenade.toggleEquipped();
+    expect(grenade.throw({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 })).toBe(true);
+    const explosions = grenade.update(GRENADE_RULES.fuseSeconds, world, [], 'player');
+
+    expect(explosions[0]?.destroyedObstacleIds).toContain('street-tree-1');
+    expect(world.destructibleObstacles).toHaveLength(0);
   });
 
   it('does not damage teammates through the blast and clears equipment when out of grenades', () => {

@@ -21,6 +21,7 @@ export type BuildingPlacement = Readonly<{
 }>;
 
 export type DecorationPlacement = Readonly<{
+  id: string;
   cell: GridPoint;
   position: Readonly<{ x: number; y: number; z: number }>;
   assetId: string;
@@ -35,7 +36,9 @@ export type WorldCollision = Readonly<{
   cell: GridPoint;
   center: Readonly<{ x: number; y: number; z: number }>;
   size: Readonly<{ x: number; y: number; z: number }>;
-  role: 'solid-building' | 'enterable-wall' | 'slope-ramp';
+  role: 'solid-building' | 'enterable-wall' | 'slope-ramp' | 'destructible-prop';
+  id?: string;
+  health?: number;
   direction?: DoorSide;
   lowCell?: GridPoint;
 }>;
@@ -56,10 +59,14 @@ const HOUSE_DOOR_WIDTH = 1.5;
 const DECORATION_CLEARANCE = 1.25;
 const PATH_CLEARANCE = 1.15;
 const DECORATION_CHANCE = 0.2;
+const DECORATION_HEALTH = 68;
+const ENTERABLE_WALL_HEALTH = 136;
+const NAVIGATION_CLEARANCE = 0.42;
 
 const buildingIds = ASSET_DEFINITIONS.filter((asset) => asset.category === 'building').map((asset) => asset.id);
 const buildingsById = new Map(ASSET_DEFINITIONS.filter((asset) => asset.category === 'building').map((asset) => [asset.id, asset]));
 const decorationIds = ASSET_DEFINITIONS.filter((asset) => asset.category === 'decoration').map((asset) => asset.id);
+const decorationsById = new Map(ASSET_DEFINITIONS.filter((asset) => asset.category === 'decoration').map((asset) => [asset.id, asset]));
 
 export function generateMap(map: MapDocument): GeneratedMap {
   validateMapDocument(map);
@@ -70,6 +77,10 @@ export function generateMap(map: MapDocument): GeneratedMap {
   const slopes: SlopePlacement[] = [];
   const collisions: WorldCollision[] = [];
   const pathCenters = map.paths.flatMap((path) => path.cells.map((point) => worldPosition(map, point)));
+  const navigableCenters = map.cells.filter(isNavigableCell).map((cell) => worldPosition(map, cell));
+  const buildingCenters = map.cells
+    .filter((cell) => cell.kind === 'solid-house' || cell.kind === 'enterable-house')
+    .map((cell) => worldPosition(map, cell));
 
   for (const cell of map.cells) {
     const position = worldPosition(map, cell);
@@ -146,13 +157,41 @@ export function generateMap(map: MapDocument): GeneratedMap {
       if (decorations.some((decoration) => planarDistance(candidate, decoration.position) < decoration.clearanceRadius + DECORATION_CLEARANCE)) continue;
       const assetId = decorationIds[Math.floor(random() * decorationIds.length)] ?? decorationIds[0];
       if (!assetId) continue;
+      const definition = decorationsById.get(assetId);
+      if (!definition) continue;
+      const scale = Math.min(1, map.cellSize / 4);
+      const collisionRadius = Math.max(0, ...definition.collision.map((collider) => {
+        const halfX = collider.size[0] * scale / 2;
+        const halfZ = collider.size[2] * scale / 2;
+        return Math.hypot(halfX, halfZ);
+      }));
+      if (isTooCloseToPath(candidate, navigableCenters, collisionRadius + NAVIGATION_CLEARANCE)) continue;
+      if (isTooCloseToBuilding(candidate, buildingCenters, map.cellSize / 2, collisionRadius + 0.08)) continue;
+      const id = `prop-${cell.x}-${cell.y}-${assetId}`;
+      const rotation = random() * Math.PI * 2;
       decorations.push(Object.freeze({
+        id,
         cell: point(cell),
         position: Object.freeze(candidate),
         assetId,
-        rotation: random() * Math.PI * 2,
+        rotation,
         clearanceRadius: DECORATION_CLEARANCE,
       }));
+      for (const collider of definition.collision) {
+        const rotated = rotateCollider(collider.center[0], collider.center[2], collider.size[0], collider.size[2], scale, rotation);
+        collisions.push(Object.freeze({
+          cell: point(cell),
+          center: Object.freeze({
+            x: candidate.x + rotated.centerX,
+            y: candidate.y + collider.center[1] * scale,
+            z: candidate.z + rotated.centerZ,
+          }),
+          size: Object.freeze({ x: rotated.sizeX, y: collider.size[1] * scale, z: rotated.sizeZ }),
+          role: 'destructible-prop',
+          id,
+          health: DECORATION_HEALTH,
+        }));
+      }
     }
   }
 
@@ -213,20 +252,26 @@ function createEnterableWallCollisions(
     const centerY = buildingHeight / 2;
     if (side === 'north' || side === 'south') {
       for (const sign of doorOpen ? [-1, 1] : [0]) {
+        const segment = sign < 0 ? 'left' : sign > 0 ? 'right' : 'full';
         colliders.push(Object.freeze({
           cell: point(cell),
           center: Object.freeze({ x: position.x + (doorOpen ? sign * (HOUSE_DOOR_WIDTH / 2 + longSize / 2) : 0), y: centerY, z: position.z + (side === 'north' ? -half : half) }),
           size: Object.freeze({ x: longSize, y: buildingHeight, z: thickness }),
           role: 'enterable-wall',
+          id: `house-${cell.x}-${cell.y}-${side}-${segment}`,
+          health: ENTERABLE_WALL_HEALTH,
         }));
       }
     } else {
       for (const sign of doorOpen ? [-1, 1] : [0]) {
+        const segment = sign < 0 ? 'left' : sign > 0 ? 'right' : 'full';
         colliders.push(Object.freeze({
           cell: point(cell),
           center: Object.freeze({ x: position.x + (side === 'west' ? -half : half), y: centerY, z: position.z + (doorOpen ? sign * (HOUSE_DOOR_WIDTH / 2 + longSize / 2) : 0) }),
           size: Object.freeze({ x: thickness, y: buildingHeight, z: longSize }),
           role: 'enterable-wall',
+          id: `house-${cell.x}-${cell.y}-${side}-${segment}`,
+          health: ENTERABLE_WALL_HEALTH,
         }));
       }
     }
@@ -249,6 +294,37 @@ function isTooCloseToPath(candidate: Readonly<{ x: number; z: number }>, centers
 
 function planarDistance(a: Readonly<{ x: number; z: number }>, b: Readonly<{ x: number; z: number }>): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+function isTooCloseToBuilding(
+  candidate: Readonly<{ x: number; z: number }>,
+  centers: readonly Readonly<{ x: number; z: number }>[],
+  halfSize: number,
+  clearance: number,
+): boolean {
+  return centers.some((center) => {
+    const outsideX = Math.max(0, Math.abs(candidate.x - center.x) - halfSize);
+    const outsideZ = Math.max(0, Math.abs(candidate.z - center.z) - halfSize);
+    return Math.hypot(outsideX, outsideZ) < clearance;
+  });
+}
+
+function rotateCollider(
+  centerX: number,
+  centerZ: number,
+  sizeX: number,
+  sizeZ: number,
+  scale: number,
+  rotation: number,
+): Readonly<{ centerX: number; centerZ: number; sizeX: number; sizeZ: number }> {
+  const cosine = Math.cos(rotation);
+  const sine = Math.sin(rotation);
+  return {
+    centerX: (cosine * centerX + sine * centerZ) * scale,
+    centerZ: (-sine * centerX + cosine * centerZ) * scale,
+    sizeX: (Math.abs(cosine) * sizeX + Math.abs(sine) * sizeZ) * scale,
+    sizeZ: (Math.abs(sine) * sizeX + Math.abs(cosine) * sizeZ) * scale,
+  };
 }
 
 function neighbor(cell: GridPoint, direction: DoorSide): GridPoint {

@@ -10,6 +10,8 @@ export type HitscanResult = Readonly<{
   targetId: string | null;
   damage: number;
   killed: boolean;
+  obstacleId?: string;
+  destroyedObstacleId?: string;
 }>;
 
 /** Resolves one ray against solid cover and living opponents. The nearest surface wins. */
@@ -69,7 +71,19 @@ export function resolveHitscan(options: Readonly<{
     };
   }
   if (coverHit) {
-    return { direction, distance: coverHit.distance, blocked: true, targetId: null, damage: 0, killed: false };
+    const destroyed = coverHit.destructible && coverHit.obstacleId
+      ? options.world.damageObstacle(coverHit.obstacleId, options.damage)
+      : false;
+    return {
+      direction,
+      distance: coverHit.distance,
+      blocked: true,
+      targetId: null,
+      damage: 0,
+      killed: false,
+      ...(coverHit.obstacleId ? { obstacleId: coverHit.obstacleId } : {}),
+      ...(destroyed && coverHit.obstacleId ? { destroyedObstacleId: coverHit.obstacleId } : {}),
+    };
   }
   return { direction, distance: null, blocked: false, targetId: null, damage: 0, killed: false };
 }

@@ -32,11 +32,16 @@ describe('chicken character presentations', () => {
     view.update(0.3);
     expect(rig.featherMaterial.emissiveIntensity).toBe(0);
 
-    view.setPose({ dead: true, aiming: false });
+    view.setPose({ dead: true, aiming: false, deathImpulse: { x: 2, y: 1, z: -3 } });
     view.update(1 / 60);
     expect(rig.body.rotation.x).toBeLessThan(-0.4);
     expect(rig.leftWing.rotation.z).toBeLessThan(-0.9);
+    expect(rig.root.rotation.x).not.toBe(0);
     expect(view.object.visible).toBe(true);
+    view.update(0.9);
+    const settledRoll = rig.root.rotation.x;
+    view.update(0.1);
+    expect(rig.root.rotation.x).toBeCloseTo(settledRoll, 5);
 
     const meshes: Mesh[] = [];
     view.object.traverse((object) => { if (object instanceof Mesh) meshes.push(object); });

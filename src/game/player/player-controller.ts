@@ -40,11 +40,14 @@ const SLIDE_FRICTION = 9;
 const BASE_FOV = 65;
 const AIM_FOV = 48;
 const MAX_PITCH = Math.PI * 0.48;
+const IMPACT_DRAG = 4.2;
+const MAX_IMPULSE_SPEED = 12;
 
 /** Kinematic first-person controller for the movement playground. */
 export class PlayerController {
   readonly position: Vector3;
   readonly velocity = new Vector3();
+  private readonly impactVelocity = new Vector3();
   readonly capabilities: MovementCapabilities;
   readonly crouchMode: CrouchMode;
   lookSensitivity: number;
@@ -111,6 +114,7 @@ export class PlayerController {
     this.position.set(position.x, position.y, position.z);
     this.previousPosition.copy(this.position);
     this.velocity.set(0, 0, 0);
+    this.impactVelocity.set(0, 0, 0);
     this.isGrounded = true;
     this.isCrouched = false;
     this.isSliding = false;
@@ -153,6 +157,28 @@ export class PlayerController {
     this.recoilPitch -= Math.max(0, pitchRadians);
     this.recoilYaw += yawRadians;
     this.syncCameraRotation();
+  }
+
+  /** Adds a bounded physical impulse that composes with keyboard movement. */
+  applyImpulse(direction: Readonly<{ x: number; y: number; z: number }>, speed: number): void {
+    if (![direction.x, direction.y, direction.z, speed].every(Number.isFinite) || speed <= 0) return;
+    const impulse = new Vector3(direction.x, direction.y, direction.z);
+    if (impulse.lengthSq() === 0) return;
+    impulse.normalize().multiplyScalar(speed);
+    const verticalImpulse = impulse.y;
+    this.impactVelocity.x += impulse.x;
+    this.impactVelocity.z += impulse.z;
+    this.velocity.y += verticalImpulse;
+    if (this.velocity.y > 0.08) {
+      this.isGrounded = false;
+      this.jumpCount = Math.max(1, this.jumpCount);
+    }
+    const totalSpeed = Math.hypot(this.impactVelocity.x, this.velocity.y, this.impactVelocity.z);
+    if (totalSpeed > MAX_IMPULSE_SPEED) {
+      const scale = MAX_IMPULSE_SPEED / totalSpeed;
+      this.impactVelocity.multiplyScalar(scale);
+      this.velocity.y *= scale;
+    }
   }
 
   update(deltaSeconds: number, input: KeyboardInput, aiming: boolean): void {
@@ -230,8 +256,8 @@ export class PlayerController {
     const move = this.world.moveHorizontal(
       this.position.x,
       this.position.z,
-      this.velocity.x * deltaSeconds,
-      this.velocity.z * deltaSeconds,
+      (this.velocity.x + this.impactVelocity.x) * deltaSeconds,
+      (this.velocity.z + this.impactVelocity.z) * deltaSeconds,
       this.position.y,
       bodyHeight,
       PLAYER_RADIUS,
@@ -240,8 +266,16 @@ export class PlayerController {
     this.position.z = move.z;
     this.wallNormalX = move.wallNormalX;
     this.wallNormalZ = move.wallNormalZ;
-    if (move.wallNormalX !== 0) this.velocity.x = 0;
-    if (move.wallNormalZ !== 0) this.velocity.z = 0;
+    if (move.wallNormalX !== 0) {
+      this.velocity.x = 0;
+      this.impactVelocity.x = 0;
+    }
+    if (move.wallNormalZ !== 0) {
+      this.velocity.z = 0;
+      this.impactVelocity.z = 0;
+    }
+    this.impactVelocity.multiplyScalar(Math.exp(-IMPACT_DRAG * deltaSeconds));
+    if (this.impactVelocity.lengthSq() < 0.0004) this.impactVelocity.set(0, 0, 0);
 
     if (input.wasPressed('Space')) this.tryJump();
     this.updateVerticalPosition(deltaSeconds);

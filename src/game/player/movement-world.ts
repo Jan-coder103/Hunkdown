@@ -1,8 +1,11 @@
 export type RectangleObstacle = Readonly<{
+  id?: string;
+  health?: number;
   minX: number;
   maxX: number;
   minZ: number;
   maxZ: number;
+  minY?: number;
   maxY: number;
 }>;
 
@@ -24,7 +27,20 @@ export type HorizontalMoveResult = Readonly<{
   wallNormalZ: number;
 }>;
 
-export type WorldRayHit = Readonly<{ distance: number }>;
+export type WorldRayHit = Readonly<{ distance: number; obstacleId?: string; destructible: boolean }>;
+
+export type DestructibleObstacleSnapshot = Readonly<{
+  id: string;
+  center: Readonly<{ x: number; y: number; z: number }>;
+  radius: number;
+  health: number;
+  maxHealth: number;
+}>;
+
+type MutableObstacle = {
+  readonly definition: RectangleObstacle;
+  health: number;
+};
 
 export type MovementWorldOptions = Readonly<{
   halfExtent: number;
@@ -35,12 +51,60 @@ export type MovementWorldOptions = Readonly<{
 /** Kinematic horizontal collision and walkable ramp surfaces for the movement playground. */
 export class MovementWorld {
   private readonly ramps: readonly RampSurface[];
+  private readonly obstacles: MutableObstacle[];
 
   constructor(private readonly options: MovementWorldOptions) {
     if (!Number.isFinite(options.halfExtent) || options.halfExtent <= 0) {
       throw new RangeError('halfExtent must be a finite positive number');
     }
     this.ramps = options.ramps ?? [];
+    this.obstacles = options.obstacles.map((definition) => ({
+      definition,
+      health: definition.health ?? Number.POSITIVE_INFINITY,
+    }));
+  }
+
+  get destructibleObstacles(): readonly DestructibleObstacleSnapshot[] {
+    const groups = new Map<string, MutableObstacle[]>();
+    for (const obstacle of this.obstacles) {
+      const id = obstacle.definition.id;
+      if (!id || !Number.isFinite(obstacle.definition.health)) continue;
+      const group = groups.get(id) ?? [];
+      group.push(obstacle);
+      groups.set(id, group);
+    }
+    return [...groups].map(([id, group]) => {
+      const minX = Math.min(...group.map(({ definition }) => definition.minX));
+      const maxX = Math.max(...group.map(({ definition }) => definition.maxX));
+      const minZ = Math.min(...group.map(({ definition }) => definition.minZ));
+      const maxZ = Math.max(...group.map(({ definition }) => definition.maxZ));
+      const minY = Math.min(...group.map(({ definition }) => definition.minY ?? 0));
+      const maxY = Math.max(...group.map(({ definition }) => definition.maxY));
+      return Object.freeze({
+        id,
+        center: Object.freeze({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 }),
+        radius: Math.hypot(maxX - minX, maxZ - minZ) / 2,
+        health: Math.min(...group.map(({ health }) => health)),
+        maxHealth: Math.max(...group.map(({ definition }) => definition.health!)),
+      });
+    });
+  }
+
+  /** Applies finite damage to every collider belonging to a destructible object. */
+  damageObstacle(id: string, amount: number): boolean {
+    if (!id || !Number.isFinite(amount) || amount <= 0) return false;
+    const group = this.obstacles.filter(({ definition }) => definition.id === id);
+    if (group.length === 0 || group.some(({ definition }) => !Number.isFinite(definition.health))) return false;
+    let remaining = Math.max(...group.map(({ health }) => health)) - amount;
+    if (remaining <= 0) {
+      for (let index = this.obstacles.length - 1; index >= 0; index -= 1) {
+        if (this.obstacles[index]?.definition.id === id) this.obstacles.splice(index, 1);
+      }
+      return true;
+    }
+    remaining = Math.max(0, remaining);
+    for (const obstacle of group) obstacle.health = remaining;
+    return false;
   }
 
   groundHeightAt(x: number, z: number): number {
@@ -58,7 +122,12 @@ export class MovementWorld {
   }
 
   /** Returns the nearest ray hit against solid movement obstacles, if any. */
-  raycast(origin: Readonly<{ x: number; y: number; z: number }>, direction: Readonly<{ x: number; y: number; z: number }>, maxDistance: number): WorldRayHit | null {
+  raycast(
+    origin: Readonly<{ x: number; y: number; z: number }>,
+    direction: Readonly<{ x: number; y: number; z: number }>,
+    maxDistance: number,
+    ignoreObstacleId?: string,
+  ): WorldRayHit | null {
     if (!Number.isFinite(maxDistance) || maxDistance < 0) return null;
     const length = Math.hypot(direction.x, direction.y, direction.z);
     if (length === 0 || !Number.isFinite(length)) return null;
@@ -66,16 +135,25 @@ export class MovementWorld {
     const dy = direction.y / length;
     const dz = direction.z / length;
     let nearest = Number.POSITIVE_INFINITY;
+    let nearestId: string | undefined;
+    let nearestDestructible = false;
 
-    for (const obstacle of this.options.obstacles) {
+    for (const { definition: obstacle, health } of this.obstacles) {
+      if (ignoreObstacleId && obstacle.id === ignoreObstacleId) continue;
       const distance = rayBoxDistance(
         origin.x, origin.y, origin.z, dx, dy, dz,
-        obstacle.minX, 0, obstacle.minZ, obstacle.maxX, obstacle.maxY, obstacle.maxZ,
+        obstacle.minX, obstacle.minY ?? 0, obstacle.minZ, obstacle.maxX, obstacle.maxY, obstacle.maxZ,
       );
-      if (distance !== null && distance <= maxDistance && distance < nearest) nearest = distance;
+      if (distance !== null && distance <= maxDistance && distance < nearest) {
+        nearest = distance;
+        nearestId = obstacle.id;
+        nearestDestructible = Boolean(obstacle.id) && Number.isFinite(obstacle.health) && health > 0;
+      }
     }
 
-    return Number.isFinite(nearest) ? { distance: nearest } : null;
+    return Number.isFinite(nearest)
+      ? { distance: nearest, ...(nearestId ? { obstacleId: nearestId } : {}), destructible: nearestDestructible }
+      : null;
   }
 
   moveHorizontal(
@@ -118,8 +196,9 @@ export class MovementWorld {
   }
 
   private collides(x: number, z: number, feetY: number, bodyHeight: number, radius: number): boolean {
-    return this.options.obstacles.some((obstacle) => {
-      if (feetY >= obstacle.maxY || feetY + bodyHeight <= 0) return false;
+    return this.obstacles.some(({ definition: obstacle }) => {
+      const minY = obstacle.minY ?? 0;
+      if (feetY >= obstacle.maxY || feetY + bodyHeight <= minY) return false;
       const nearestX = Math.min(obstacle.maxX, Math.max(obstacle.minX, x));
       const nearestZ = Math.min(obstacle.maxZ, Math.max(obstacle.minZ, z));
       const offsetX = x - nearestX;

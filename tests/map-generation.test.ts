@@ -16,6 +16,7 @@ describe('seeded city generation', () => {
     expect(replay.decorations).toEqual(first.decorations);
     expect(replay.slopes).toEqual(first.slopes);
     expect(replay.navigationLinks).toEqual(first.navigationLinks);
+    expect(replay.collisions).toEqual(first.collisions);
     expect(first.buildings.every((building) => ASSET_DEFINITIONS.some((asset) => asset.id === building.assetId && asset.category === 'building'))).toBe(true);
   });
 
@@ -27,7 +28,10 @@ describe('seeded city generation', () => {
     const centerNeighbors = centerLinks.flatMap((link) => link.from.x === 2 && link.from.y === 2 ? [link.to] : [link.from]);
 
     expect(centerNeighbors).toEqual([{ x: 2, y: 1 }, { x: 2, y: 3 }]);
-    expect(generated.collisions.filter((item) => item.cell.x === 2 && item.cell.y === 2)).toHaveLength(6);
+    const houseWalls = generated.collisions.filter((item) => item.cell.x === 2 && item.cell.y === 2 && item.role === 'enterable-wall');
+    expect(houseWalls).toHaveLength(6);
+    expect(houseWalls.every((wall) => Boolean(wall.id) && wall.health === 136)).toBe(true);
+    expect(new Set(houseWalls.map((wall) => wall.id)).size).toBe(6);
     expect(generated.buildings[0]).toMatchObject({ enterable: true, doors: ['north', 'south'] });
   });
 
@@ -57,6 +61,25 @@ describe('seeded city generation', () => {
       const nearestRoute = Math.min(...routeCenters.map((center) => Math.hypot(center.x - decoration.position.x, center.z - decoration.position.z)));
       expect(nearestRoute).toBeGreaterThanOrEqual(decoration.clearanceRadius + 1.15);
       expect(ASSET_DEFINITIONS.some((asset) => asset.id === decoration.assetId && asset.category === 'decoration')).toBe(true);
+      expect(generated.collisions.find((collision) => collision.id === decoration.id)).toMatchObject({
+        role: 'destructible-prop',
+        health: 68,
+      });
+    }
+  });
+
+  it('adds destructible prop colliders without closing generated navigation centers', () => {
+    const map = createEmptyMap({ width: 9, height: 7, seed: 37, cellSize: 8 });
+    const generated = generateMap(map);
+    const propCollisions = generated.collisions.filter((collision) => collision.role === 'destructible-prop');
+    const nodeCenters = generated.navigationNodes.map((cell) => worldPosition(map, cell));
+
+    expect(propCollisions.length).toBeGreaterThan(0);
+    expect(new Set(propCollisions.map((collision) => collision.id)).size).toBe(generated.decorations.length);
+    for (const collider of propCollisions) {
+      const radius = Math.hypot(collider.size.x / 2, collider.size.z / 2);
+      const nearestNode = Math.min(...nodeCenters.map((center) => Math.hypot(center.x - collider.center.x, center.z - collider.center.z)));
+      expect(nearestNode).toBeGreaterThan(radius + 0.4);
     }
   });
 

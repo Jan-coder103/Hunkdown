@@ -14,7 +14,8 @@ Updated: 2026-10-06.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
 - Phase 10: UI/UX and progression shell is technically implemented and verified; human gameplay and reward review remain.
-- Active phase — 11: first high-quality asset candidate pass is implemented; human visual review and direction remain.
+- Phase 11: first high-quality asset candidate pass is technically complete; human visual review and direction remain.
+- Active phase — 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -199,6 +200,19 @@ Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires
 Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, and Honk-47. All are code-generated TypeScript models with two render LODs; no placeholder asset remains in the registered viewer set. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
 
 Phase 11 assumptions: the current review pass keeps existing scale, palette, and gameplay collision metadata. New facade and prop details are presentation-only. Visual direction and final production approval remain with the user.
+
+## Phase 12 — Comedy physics and destruction
+
+- [x] Add speed-bounded impact impulses to players and bots; hits, rifle recoil, and grenade blasts can shove or briefly lift combatants. Player movement combines recoil with keyboard movement; impact motion has drag and respects walls.
+- [x] Add a short, impulse-driven chicken flop with a bounce and settled pose; gameplay corpse and revive positions remain match-owned.
+- [x] Make generated street decorations and individual enterable-house wall panels destructible. Rifle hits and grenade blasts damage them; destroyed colliders stop blocking movement and shots, and bots add safe flat routes through newly opened house walls.
+- [x] Keep debris bounded to 32 shared/reused pieces with a short lifetime; avoid prop placement inside navigation clearance or house footprints.
+- [x] Add behavior coverage for impulse bounds, player/bot recoil, death tumbling, prop and wall destruction, debris cleanup, collision removal, and navigation opening.
+- [x] Run `npm run check`: 132 tests across 26 files passed; strict type checking and production build passed. The shared 522.27 kB asset/Three.js chunk warning remains.
+- [x] Browser check at `http://127.0.0.1:5186/`: joined the live Midtown match; the player view, city, weapon, match HUD, and countdown rendered at a sample 60 FPS (about 2.7 ms simulation work). Browser error/warning log was empty.
+- [ ] Human playtest recoil, ragdoll, and destruction feel; review the comedy and comfort direction before closing the phase. The in-app browser did not acquire pointer lock, so firing and destruction were not driven manually during this check.
+
+Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repeated backward/upward kick, and hit knockback is stronger than the Phase 4 baseline. Decorations start at 68 health and enterable wall panels at 136 health. Debris settles and expires after about 1.35 seconds. Solid house shells remain static; wall panels and street props carry the destructible-cover behavior. These are initial tuning values for human review, not final balance approval. Phase 13 owns 100+ bot performance profiling.
 
 ## Decisions to resolve before affected features
 

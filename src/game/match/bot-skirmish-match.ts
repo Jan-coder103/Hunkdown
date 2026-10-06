@@ -5,7 +5,7 @@ import { RoundCountdown, ROUND_COUNTDOWN_SECONDS } from './round-countdown';
 import type { HitscanResult } from '../combat/hitscan';
 import type { GrenadeExplosion } from '../combat/grenades';
 
-const EMPTY_STEP: BotSimulationStep = Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]) });
+const EMPTY_STEP: BotSimulationStep = Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]), destroyedObstacleIds: Object.freeze([]) });
 const TIMER_EPSILON_SECONDS = 1e-9;
 
 export type BotSkirmishMatchState = 'countdown' | 'active' | 'complete';
@@ -16,6 +16,7 @@ export type BotCorpseSnapshot = Readonly<{
   botId: string;
   team: BotSide;
   position: Readonly<{ x: number; y: number; z: number }>;
+  deathImpulse: Readonly<{ x: number; y: number; z: number }>;
   secondsRemaining: number;
 }>;
 export type BotLifeSnapshot = Readonly<{
@@ -70,6 +71,7 @@ type MutableCorpse = {
   botId: string;
   team: BotSide;
   position: { x: number; y: number; z: number };
+  deathImpulse: { x: number; y: number; z: number };
   remaining: number;
 };
 
@@ -132,6 +134,7 @@ export class BotSkirmishMatch {
       botId: corpse.botId,
       team: corpse.team,
       position: Object.freeze({ ...corpse.position }),
+      deathImpulse: Object.freeze({ ...corpse.deathImpulse }),
       secondsRemaining: corpse.remaining,
     })));
   }
@@ -294,6 +297,7 @@ export class BotSkirmishMatch {
         botId: actorId,
         team,
         position: { x: actor.position.x, y: actor.position.y, z: actor.position.z },
+        deathImpulse: { x: actor.velocity.x, y: actor.velocity.y, z: actor.velocity.z },
         remaining: this.rules.corpseLifetimeSeconds,
       });
     }
