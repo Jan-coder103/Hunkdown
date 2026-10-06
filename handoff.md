@@ -1,15 +1,7 @@
 # Latest handoff
 
-## Current status
+Phase 9 has started. `src/game/bots/navigation.ts` builds seeded A* routes from the generated door/slope-aware graph, finds building-shielded cover, and avoids occupied next cells. `src/game/bots/bot-brain.ts` produces objective, engage, cover, and retreat intents with visible-enemy filtering and intentionally imperfect aim. The brain leaves movement, weapon cadence, and lifecycle mutations to their owning systems.
 
-Reviewed phases 1–8 and fixed combat cadence, stale lifecycle timers, and map editor/generation defects. Honk-47 now fires ten rounds per second at the 60 Hz engine step. Revive/respawn actions are scoped to a specific death. Route-blocking painting fails atomically; cropped winding paths split into connected pieces with unique IDs.
+Behavior tests are in `tests/bot-ai.test.ts`. `npm run check` passes: 90 tests across 19 files, strict typecheck, and production build. The existing 505.04 kB Honk-47 bundle warning remains. No live bot-match integration or in-browser bot playtest exists yet.
 
-The map preview draws enterable-house walls from collision records, with real door gaps. Ramp surfaces now extend into the low cell, matching collider width and position. Larger maps receive an adequate camera far plane, and invalid map generation preserves the previous preview. `map-geometry.ts` isolates preview geometry for regression tests.
-
-`npm run check`: 83 tests across 18 files, strict typecheck and production build passed. The existing 505.04 kB shared chunk warning remains. Browser checks at port 5182 verified editor resizing/painting, house/elevation preview, combat-range rendering, and chicken far LOD; captured warning/error logs were empty. DOM reported pointer lock, but automated gameplay input did not update ammo or capture status, so hands-on movement/shooting/reload verification remains pending.
-
-## Next step
-
-Human review remains open for phases 1–8, including Phase 7 rifle/cafe and Phase 8 chicken art. Review these candidates and record explicit feedback. Enterable houses currently use collision-derived placeholder walls; refined exteriors remain Phase 11 work.
-
-Before Phase 9 implementation, resolve the objective capture rules and death/revive/respawn/ticket policy in `tracker.md`. Do not claim user approval or advance match policy based on this technical review.
+Next: implement the match simulation around these intents and map-derived spawn/visibility data. Before coding match outcomes, get the user's decisions on objective capture/contest/ticket-zero behavior and death/revive/respawn/ticket timing; proposals are in `tracker.md`. Human review of Phases 1–8, including the Phase 7 rifle/cafe and Phase 8 chicken visuals, remains pending.

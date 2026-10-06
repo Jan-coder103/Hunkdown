@@ -11,13 +11,14 @@ Updated: 2026-10-06.
 - Phase 5: technically complete; human review pending.
 - Phase 6: technically complete; human review pending.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
-- Active phase — 8: character implementation and technical checks are complete; human visual review pending.
+- Phase 8: character implementation and technical checks are complete; human visual review pending.
+- Active phase — 9: bot navigation and tactical decision foundation implemented; match policy and simulation integration remain open.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
 ## Phases 1–8 review — 2026-10-06
 
-Reviewed the phase acceptance criteria, project specifications, engine/input and movement boundaries, combat/lifecycle, typed assets/viewer, seeded map data/generation/editor, and chicken presentation. This review does not grant human approval or begin Phase 9.
+Reviewed the phase acceptance criteria, project specifications, engine/input and movement boundaries, combat/lifecycle, typed assets/viewer, seeded map data/generation/editor, and chicken presentation. This review does not grant human approval; subsequent Phase 9 work is tracked below.
 
 Corrections:
 - Phase 4: eliminate floating-point cooldown residue that reduced the Honk-47's 600 RPM cadence at the engine's 60 Hz fixed step. Regression verifies ten shots in one second.
@@ -137,11 +138,25 @@ Browser limitation: clicking the combat range in the Codex in-app browser did no
 
 Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, friendly, and enemy colors begin as amber, teal, and coral. First-person representation uses camera-mounted wing sleeves alongside the rifle. Death pose is presentation-only; corpse timing and lifecycle policy remain for Phase 9.
 
+## Phase 9 — Bot logic, navigation, and match rules
+
+- [x] Build door- and slope-aware bot routes on the generated navigation graph; seeded route weights let bots choose repeatable alternate lanes.
+- [x] Add tactical bot intents for objective movement, visible-enemy selection, engagement, imperfect aim, local crowd avoidance, keeping distance, and low-health/outnumbered cover seeking.
+- [x] Derive cover from reachable cells shielded by solid buildings; preserve entity state by leaving movement, weapon firing, and match lifecycle to their owning systems.
+- [x] Add behavior coverage for blocked routes, door/slope connectivity, deterministic route variation, building cover, objective seeking, enemy visibility, inaccurate aim, cover seeking, and crowd avoidance.
+- [x] Run `npm run check`: 90 tests across 19 files passed; strict typecheck and production build passed. The existing 505.04 kB Honk-47 bundle warning remains.
+- [ ] Integrate bot intents with a live match simulation and verify multi-route movement, targeting/fire cadence, crowd behavior, and 100+ bot scaling.
+- [ ] Implement map-derived combatant spawns and cover/line-of-sight observations for the integrated bot runtime.
+- [ ] Implement countdown, objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
+- [ ] Human playtest bot routes, accuracy, retreat behavior, and match rules.
+
+Phase 9 progress so far is simulation logic only. The current browser game is still the Phase 4 combat practice range; no live bot match exists to manually playtest. Objective and lifecycle rules remain pending user direction, and Phases 1–8 still have human-review items open.
+
 ## Decisions to resolve before affected features
 
-1. **Objective:** notes call the mode capture the flag, but describe one central capture point ending the round. Planning uses a central capture-point mode. Confirm capture duration, contested behavior, decay, and tie resolution before Phase 9.
-2. **Death timing:** notes require respawn after 20 seconds and bodies remaining for 30 seconds. Proposed rule: 20-second respawn eligibility, revive available only before respawn, visual corpse cleanup at 30 seconds. A revive removes the corpse immediately. Confirm before Phase 9; never create a duplicate live bird.
-3. **Tickets:** 200 per team, one ticket per respawn, none for revives. Proposed initial spawns cost no tickets and tickets reaching zero end the round immediately; confirm edge cases before Phase 9.
+1. **Objective:** notes call the mode capture the flag, but describe one central capture point ending the round. Planning uses a central capture-point mode. Proposed default: 30 seconds of uninterrupted control; contested progress pauses and accumulated progress persists. Resolve capture duration, contest/decay, and whether zero tickets ends the round immediately before objective outcome code.
+2. **Death timing:** notes require respawn after 20 seconds and bodies remaining for 30 seconds. Proposed rule: 20-second respawn eligibility, revive available only before respawn, visual corpse cleanup at 30 seconds, and immediate corpse removal on revive. Resolve before lifecycle code; never create a duplicate live bird.
+3. **Tickets:** 200 per team, one ticket per respawn, none for revives. Proposed initial spawns cost no tickets and tickets reaching zero end the round immediately. Resolve before ticket and match-end code.
 4. **Progression/classes:** classes, skill tree effects, XP/money formulas, unlock costs, and persistence/reset behavior need definition before Phase 10.
 5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
 6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.
