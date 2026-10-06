@@ -2,7 +2,7 @@
 
 ## Foundation
 
-TypeScript with strict checks, Three.js for rendering and procedural models, Vite for local development/production builds, and Vitest for unit/integration tests. The initial page is only a scaffold; Phase 2 creates the actual engine. Target desktop browsers with keyboard/mouse first. Do not add a backend or multiplayer stack without a new requirement.
+TypeScript with strict checks, Three.js for rendering and procedural models, Vite for local development/production builds, and Vitest for unit/integration tests. Phase 2 provides the renderer and runtime shell; player movement begins in Phase 3. Target desktop browsers with keyboard/mouse first. Do not add a backend or multiplayer stack without a new requirement.
 
 ## Folder responsibilities
 
@@ -28,6 +28,8 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 
 ## Important boundaries
 
+- `EngineRuntime` owns animation-frame scheduling, keyboard listener lifetime, fixed-step updates, pause/resume transitions, and timing diagnostics. Pausing clears held input and resets the accumulator; rendering may continue while world updates stop.
+- `SceneView` owns the Three.js renderer, blank scene, camera, lighting, resize observer, and canvas lifecycle. Render calls receive a fixed-step interpolation alpha; simulation does not depend on renderer visibility or timing.
 - Fixed-step simulation owns authoritative bird positions, health, team membership, objective and ticket state. Rendering interpolates state and owns GPU resources.
 - Hidden/cullable meshes do not remove entities from simulation. Cheap/detailed simulation transitions preserve one entity identity and damage/ticket accounting.
 - Keep visual LOD (exactly two tiers) distinct from AI update frequency/simulation fidelity.

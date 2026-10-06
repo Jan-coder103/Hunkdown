@@ -2,12 +2,12 @@
 
 ## Current status
 
-Phase 1 is technically complete; human review of the foundation and plan is still pending. This turn reconfirmed a lockfile-based clean install and all automated gates, and opened the foundation page in the Codex in-app browser at `http://127.0.0.1:5174/` (port 5173 was already occupied). The page shows the project identity, Phase 1 status, 100+ bot target, Three.js r180, and bright low-poly direction. No gameplay is implemented.
+Phase 2 is technically complete; human review is pending. It adds a Three.js scene/view lifecycle, a bounded fixed-step runtime with interpolation alpha and seeded randomness, keyboard focus cleanup, pause/resume states, and frame/simulation diagnostics. `npm run check` passes (21 tests, typecheck, and build). The browser page at `http://127.0.0.1:5174/` renders the blank scene; Escape pauses it and Resume returns it to Running. No player movement or gameplay is implemented.
 
 ## Next work
 
-After human review, continue with Phase 2: renderer/scene/camera lifecycle, fixed-step simulation, input lifecycle, pause/state handling, and timing diagnostics. Read `agent.md`, `plan.md`, and `docs/architecture.md` before editing.
+Phase 3 is next: movement test map, pointer-lock look, WASD, jump, sprint, crouch/slide, lean, aim sensitivity, and class-gated jump extension points. Add collision and frame-rate behavior tests; resolve movement details during implementation without inventing class progression rules.
 
-## Design issues
+## Open design issues
 
-`tracker.md` records unresolved objective rules, corpse/respawn timing, tickets, progression, performance targets, and plane ability details. Resolve each before its affected phase; these do not block Phase 2.
+`tracker.md` retains the capture-point rules, death/revive/corpse timing, ticket edge cases, progression/class effects, performance target, and plane ability policy. None block Phase 3 engine work.

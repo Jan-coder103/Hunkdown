@@ -5,21 +5,25 @@ Updated: 2026-10-06.
 ## Summary
 
 - Phase 1: technically complete; human review pending.
-- Phases 2–17: not started.
+- Phase 2: technically complete; human review pending.
+- Phases 3–17: not started.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
-## Active phase — 1
+## Phase 1
 
-- [x] Read and preserve `idea_notes.md`.
-- [x] Create `agent.md`, `AGENTS.md`, `plan.md`, `tracker.md`, and `handoff.md`.
-- [x] Consolidate design, architecture, and testing expectations.
-- [x] Create TypeScript/Three.js scaffold and project folders.
-- [x] Install dependencies and record a lockfile.
-- [x] Run full tests, type checking, and build.
-- [x] Verify the foundation page in a browser.
-- [x] Initialize Git on `main`; this handoff is included in the foundation commit.
-- [ ] Human review of foundation and plan.
+Technical acceptance is complete. Human review of the foundation and plan remains pending; see Foundation verification below.
+
+## Active phase — 2
+
+- [x] Create Three.js renderer, blank scene, perspective camera, lighting, resize handling, and explicit disposal.
+- [x] Add bounded fixed-step simulation and pass interpolation alpha to rendering.
+- [x] Add keyboard lifecycle with held/pressed state and focus/visibility cleanup.
+- [x] Add deterministic seeded randomness, running/paused/disposed states, and pause/resume behavior.
+- [x] Add frame, simulation, and fixed-step diagnostics.
+- [x] Add behavior tests, rerun the full suite, type checking, and production build.
+- [x] Verify the browser scene and Escape/Resume behavior.
+- [ ] Human review of the engine shell.
 
 ## Decisions to resolve before affected features
 
@@ -33,6 +37,14 @@ Updated: 2026-10-06.
 ## Revision queue
 
 None yet. Record failures, deferred checks, user feedback, and relevant reproduction details here as work proceeds.
+
+## Phase 2 verification
+
+- `npm run check`: passed (21 tests across 8 files, strict type checking, production build).
+- Browser: Codex in-app browser at `http://127.0.0.1:5174/`; blank scene and live diagnostics rendered. Escape opened the pause overlay, and the Resume button returned the engine to Running. The displayed frame rate was about 60 FPS.
+- Automated lifecycle checks repeat start/dispose three times and verify animation-frame cancellation, keyboard listener removal, and view disposal. SceneView tests verify resize updates, zero-size hosts, and disposal.
+- Browser viewport resizing and console logs were not checked in this pass. No movement or gameplay exists yet; those begin in Phase 3.
+- Human review and user verification remain pending.
 
 ## Foundation verification
 
