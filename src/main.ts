@@ -242,18 +242,35 @@ export function mountApp(root: HTMLElement) {
           classOutput.textContent = 'Round countdown · bots are holding their starts';
           weaponOutput.textContent = 'ROUND STARTING';
           combatReadout.textContent = `Battle begins in ${remaining} ${remaining === 1 ? 'second' : 'seconds'} · 8 friendly · 8 enemy`;
+        } else if (skirmishView.match.matchState === 'complete') {
+          const outcome = skirmishView.match.outcome;
+          const label = outcome?.winner === 'draw'
+            ? 'Draw'
+            : `${outcome?.winner === 'friendly' ? 'Friendly' : 'Enemy'} victory`;
+          classOutput.textContent = 'Round complete';
+          weaponOutput.textContent = 'Match complete';
+          combatReadout.textContent = `${label} · ${outcome?.reason === 'capture' ? 'objective captured' : 'tickets exhausted'}`;
+          const tickets = skirmishView.match.tickets;
+          skirmishReadout.textContent = `Final tickets · Friendly ${tickets.friendly} · Enemy ${tickets.enemy}`;
         } else {
           const friendlies = bots.filter((bot) => bot.team === 'friendly');
           const enemies = bots.filter((bot) => bot.team === 'enemy');
           const friendlyAlive = friendlies.filter((bot) => bot.status === 'alive').length;
           const enemyAlive = enemies.filter((bot) => bot.status === 'alive').length;
           const firing = bots.filter((bot) => bot.shouldFire).length;
+          const tickets = skirmishView.match.tickets;
+          const capture = skirmishView.match.captureStatus;
+          const captureReadout = capture.control === 'contested'
+            ? 'Objective contested'
+            : capture.control === 'neutral'
+              ? 'Objective neutral'
+              : `${capture.control === 'friendly' ? 'Friendly' : 'Enemy'} control · ${Math.round((capture.control === 'friendly' ? capture.friendlyProgress : capture.enemyProgress) * 100)}%`;
           classOutput.textContent = 'Round active · bot-only simulation preview';
           weaponOutput.textContent = 'Bird’s-eye spectator · fixed-step bot battle';
-          combatReadout.textContent = `Friendly ${friendlyAlive}/${friendlies.length} · Enemy ${enemyAlive}/${enemies.length} · ${skirmishView.totalKills} eliminations · ${firing} engaging`;
+          combatReadout.textContent = `Friendly ${friendlyAlive}/${friendlies.length} · Enemy ${enemyAlive}/${enemies.length} · tickets ${tickets.friendly}/${tickets.enemy} · ${skirmishView.totalKills} eliminations · ${firing} engaging`;
+          skirmishReadout.textContent = `${captureReadout} · capture requires 30 seconds of control; contest pauses progress · revives complete before the 20-second respawn`;
         }
         positionOutput.textContent = `Seeded Midtown · ${skirmishView.map.navigationNodes.length} reachable city cells · ${skirmishView.tracerCount} active tracers`;
-        skirmishReadout.textContent = 'Bots use generated routes, cover, line of sight, and Honk-47 combat rules. Capture and respawn rules are not active in this preview.';
       } else if (combat) {
         const ammo = combat.weapon.snapshot;
         weaponOutput.textContent = `${weaponDefinition.displayName} · ${ammo.magazine} / ${ammo.reserve}${ammo.reloading ? ' · RELOADING' : ''}`;

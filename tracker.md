@@ -12,7 +12,8 @@ Updated: 2026-10-06.
 - Phase 6: technically complete; human review pending.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
-- Active phase — 9: bot navigation and tactics, rendered 16-bot preview, and 20-second round countdown are integrated; objective and lifecycle policy remain open.
+- Phase 9: technical implementation complete; human gameplay review pending.
+- Active phase — 10: UI/UX and progression shell. Player revive interaction and player death/respawn presentation have not started.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -136,7 +137,7 @@ Phase 7 assumptions: rifle scale and olive/charcoal/wood palette are initial art
 
 Browser limitation: clicking the combat range in the Codex in-app browser did not acquire pointer lock. Locomotion, jump, aim, reload, damage, and death poses were not manually driven in-browser; their state transitions are covered by behavior tests. No user visual approval is recorded.
 
-Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, friendly, and enemy colors begin as amber, teal, and coral. First-person representation uses camera-mounted wing sleeves alongside the rifle. Death pose is presentation-only; corpse timing and lifecycle policy remain for Phase 9.
+Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, friendly, and enemy colors begin as amber, teal, and coral. First-person representation uses camera-mounted wing sleeves alongside the rifle. Death pose is presentation-only; corpse timing and lifecycle policy were resolved in Phase 9.
 
 ## Phase 9 — Bot logic, navigation, and match rules
 
@@ -150,19 +151,23 @@ Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, fri
 - [x] Add behavior coverage for live scene synchronization, bot movement, visible shot tracers, and resource cleanup.
 - [x] Add a 20-second fixed-step round countdown; bots hold their spawn positions and do not fire before it completes.
 - [x] Add countdown and match-gating behavior coverage, including exact 60 Hz completion and stationary bots before round start.
-- [x] Run `npm run check`: 100 tests across 23 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
-- [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5183/`: saw the countdown start at 20 seconds, then transition to active bot combat with live eliminations. A sample HUD read 60 FPS and 7.4 ms frame work; this is not a formal 100+ bot performance test.
-- [ ] Profile 100+ bots after the match simulation is integrated; no scaling claim has been made.
-- [ ] Implement objective capture, respawn/revive/corpse lifecycle, ticket accounting, and round outcomes after the open policy decisions below are resolved.
-- [ ] Human playtest bot routes, accuracy, retreat behavior, and match rules.
+- [x] Implement the central capture point: 30 seconds of control wins; contested and neutral periods pause progress while each side keeps its earned time.
+- [x] Implement 20-second respawn eligibility, 4-second pre-respawn teammate revives at team spawn with 50% health, no revive ticket cost, one ticket per respawn, and up to 30-second corpse cleanup. A revive removes its corpse; a respawn leaves the old body until cleanup.
+- [x] Add outcome and ticket HUD states; the preview displays capture state, team ticket counts, and victory/draw reason.
+- [x] Add behavior coverage for capture persistence/contests, countdown boundary timing, capture wins, revive eligibility/cancellation/health, corpse separation/cleanup, ticket exhaustion, terminal outcomes, and duplicate lifecycle protection.
+- [x] Run `npm run check`: 107 tests across 24 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
+- [x] Browser verification in Codex's in-app browser at `http://127.0.0.1:5184/`: observed the 20-second countdown and active 16-bot combat HUD with tickets and objective status. A sample read 60 FPS and about 7.3 ms frame work; this is not a formal 100+ bot performance test.
+- [x] Defer the 100+ bot performance profile to Phase 13; the Phase 9 browser preview used 16 bots and makes no scaling claim.
+- [ ] Integrate player F-interaction for reviving bots and player death/respawn presentation with Phase 10.
+- [ ] Human playtest bot routes, accuracy, retreat behavior, capture rules, and match outcomes.
 
-The browser preview now gates bot combat behind the 20-second countdown, but it does not yet include the human player, respawn/revive lifecycle, tickets, capture progress, or match outcomes. Those rules remain pending user direction. Phases 1–8 still have human-review items open.
+The preview is still a spectator bot match. The match API supports starting a teammate revive; player F-interaction and the player's own death/respawn screen are deferred to Phase 10. Bot respawns restore full health and the weapon's initial ammunition. A simultaneous exhaustion of both teams' last tickets resolves as a draw. Phases 1–8 still have human-review items open.
 
 ## Decisions to resolve before affected features
 
-1. **Objective:** notes call the mode capture the flag, but describe one central capture point ending the round. Planning uses a central capture-point mode. Proposed default: 30 seconds of uninterrupted control; contested progress pauses and accumulated progress persists. Resolve capture duration, contest/decay, and whether zero tickets ends the round immediately before objective outcome code.
-2. **Death timing:** notes require respawn after 20 seconds and bodies remaining for 30 seconds. Proposed rule: 20-second respawn eligibility, revive available only before respawn, visual corpse cleanup at 30 seconds, and immediate corpse removal on revive. Resolve before lifecycle code; never create a duplicate live bird.
-3. **Tickets:** 200 per team, one ticket per respawn, none for revives. Proposed initial spawns cost no tickets and tickets reaching zero end the round immediately. Resolve before ticket and match-end code.
+1. **Objective — resolved for Phase 9:** one central point needs 30 seconds of control; contests and neutral time pause progress, and accumulated progress persists. Capture ends the round.
+2. **Death timing — resolved for Phase 9:** 20-second respawn eligibility; teammate revive can complete before respawn, takes four seconds, and restores 50% health at team spawn; a completed revive removes its corpse. Unrevived bodies are cleaned up after 30 seconds.
+3. **Tickets — resolved for Phase 9:** 200 per team; initial spawns are free; each respawn costs one; revives cost none; a team reaching zero ends the round. Simultaneous exhaustion is treated as a draw.
 4. **Progression/classes:** classes, skill tree effects, XP/money formulas, unlock costs, and persistence/reset behavior need definition before Phase 10.
 5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
 6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.

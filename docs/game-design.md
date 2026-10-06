@@ -8,9 +8,9 @@ Operation Honkdown: massive battles, total bird-brained chaos. Tactical, geared 
 
 Main menu → select map/loadout → join → map loads and player spawns at the team start → 20-second countdown → bots on both teams use varied routes toward the central objective → combat until capture or ticket exhaustion → damage/kills/healing/deaths leaderboards → XP and money → main menu.
 
-Each team begins with 200 tickets. Each respawn consumes one ticket; revives consume none. Player and bots become eligible to respawn after 20 seconds. While dead, the player sees a live bird's-eye map and can change loadout. Spawn location is the team starting point. Reviving a dead bot takes 4 seconds and returns it at that location with 50% health. Dead bots ragdoll; bodies remain visually for up to 30 seconds. The exact relationship between respawn, revive eligibility, and corpse cleanup needs confirmation; see tracker.
+Each team begins with 200 tickets. Initial spawns are free; each respawn consumes one ticket, and a team reaching zero tickets ends the round immediately. Simultaneous ticket exhaustion is a draw. Player and bots become eligible to respawn after 20 seconds. A teammate may start a 4-second revive before respawn; it restores 50% health at the team starting point and costs no ticket. Completing a revive removes that death's corpse immediately. Otherwise a body remains for up to 30 seconds, including after its bot respawns. Player death controls and the live bird's-eye loadout screen are part of Phase 10.
 
-The source calls this capture the flag but describes a single capture point; capture rules are still open.
+The source calls this capture the flag but describes a single central capture point. One team must control it for 30 seconds. A contest pauses both teams' progress, and earned progress persists through contested or neutral time. Completing the capture ends the round.
 
 ## Controls
 

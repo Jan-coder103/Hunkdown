@@ -80,4 +80,12 @@ export class WeaponController {
   cancelReload(): void {
     this.reloadRemaining = 0;
   }
+
+  /** Restores the initial ammunition state when a combatant respawns. */
+  resetForRespawn(): void {
+    this.magazine = this.definition.magazineSize;
+    this.reserve = this.definition.startingReserve;
+    this.cooldown = 0;
+    this.reloadRemaining = 0;
+  }
 }

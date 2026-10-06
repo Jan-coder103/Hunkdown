@@ -52,6 +52,7 @@ export type BotSnapshot = Readonly<{
 
 type BotActor = {
   readonly combatant: Combatant;
+  readonly spawn: BotSpawn;
   readonly brain: BotBrain;
   readonly weapon: WeaponController;
   readonly random: RandomSource;
@@ -124,6 +125,7 @@ export class BotSkirmishSimulation {
       const botSeed = seedFromString(`${seed}:${spawn.id}`);
       return {
         combatant,
+        spawn,
         brain: new BotBrain(this.navigation, botSeed),
         weapon: new WeaponController(weapon),
         random: createSeededRandom(botSeed ^ 0xa511e9b3),
@@ -147,6 +149,28 @@ export class BotSkirmishSimulation {
       magazine: weapon.magazine,
       reserve: weapon.reserve,
     })));
+  }
+
+  /** Revives a dead bot at its team's spawn point and restores half health. */
+  reviveBot(id: string, healthFraction = 0.5): boolean {
+    const actor = this.actors.find((candidate) => candidate.combatant.id === id);
+    if (!actor || actor.combatant.status !== 'dead') return false;
+    const spawn = this.navigation.worldPosition(actor.spawn.cell);
+    if (!spawn || !actor.combatant.revive(healthFraction)) return false;
+    actor.combatant.position.set(spawn.x, spawn.y, spawn.z);
+    this.resetActorAfterLifecycle(actor);
+    return true;
+  }
+
+  /** Respawns a dead bot at its team's spawn point with full health and ammunition. */
+  respawnBot(id: string): boolean {
+    const actor = this.actors.find((candidate) => candidate.combatant.id === id);
+    if (!actor) return false;
+    const spawn = this.navigation.worldPosition(actor.spawn.cell);
+    if (!spawn || !actor.combatant.respawn(spawn)) return false;
+    actor.weapon.resetForRespawn();
+    this.resetActorAfterLifecycle(actor);
+    return true;
   }
 
   step(deltaSeconds: number): BotSimulationStep {
@@ -226,6 +250,12 @@ export class BotSkirmishSimulation {
     if (distance === 0) return true;
     const hit = this.world.raycast(origin, direction, distance);
     return hit === null || hit.distance >= distance - target.radius;
+  }
+
+  private resetActorAfterLifecycle(actor: BotActor): void {
+    actor.intent = idleIntent();
+    actor.thinkRemaining = 0;
+    actor.wasFireHeld = false;
   }
 
   private moveTowardIntent(bot: Combatant, destination: GridPoint | null, deltaSeconds: number): void {

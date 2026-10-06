@@ -54,4 +54,27 @@ describe('rendered bot skirmish', () => {
     expect(view.tracerCount).toBe(0);
     expect(scene.children).toEqual([anchor]);
   });
+
+  it('keeps a separate dead body through respawn eligibility and removes it at corpse cleanup', () => {
+    const scene = new Scene();
+    const view = new BotSkirmishView(scene, generateMap(createEmptyMap({ width: 4, height: 3, seed: 61, cellSize: 4 })), {
+      friendlyCount: 2,
+      enemyCount: 2,
+      seed: 61,
+      countdownSeconds: 0.01,
+      rules: { captureDurationSeconds: 100, captureRadius: 0.1, respawnDelaySeconds: 10, corpseLifetimeSeconds: 0.2 },
+    });
+    for (let frame = 0; frame < 1200 && view.match.corpseSnapshots.length === 0; frame += 1) view.step(1 / 60);
+
+    const corpse = view.match.corpseSnapshots[0];
+    expect(corpse).toBeDefined();
+    expect(scene.getObjectByName(`skirmish corpse ${corpse?.id}`)).toBeTruthy();
+    expect(scene.getObjectByName(`skirmish ${corpse?.team} bot ${corpse?.botId}`)?.visible).toBe(false);
+    view.step(0.21);
+    expect(view.match.corpseSnapshots.some((entry) => entry.id === corpse?.id)).toBe(false);
+    expect(scene.getObjectByName(`skirmish corpse ${corpse?.id}`)).toBeFalsy();
+
+    view.dispose();
+    expect(scene.children).toHaveLength(0);
+  });
 });

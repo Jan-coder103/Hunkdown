@@ -22,7 +22,7 @@ import { ChickenCharacterView } from '../player/chicken-character-view';
 import { generateMap, worldPosition, type GeneratedMap } from '../world/map-generator';
 import { createEnterableBuilding, createSlopeGeometry } from '../../tools/map-editor/map-geometry';
 import { BotSkirmishSimulation, type BotShot, type BotSide, type BotSimulationOptions, type BotSimulationStep, type BotSnapshot } from './bot-simulation';
-import { BotSkirmishMatch } from '../match/bot-skirmish-match';
+import { BotSkirmishMatch, type BotCorpseSnapshot, type BotSkirmishMatchRules } from '../match/bot-skirmish-match';
 
 const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
   street: '#c4cdbc',
@@ -39,6 +39,7 @@ export type BotSkirmishViewOptions = Readonly<{
   seed?: number;
   countdownSeconds?: number;
   simulation?: BotSimulationOptions;
+  rules?: Partial<BotSkirmishMatchRules>;
 }>;
 
 /** Scene presentation for the deterministic bot-only match preview. */
@@ -48,6 +49,7 @@ export class BotSkirmishView {
   readonly map: GeneratedMap;
   private readonly root = new Group();
   private readonly characters = new Map<string, ChickenCharacterView>();
+  private readonly corpseViews = new Map<string, ChickenCharacterView>();
   private readonly previousPositions = new Map<string, Vector3>();
   private readonly previousHealth = new Map<string, number>();
   private readonly generatedAssets: GeneratedAsset[] = [];
@@ -70,7 +72,7 @@ export class BotSkirmishView {
       friendlyCount: options.friendlyCount ?? 8,
       enemyCount: options.enemyCount ?? 8,
       seed,
-    }, { ...options.simulation, seed }, options.countdownSeconds);
+    }, { ...options.simulation, seed }, options.countdownSeconds, options.rules);
     this.simulation = this.match.simulation;
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
@@ -101,6 +103,7 @@ export class BotSkirmishView {
     const after = this.simulation.snapshots;
     const byId = new Map(after.map((bot) => [bot.id, bot]));
     for (const bot of after) this.syncCharacter(bot, byId, deltaSeconds);
+    this.syncCorpses(this.match.corpseSnapshots, deltaSeconds);
     for (const shot of result.shots) this.addTracer(shot, byId);
     return result;
   }
@@ -110,6 +113,8 @@ export class BotSkirmishView {
     this.disposed = true;
     for (const character of this.characters.values()) character.dispose();
     this.characters.clear();
+    for (const corpse of this.corpseViews.values()) corpse.dispose();
+    this.corpseViews.clear();
     for (const tracer of this.tracers) this.disposeTracer(tracer);
     this.tracers.length = 0;
     this.scene.remove(this.root);
@@ -239,6 +244,7 @@ export class BotSkirmishView {
   private syncCharacter(bot: BotSnapshot, allBots: ReadonlyMap<string, BotSnapshot>, deltaSeconds: number): void {
     const character = this.characters.get(bot.id);
     if (!character) return;
+    character.object.visible = bot.status === 'alive';
     const previous = this.previousPositions.get(bot.id);
     const movementSpeed = previous && deltaSeconds > 0
       ? Math.hypot(bot.position.x - previous.x, bot.position.z - previous.z) / deltaSeconds
@@ -261,9 +267,29 @@ export class BotSkirmishView {
       sprinting: movementSpeed > 5.8,
       grounded: true,
       aiming: bot.shouldFire,
-      dead: bot.status === 'dead',
+      dead: false,
     });
     character.update(deltaSeconds);
+  }
+
+  private syncCorpses(snapshots: readonly BotCorpseSnapshot[], deltaSeconds: number): void {
+    const present = new Set(snapshots.map((corpse) => corpse.id));
+    for (const [id, view] of this.corpseViews) {
+      if (present.has(id)) continue;
+      view.dispose();
+      this.corpseViews.delete(id);
+    }
+    for (const corpse of snapshots) {
+      let view = this.corpseViews.get(corpse.id);
+      if (!view) {
+        view = new ChickenCharacterView(this.scene, corpse.team, 'third-person');
+        view.object.name = `skirmish corpse ${corpse.id}`;
+        view.object.position.set(corpse.position.x, corpse.position.y, corpse.position.z);
+        view.setPose({ grounded: true, dead: true });
+        this.corpseViews.set(corpse.id, view);
+      }
+      view.update(deltaSeconds);
+    }
   }
 
   private addTracer(shot: BotShot, snapshots: ReadonlyMap<string, BotSnapshot>): void {
