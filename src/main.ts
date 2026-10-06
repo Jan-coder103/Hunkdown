@@ -3,6 +3,7 @@ import { Vector3 } from 'three';
 import { SceneView } from './engine/scene-view';
 import { createMovementPlayground, MOVEMENT_PLAYGROUND_CLASS } from './game/player/movement-playground';
 import { PlayerController } from './game/player/player-controller';
+import { ChickenCharacterView } from './game/player/chicken-character-view';
 import { PointerLockControls } from './game/player/pointer-lock-controls';
 import { createWeaponModel, getWeaponDefinition } from './content/weapons/registry';
 import { CombatFeedback } from './game/combat/combat-feedback';
@@ -20,7 +21,7 @@ export function mountApp(root: HTMLElement) {
       </div>
       <div id="combat-flash" class="combat-flash" aria-hidden="true"></div>
       <section class="engine-hud" aria-label="Combat practice controls and status">
-        <p class="eyebrow">OPERATION HONKDOWN · PHASE 4</p>
+        <p class="eyebrow">OPERATION HONKDOWN · PHASE 8 CHARACTER PREVIEW</p>
         <h1>Combat practice</h1>
         <div class="state-row"><span class="state-dot" aria-hidden="true"></span><output id="engine-state">Starting</output></div>
         <p id="pointer-state" class="hint" aria-live="polite">Click the scene to capture the mouse.</p>
@@ -74,6 +75,7 @@ export function mountApp(root: HTMLElement) {
   classOutput.textContent = `${MOVEMENT_PLAYGROUND_CLASS.name} · double jump and wall jump enabled`;
   const weaponDefinition = getWeaponDefinition('honk-47');
   let player: PlayerController | null = null;
+  let playerCharacter: ChickenCharacterView | null = null;
   let pointerControls: PointerLockControls | null = null;
   let combat: CombatSession | null = null;
   let practiceRange: ReturnType<typeof createCombatPracticeRange> | null = null;
@@ -91,6 +93,7 @@ export function mountApp(root: HTMLElement) {
       practiceRange = createCombatPracticeRange(view.scene);
       combat = new CombatSession(playground.world, practiceRange.combatants, weaponDefinition);
       weaponView = new WeaponView(view.camera, createWeaponModel(weaponDefinition.id), weaponDefinition.reloadSeconds);
+      playerCharacter = new ChickenCharacterView(view.camera, 'player', 'first-person');
       grenadeView = new GrenadeView(view.scene);
       player = new PlayerController(view.camera, playground.world, {
         spawn: { x: 0, y: 0, z: 8 },
@@ -128,6 +131,8 @@ export function mountApp(root: HTMLElement) {
           pointerControls = null;
           grenadeView?.dispose();
           grenadeView = null;
+          playerCharacter?.dispose();
+          playerCharacter = null;
           weaponView?.dispose();
           weaponView = null;
           practiceRange?.dispose();
@@ -142,6 +147,16 @@ export function mountApp(root: HTMLElement) {
     },
     updateSimulation: (stepSeconds, random, input) => {
       player?.update(stepSeconds, input, pointerControls?.isAiming ?? false);
+      if (player) {
+        playerCharacter?.setPose({
+          movementSpeed: player.horizontalSpeed,
+          sprinting: player.horizontalSpeed > 5.8,
+          crouched: player.isCrouched,
+          grounded: player.isGrounded,
+          aiming: pointerControls?.isAiming ?? false,
+        });
+        playerCharacter?.update(stepSeconds);
+      }
       feedback.update(stepSeconds);
       practiceRange?.update(stepSeconds);
       const activeCombat = combat;
@@ -164,6 +179,7 @@ export function mountApp(root: HTMLElement) {
           );
         } else if (event.type === 'reload-started') {
           weaponView?.beginReload();
+          playerCharacter?.beginReload(weaponDefinition.reloadSeconds);
         }
       }
       for (const shot of result.shots) {

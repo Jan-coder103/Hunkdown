@@ -7,6 +7,7 @@ import { decorationAsset } from './decoration.asset';
 import { fountainAsset } from './fountain.asset';
 import { honk47Asset } from './honk-47.asset';
 import { tallTownhouseAsset } from './tall-townhouse.asset';
+import { tacticalChickenAsset } from './tactical-chicken.asset';
 import { treeAsset } from './tree.asset';
 import { createGeneratedAsset, freezeAssetDefinition, validateAssetDefinition, type AssetDefinition, type GeneratedAsset } from './asset-types';
 
@@ -21,6 +22,7 @@ const authoredDefinitions: readonly AssetDefinition[] = [
   bicycleAsset,
   honk47Asset,
   birdPlaceholderAsset,
+  tacticalChickenAsset,
 ];
 
 export const ASSET_DEFINITIONS: readonly AssetDefinition[] = Object.freeze(authoredDefinitions.map((definition) => {

@@ -10,7 +10,8 @@ Updated: 2026-10-06.
 - Phase 4: technically complete; human review of shooting feel pending.
 - Phase 5: technically complete; human review pending.
 - Phase 6: technically complete; human review pending.
-- Active phase — 7: candidate revisions are implemented; human visual review pending.
+- Phase 7: candidate revisions are technically complete; human visual review pending.
+- Active phase — 8: character implementation and technical checks are complete; human visual review pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -102,6 +103,21 @@ Phase 6 assumptions: maps default to 16 × 16 cells at 8 m per cell; dimensions 
 Review inventory: revised review candidates are Honk-47 and corner cafe. Placeholders still awaiting Phase 11 production work are Pastel row house, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, and Tactical bird placeholder. The bird remains a pipeline placeholder, not the Phase 8 player character.
 
 Phase 7 assumptions: rifle scale and olive/charcoal/wood palette are initial art choices; the cafe's visible additions remain decorative while the existing shell collider defines building blocking. Visual approval is open until the user confirms direction or gives revisions.
+
+## Phase 8 — Player chicken character
+
+- [x] Add a typed, low-poly tactical chicken with feathered body, helmet and goggles, field vest and pack, webbed feet, team patches, and bounded collision metadata.
+- [x] Provide close and far render LODs and player, friendly, and enemy team markings.
+- [x] Add first-person camera wing sleeves and a third-person character view with locomotion, jump flapping, aim, reload, damage-flash, and death-pose hooks.
+- [x] Replace practice paper targets with enemy chickens and keep their death pose visible for review.
+- [x] Add behavior coverage for team colors, LOD detail, character animation states, damage/death presentation, and view disposal.
+- [x] Run `npm run check`: 76 tests across 17 files passed; strict typecheck and production build passed. Vite reports the existing Honk-47 chunk at 505.04 kB minified.
+- [x] Browser review at `http://127.0.0.1:5181/asset-viewer.html` confirmed the chicken's close/far models and bounds. The combat range at `http://127.0.0.1:5181/` showed three chicken targets and the camera-mounted first-person wings while running at about 60 FPS.
+- [ ] Human review of the chicken silhouette, field gear, team colors, and first-person proportions.
+
+Browser limitation: clicking the combat range in the Codex in-app browser did not acquire pointer lock. Locomotion, jump, aim, reload, damage, and death poses were not manually driven in-browser; their state transitions are covered by behavior tests. No user visual approval is recorded.
+
+Phase 8 assumptions: the character is 1.9 m tall in authored bounds; player, friendly, and enemy colors begin as amber, teal, and coral. First-person representation uses camera-mounted wing sleeves alongside the rifle. Death pose is presentation-only; corpse timing and lifecycle policy remain for Phase 9.
 
 ## Decisions to resolve before affected features
 

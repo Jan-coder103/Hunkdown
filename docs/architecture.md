@@ -32,6 +32,7 @@ Empty folders are deliberate boundaries, not implemented systems. Add abstractio
 - `SceneView` owns the Three.js renderer, scene, camera, lighting, resize observer, and canvas lifecycle. Render calls receive a fixed-step interpolation alpha; simulation does not depend on renderer visibility or timing.
 - Phase 3's `PlayerController` and `MovementWorld` own kinematic player movement, camera interpolation, collision, walkable ramps, and class-gated jump abilities. `PointerLockControls` owns mouse capture, look deltas, held aim, left-button fire edges, and focus/visibility recovery; dispose it with its view.
 - Fixed-step simulation owns authoritative bird positions, health, team membership, objective and ticket state. Rendering interpolates state and owns GPU resources.
+- `ChickenCharacterView` is rendering-only: player/combatant state drives separate first-person wing sleeves or a third-person chicken rig, while locomotion, jump flaps, aim, reload, damage, and death poses never change gameplay state.
 - Hidden/cullable meshes do not remove entities from simulation. Cheap/detailed simulation transitions preserve one entity identity and damage/ticket accounting.
 - Keep visual LOD (exactly two tiers) distinct from AI update frequency/simulation fidelity.
 - Seed random map choices and test scenarios. Generate geometry/collision/navigation from the same cell data.

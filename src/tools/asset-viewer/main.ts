@@ -182,7 +182,7 @@ function buildViewerShell(container: HTMLElement): ViewerElements {
         </section>
       </aside>
     </main>
-    <footer class="viewer-footer"><span>Phase 7 · Asset revision candidates</span><span>Close and far LODs</span></footer>
+    <footer class="viewer-footer"><span>Generated asset review</span><span>Close and far LODs</span></footer>
   `;
   const assetSelect = required<HTMLSelectElement>(container, '#asset-choice');
   for (const asset of ASSET_DEFINITIONS) {

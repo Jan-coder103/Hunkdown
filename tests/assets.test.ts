@@ -1,17 +1,18 @@
-import { Box3, Mesh, PerspectiveCamera, Scene, Vector3 } from 'three';
+import { Box3, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { ASSET_DEFINITIONS, createAsset } from '../src/content/assets/registry';
 import { createGeneratedAsset, validateAssetDefinition, type AssetDefinition } from '../src/content/assets/asset-types';
 import { createWeaponModel } from '../src/content/weapons/registry';
+import { createTacticalChickenModel } from '../src/content/assets/tactical-chicken.asset';
 import { AssetPreview } from '../src/tools/asset-viewer/asset-preview';
 import { OrbitController } from '../src/tools/asset-viewer/orbit-controller';
 
 describe('generated asset pipeline', () => {
-  it('registers typed placeholder assets with two render LODs and collision metadata', () => {
+  it('registers typed code-generated assets with two render LODs and collision metadata', () => {
     expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual([
       'building', 'building', 'building',
       'decoration', 'decoration', 'decoration', 'decoration', 'decoration',
-      'weapon', 'bird',
+      'weapon', 'bird', 'bird',
     ]);
     for (const definition of ASSET_DEFINITIONS) {
       expect(Object.isFrozen(definition.bounds.min)).toBe(true);
@@ -32,6 +33,38 @@ describe('generated asset pipeline', () => {
         expect(visualBounds.max.z, `${asset.id} ${tier.name} max z`).toBeLessThanOrEqual(asset.bounds.max[2] + 0.02);
       }
       asset.dispose();
+    }
+  });
+
+  it('builds a recognizable tactical chicken with team markings and reduced far detail', () => {
+    const close = createTacticalChickenModel('enemy', 'close');
+    const far = createTacticalChickenModel('friendly', 'far');
+    const closeNames = new Set<string>();
+    close.root.traverse((object) => { if (object.name) closeNames.add(object.name); });
+    let closeMeshes = 0;
+    let farMeshes = 0;
+    close.root.traverse((object) => { if (object instanceof Mesh) closeMeshes += 1; });
+    far.root.traverse((object) => { if (object instanceof Mesh) farMeshes += 1; });
+    const enemyMark = close.teamMark.material;
+    const friendlyMark = far.teamMark.material;
+    if (!(enemyMark instanceof MeshStandardMaterial) || !(friendlyMark instanceof MeshStandardMaterial)) {
+      throw new Error('Team markings should use standard materials');
+    }
+
+    expect(closeNames).toContain('orange beak');
+    expect(closeNames).toContain('red comb');
+    expect(closeNames).toContain('tactical vest');
+    expect(closeNames).toContain('goggle lens');
+    expect(enemyMark.color.getHexString()).toBe('d96d64');
+    expect(friendlyMark.color.getHexString()).toBe('55b8a0');
+    expect(closeMeshes).toBeGreaterThan(farMeshes);
+
+    for (const rig of [close, far]) {
+      rig.root.traverse((object) => {
+        if (!(object instanceof Mesh)) return;
+        object.geometry.dispose();
+      });
+      for (const material of rig.ownedMaterials) material.dispose();
     }
   });
 
