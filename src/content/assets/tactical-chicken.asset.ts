@@ -1,13 +1,17 @@
 import {
   BoxGeometry,
+  BufferGeometry,
+  Color,
   ConeGeometry,
   CylinderGeometry,
+  Float32BufferAttribute,
   Group,
   Mesh,
   MeshStandardMaterial,
   SphereGeometry,
   type Material,
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createAssetRoot, type AssetDefinition } from './asset-types';
 
 export type ChickenTeam = 'player' | 'friendly' | 'enemy';
@@ -42,6 +46,7 @@ const TEAM_MARKINGS: Readonly<Record<ChickenTeam, string>> = Object.freeze({
 
 /** Builds the low-poly third-person chicken used by the viewer and combatants. */
 export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detail: ChickenDetail = 'close'): ChickenModelRig {
+  if (detail === 'far') return createFarTacticalChickenModel(team);
   const close = detail === 'close';
   const root = createAssetRoot(`Tactical chicken — ${team} — ${detail} LOD`);
   const feather = material('#f4ead0', 0.9);
@@ -167,6 +172,83 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   const leftLeg = createLeg('left leg', -1, orange, vestDark, root, close);
   const rightLeg = createLeg('right leg', 1, orange, vestDark, root, close);
   return { root, body, head, leftWing, rightWing, leftLeg, rightLeg, teamMark: root.getObjectByName('chest team marker') as Mesh, featherMaterial: feather, ownedMaterials };
+}
+
+/** One vertex-colored silhouette plus a team patch keeps the far tier at two draw calls. */
+function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
+  const root = createAssetRoot(`Tactical chicken — ${team} — far LOD`);
+  const parts: BufferGeometry[] = [];
+  const addPart = (
+    geometry: BufferGeometry,
+    color: string,
+    position: readonly [number, number, number],
+    scale: readonly [number, number, number] = [1, 1, 1],
+    rotation: readonly [number, number, number] = [0, 0, 0],
+  ): void => {
+    geometry.scale(...scale);
+    geometry.rotateX(rotation[0]);
+    geometry.rotateY(rotation[1]);
+    geometry.rotateZ(rotation[2]);
+    geometry.translate(...position);
+    const colorValue = new Color(color);
+    const count = geometry.getAttribute('position').count;
+    const values = new Float32Array(count * 3);
+    for (let index = 0; index < count; index += 1) colorValue.toArray(values, index * 3);
+    geometry.setAttribute('color', new Float32BufferAttribute(values, 3));
+    parts.push(geometry);
+  };
+
+  addPart(new SphereGeometry(1, 5, 4), '#f4ead0', [0, 0.78, 0], [0.44, 0.54, 0.39]);
+  addPart(new BoxGeometry(0.62, 0.42, 0.43), '#586b60', [0, 0.8, 0.16]);
+  addPart(new SphereGeometry(1, 5, 4), '#f4ead0', [0, 1.38, 0.08], [0.32, 0.31, 0.3]);
+  addPart(new SphereGeometry(1, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#718575', [0, 1.65, 0.06], [0.35, 0.22, 0.32]);
+  addPart(new ConeGeometry(0.12, 0.22, 4), '#e9ad54', [0, 1.315, 0.41], [1, 1, 1], [Math.PI / 2, 0, 0]);
+  addPart(new BoxGeometry(0.3, 0.12, 0.08), '#cf6654', [0, 1.69, 0.07]);
+  addPart(new SphereGeometry(1, 5, 4), '#e9ddc0', [-0.34, 1.02, 0.015], [0.22, 0.32, 0.19]);
+  addPart(new SphereGeometry(1, 5, 4), '#e9ddc0', [0.34, 1.02, 0.015], [0.22, 0.32, 0.19]);
+  addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [-0.17, 0.28, 0.015]);
+  addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [0.17, 0.28, 0.015]);
+  addPart(new BoxGeometry(0.18, 0.075, 0.29), '#df9c48', [-0.17, 0.13, 0.015]);
+  addPart(new BoxGeometry(0.18, 0.075, 0.29), '#df9c48', [0.17, 0.13, 0.015]);
+  addPart(new SphereGeometry(1, 4, 3), '#31423b', [-0.178, 1.395, 0.31], [0.055, 0.064, 0.034]);
+  addPart(new SphereGeometry(1, 4, 3), '#31423b', [0.178, 1.395, 0.31], [0.055, 0.064, 0.034]);
+
+  const geometry = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geometry) throw new Error('Could not combine far chicken geometry');
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  const featherMaterial = new MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.9 });
+  const silhouette = new Mesh(geometry, featherMaterial);
+  silhouette.name = 'far low-poly chicken silhouette';
+  silhouette.castShadow = false;
+  silhouette.receiveShadow = false;
+  root.add(silhouette);
+
+  const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
+  const teamMark = new Mesh(new BoxGeometry(0.18, 0.1, 0.04), teamMaterial);
+  teamMark.name = 'chest team marker';
+  teamMark.position.set(0, 0.98, 0.39);
+  root.add(teamMark);
+
+  const body = new Group();
+  const head = new Group();
+  const leftWing = new Group();
+  const rightWing = new Group();
+  const leftLeg = new Group();
+  const rightLeg = new Group();
+  return {
+    root,
+    body,
+    head,
+    leftWing,
+    rightWing,
+    leftLeg,
+    rightLeg,
+    teamMark,
+    featherMaterial,
+    ownedMaterials: [featherMaterial, teamMaterial],
+  };
 }
 
 function createWing(name: string, side: -1 | 1, feathers: MeshStandardMaterial, sleeve: MeshStandardMaterial, close: boolean, root: Group): Group {

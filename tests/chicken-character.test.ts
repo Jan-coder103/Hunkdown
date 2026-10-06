@@ -4,6 +4,35 @@ import { ChickenCharacterView } from '../src/game/player/chicken-character-view'
 import { createCombatPracticeRange } from '../src/game/combat/combat-practice-range';
 
 describe('chicken character presentations', () => {
+  it('switches between close and far LODs while preserving the current pose', () => {
+    const scene = new Scene();
+    const view = new ChickenCharacterView(scene, 'enemy', 'third-person', 'far');
+    view.setPose({ movementSpeed: 4, aiming: true, grounded: true });
+    view.update(0.08);
+    const farRig = view.thirdPersonRig;
+    if (!farRig) throw new Error('Expected a far chicken rig');
+    expect(view.detail).toBe('far');
+
+    view.setDetail('close');
+    const closeRig = view.thirdPersonRig;
+    if (!closeRig) throw new Error('Expected a close chicken rig');
+    expect(view.detail).toBe('close');
+    expect(closeRig.body.rotation.x).toBeLessThan(0);
+    expect(farRig.root.visible).toBe(false);
+    expect(closeRig.root.visible).toBe(true);
+
+    view.triggerDamage();
+    view.setDetail('far');
+    expect(view.thirdPersonRig).toBe(farRig);
+    expect(farRig.featherMaterial.emissiveIntensity).toBeGreaterThan(0);
+    expect(closeRig.root.visible).toBe(false);
+    expect(farRig.root.visible).toBe(true);
+    expect(view.object.children.filter((child) => child.visible)).toHaveLength(1);
+
+    view.dispose();
+    expect(scene.children).toHaveLength(0);
+  });
+
   it('animates third-person movement, jumping, aim, reload, damage, and death poses', () => {
     const scene = new Scene();
     const view = new ChickenCharacterView(scene, 'enemy', 'third-person');

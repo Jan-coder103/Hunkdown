@@ -38,6 +38,23 @@ describe('map-backed bot skirmish', () => {
     expect(first.snapshots).toEqual(replay.snapshots);
   });
 
+  it('continues the authoritative simulation for 100 bots without a rendered-view dependency', () => {
+    const map = generateMap(createEmptyMap({ width: 11, height: 9, seed: 217, cellSize: 8 }));
+    const simulation = createBotSkirmish(map, { friendlyCount: 50, enemyCount: 50, seed: 217 });
+    const initial = simulation.snapshots;
+    expect(initial).toHaveLength(100);
+
+    for (let frame = 0; frame < 120; frame += 1) simulation.step(1 / 60);
+
+    const current = simulation.snapshots;
+    expect(current).toHaveLength(100);
+    expect(new Set(current.map((bot) => bot.id)).size).toBe(100);
+    expect(current.some((bot, index) => {
+      const start = initial[index];
+      return start && Math.hypot(bot.position.x - start.position.x, bot.position.z - start.position.z) > 0.1;
+    })).toBe(true);
+  });
+
   it('gives an actively firing bot a bounded recoil push away from its target', () => {
     const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 33, cellSize: 4 }));
     const simulation = new BotSkirmishSimulation(map, [

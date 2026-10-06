@@ -25,6 +25,10 @@ class FakeRenderer implements RendererPort {
   readonly domElement = { parentElement: null } as unknown as HTMLElement;
   readonly sizes: Array<[number, number, boolean | undefined]> = [];
   readonly renders: Array<[Scene, PerspectiveCamera]> = [];
+  readonly info = {
+    render: { calls: 17, triangles: 34 },
+    memory: { geometries: 8, textures: 2 },
+  };
   pixelRatio = 0;
   disposeCount = 0;
 
@@ -74,6 +78,7 @@ describe('SceneView', () => {
 
     view.render(0.5);
     expect(renderer.renders).toHaveLength(1);
+    expect(view.rendererPerformanceStats).toEqual({ drawCalls: 17, triangles: 34, geometries: 8, textures: 2 });
   });
 
   it('disconnects resize observation, removes its canvas, and disposes once', () => {

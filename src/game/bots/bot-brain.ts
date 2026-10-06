@@ -41,24 +41,28 @@ export class BotBrain {
     if (bot.status !== 'alive') return idleIntent();
     if (!this.navigation.hasCell(objective)) throw new Error('Bot objective must be a navigable map cell');
 
-    const visibleEnemies = combatants
-      .filter((other) => other.id !== bot.id && other.status === 'alive' && areOpponents(bot.team, other.team))
-      .map((other) => ({ other, distance: bot.position.distanceTo(other.position) }))
-      .filter(({ other, distance }) => distance <= BOT_RULES.sightRange && canSee(bot, other))
-      .sort((a, b) => a.distance - b.distance || a.other.id.localeCompare(b.other.id));
-    const target = visibleEnemies[0] ?? null;
-    const nearbyEnemies = visibleEnemies.filter(({ distance }) => distance <= BOT_RULES.nearbyGroupRange).length;
-    const nearbyAllies = combatants.filter((other) =>
-      other.id !== bot.id
-      && other.status === 'alive'
-      && other.team !== 'neutral'
-      && !areOpponents(bot.team, other.team)
-      && bot.position.distanceTo(other.position) <= BOT_RULES.nearbyGroupRange,
-    ).length + 1;
-    const occupiedCells = combatants
-      .filter((other) => other.id !== bot.id && other.status === 'alive' && other.team !== 'neutral' && !areOpponents(bot.team, other.team))
-      .map((other) => this.navigation.nearestCell(other.position))
-      .filter((cell): cell is GridPoint => cell !== null);
+    const visibleEnemies: Combatant[] = [];
+    let target: { other: Combatant; distance: number } | null = null;
+    let nearbyEnemies = 0;
+    let nearbyAllies = 1;
+    const occupiedCells: GridPoint[] = [];
+    for (const other of combatants) {
+      if (other.id === bot.id || other.status !== 'alive') continue;
+      if (areOpponents(bot.team, other.team)) {
+        const distance = bot.position.distanceTo(other.position);
+        if (distance > BOT_RULES.sightRange || !canSee(bot, other)) continue;
+        visibleEnemies.push(other);
+        if (distance <= BOT_RULES.nearbyGroupRange) nearbyEnemies += 1;
+        if (!target || distance < target.distance || (distance === target.distance && other.id.localeCompare(target.other.id) < 0)) {
+          target = { other, distance };
+        }
+        continue;
+      }
+      if (other.team === 'neutral') continue;
+      if (bot.position.distanceTo(other.position) <= BOT_RULES.nearbyGroupRange) nearbyAllies += 1;
+      const cell = this.navigation.nearestCell(other.position);
+      if (cell) occupiedCells.push(cell);
+    }
     const needsCover = target !== null
       && (bot.health / bot.maxHealth <= BOT_RULES.lowHealthFraction || nearbyEnemies > nearbyAllies);
 
@@ -81,7 +85,7 @@ export class BotBrain {
         });
       }
       this.clearRoute();
-      const retreat = this.chooseRetreat(bot, visibleEnemies.map(({ other }) => other));
+      const retreat = this.chooseRetreat(bot, visibleEnemies);
       return Object.freeze({
         behavior: 'retreat',
         destination: retreat,
@@ -151,7 +155,7 @@ export class BotBrain {
     routeSeed: number,
     occupiedCells: readonly GridPoint[],
   ): GridPoint | null {
-    if (this.routeWaypoint && samePoint(this.routeGoal, goal) && !this.navigation.isAtCell(position, this.routeWaypoint)) {
+    if (this.routeWaypoint && samePoint(this.routeGoal, goal) && !this.navigation.isAtCell(position, this.routeWaypoint, 0.08)) {
       return this.routeWaypoint;
     }
     this.routeGoal = goal;
@@ -188,7 +192,11 @@ function samePoint(a: GridPoint | null, b: GridPoint): boolean {
 
 function nearestThreatDistance(position: Readonly<{ x: number; z: number }>, threats: readonly Combatant[]): number {
   if (threats.length === 0) return 0;
-  return Math.min(...threats.map((threat) => Math.hypot(position.x - threat.position.x, position.z - threat.position.z)));
+  let nearest = Number.POSITIVE_INFINITY;
+  for (const threat of threats) {
+    nearest = Math.min(nearest, Math.hypot(position.x - threat.position.x, position.z - threat.position.z));
+  }
+  return nearest;
 }
 
 function idleIntent(): BotIntent {

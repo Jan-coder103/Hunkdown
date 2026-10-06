@@ -1,19 +1,25 @@
 import {
   BoxGeometry,
   BufferGeometry,
+  Camera,
   CylinderGeometry,
+  Frustum,
   Group,
+  InstancedMesh,
   Line,
   LineBasicMaterial,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  Object3D,
   PlaneGeometry,
   RingGeometry,
   Scene,
+  Sphere,
+  StaticDrawUsage,
   Vector3,
   type Material,
-  type Object3D,
 } from 'three';
 import { createSeededRandom } from '../../engine/seeded-random';
 import { getWeaponDefinition } from '../../content/weapons/registry';
@@ -23,7 +29,9 @@ import { ChickenCharacterView } from '../player/chicken-character-view';
 import { generateMap, worldPosition, type GeneratedMap } from '../world/map-generator';
 import { createEnterableBuilding, createSlopeGeometry } from '../../tools/map-editor/map-geometry';
 import { BotSkirmishSimulation, type BotShot, type BotSide, type BotSimulationOptions, type BotSimulationStep, type BotSnapshot } from './bot-simulation';
-import { BotSkirmishMatch, type BotCorpseSnapshot, type BotSkirmishMatchRules } from '../match/bot-skirmish-match';
+import { BotSkirmishMatch, type BotSkirmishMatchRules } from '../match/bot-skirmish-match';
+import type { BotIntent } from './bot-brain';
+import type { Combatant } from '../combat/combatant';
 
 const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
   street: '#c4cdbc',
@@ -51,6 +59,28 @@ export type BotSkirmishViewOptions = Readonly<{
   rules?: Partial<BotSkirmishMatchRules>;
 }>;
 
+export type BotRenderDiagnostics = Readonly<{
+  totalCharacters: number;
+  visibleCharacters: number;
+  closeLodCharacters: number;
+  farLodCharacters: number;
+  culledCharacters: number;
+}>;
+
+type AssetLodPair = {
+  id?: string;
+  close: Object3D;
+  far: Object3D;
+  position: Vector3;
+  radius: number;
+  detail: 'close' | 'far';
+};
+
+const CLOSE_LOD_DISTANCE = 23;
+const CLOSE_LOD_RETURN_DISTANCE = 18;
+const MAX_CHARACTER_DRAW_DISTANCE = 190;
+const MAX_CORPSE_VIEWS = 192;
+
 /** Scene presentation for the deterministic bot-only match preview. */
 export class BotSkirmishView {
   readonly simulation: BotSkirmishSimulation;
@@ -59,15 +89,33 @@ export class BotSkirmishView {
   private readonly root = new Group();
   private readonly characters = new Map<string, ChickenCharacterView>();
   private readonly corpseViews = new Map<string, ChickenCharacterView>();
+  private readonly pooledCorpseViews: Record<BotSide, ChickenCharacterView[]> = { friendly: [], enemy: [] };
+  private readonly combatantById = new Map<string, Combatant>();
   private readonly previousPositions = new Map<string, Vector3>();
+  private readonly aliveCharacterIds = new Set<string>();
+  private readonly corpseIds = new Set<string>();
   private readonly previousHealth = new Map<string, number>();
   private readonly generatedAssets: GeneratedAsset[] = [];
   private readonly ownedGeometries = new Set<BufferGeometry>();
   private readonly ownedMaterials = new Set<Material>();
   private readonly tracers: Tracer[] = [];
   private readonly decorationViews = new Map<string, Object3D>();
+  private readonly decorationFarViews = new Map<string, Object3D>();
+  private readonly destroyedDecorationIds = new Set<string>();
   private readonly buildingPartViews = new Map<string, Object3D>();
+  private readonly assetLodPairs: AssetLodPair[] = [];
   private readonly debris: DebrisParticle[] = [];
+  private readonly frustum = new Frustum();
+  private readonly viewProjection = new Matrix4();
+  private readonly visibilitySphere = new Sphere(new Vector3(), 1.5);
+  private readonly cameraPosition = new Vector3();
+  private renderDiagnostics: BotRenderDiagnostics = Object.freeze({
+    totalCharacters: 0,
+    visibleCharacters: 0,
+    closeLodCharacters: 0,
+    farLodCharacters: 0,
+    culledCharacters: 0,
+  });
   private debrisRandom: () => number;
   private disposed = false;
   private kills = 0;
@@ -88,6 +136,7 @@ export class BotSkirmishView {
       seed,
     }, { ...options.simulation, seed }, options.countdownSeconds, options.rules);
     this.simulation = this.match.simulation;
+    for (const combatant of this.simulation.combatants) this.combatantById.set(combatant.id, combatant);
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
@@ -111,22 +160,100 @@ export class BotSkirmishView {
     return this.debris.reduce((count, particle) => count + Number(particle.mesh.visible), 0);
   }
 
+  get botRenderDiagnostics(): BotRenderDiagnostics {
+    return this.renderDiagnostics;
+  }
+
   step(deltaSeconds: number): BotSimulationStep {
     if (this.disposed) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]), destroyedObstacleIds: Object.freeze([]) });
     this.updateTracers(deltaSeconds);
     this.updateDebris(deltaSeconds);
-    const before = this.simulation.snapshots;
-    for (const bot of before) this.previousPositions.set(bot.id, new Vector3(bot.position.x, bot.position.y, bot.position.z));
-
     const result = this.match.step(deltaSeconds);
     this.kills += result.killedIds.length;
     this.showDestruction(result.destroyedObstacleIds);
-    const after = this.simulation.snapshots;
-    const byId = new Map(after.map((bot) => [bot.id, bot]));
-    for (const bot of after) this.syncCharacter(bot, byId, deltaSeconds);
-    this.syncCorpses(this.match.corpseSnapshots, deltaSeconds);
-    for (const shot of result.shots) this.addTracer(shot, byId);
+    this.simulation.forEachBotState((combatant, intent) => this.syncCharacter(combatant, intent, deltaSeconds));
+    this.syncCorpses(deltaSeconds);
+    for (const shot of result.shots) this.addTracer(shot);
     return result;
+  }
+
+  /** Applies the two render LODs and character frustum culling without changing simulation state. */
+  updatePresentation(camera: Camera): void {
+    if (this.disposed) return;
+    camera.updateMatrixWorld();
+    this.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProjection);
+    camera.getWorldPosition(this.cameraPosition);
+
+    let visibleCharacters = 0;
+    let closeLodCharacters = 0;
+    let farLodCharacters = 0;
+    for (const [id, character] of this.characters) {
+      if (!this.aliveCharacterIds.has(id)) {
+        character.object.visible = false;
+        continue;
+      }
+      const position = character.object.position;
+      const distance = this.cameraPosition.distanceTo(position);
+      this.visibilitySphere.center.set(position.x, position.y + 0.95, position.z);
+      this.visibilitySphere.radius = 1.55;
+      const visible = distance <= MAX_CHARACTER_DRAW_DISTANCE && this.frustum.intersectsSphere(this.visibilitySphere);
+      character.object.visible = visible;
+      if (!visible) continue;
+      const detail = character.detail === 'far'
+        ? (distance < CLOSE_LOD_RETURN_DISTANCE ? 'close' : 'far')
+        : (distance > CLOSE_LOD_DISTANCE ? 'far' : 'close');
+      character.setDetail(detail);
+      if (detail === 'far') farLodCharacters += 1;
+      else closeLodCharacters += 1;
+      visibleCharacters += 1;
+    }
+
+    for (const [id, corpse] of this.corpseViews) {
+      if (!this.corpseIds.has(id)) {
+        corpse.object.visible = false;
+        continue;
+      }
+      const position = corpse.object.position;
+      const distance = this.cameraPosition.distanceTo(position);
+      this.visibilitySphere.center.set(position.x, position.y + 0.75, position.z);
+      this.visibilitySphere.radius = 1.5;
+      const visible = distance <= MAX_CHARACTER_DRAW_DISTANCE && this.frustum.intersectsSphere(this.visibilitySphere);
+      corpse.object.visible = visible;
+      if (!visible) continue;
+      const detail = corpse.detail === 'far'
+        ? (distance < CLOSE_LOD_RETURN_DISTANCE ? 'close' : 'far')
+        : (distance > CLOSE_LOD_DISTANCE ? 'far' : 'close');
+      corpse.setDetail(detail);
+      if (detail === 'far') farLodCharacters += 1;
+      else closeLodCharacters += 1;
+      visibleCharacters += 1;
+    }
+
+    for (const pair of this.assetLodPairs) {
+      if (pair.id && this.destroyedDecorationIds.has(pair.id)) {
+        pair.close.visible = false;
+        pair.far.visible = false;
+        continue;
+      }
+      const distance = this.cameraPosition.distanceTo(pair.position);
+      this.visibilitySphere.center.copy(pair.position);
+      this.visibilitySphere.radius = pair.radius;
+      const visible = distance <= MAX_CHARACTER_DRAW_DISTANCE && this.frustum.intersectsSphere(this.visibilitySphere);
+      pair.detail = pair.detail === 'far'
+        ? (distance < CLOSE_LOD_RETURN_DISTANCE ? 'close' : 'far')
+        : (distance > CLOSE_LOD_DISTANCE ? 'far' : 'close');
+      pair.close.visible = visible && pair.detail === 'close';
+      pair.far.visible = visible && pair.detail === 'far';
+    }
+    const totalCharacters = this.aliveCharacterIds.size + this.corpseIds.size;
+    this.renderDiagnostics = Object.freeze({
+      totalCharacters,
+      visibleCharacters,
+      closeLodCharacters,
+      farLodCharacters,
+      culledCharacters: Math.max(0, totalCharacters - visibleCharacters),
+    });
   }
 
   /** Hides broken props or wall segments and emits a fixed-budget debris burst. */
@@ -134,8 +261,13 @@ export class BotSkirmishView {
     if (this.disposed) return;
     for (const id of new Set(ids)) {
       const model = this.decorationViews.get(id) ?? this.buildingPartViews.get(id);
-      if (!model?.visible) continue;
-      model.visible = false;
+      const farDecoration = this.decorationFarViews.get(id);
+      if (farDecoration) {
+        if (this.destroyedDecorationIds.has(id)) continue;
+        this.destroyedDecorationIds.add(id);
+      } else if (!model?.visible) continue;
+      if (model) model.visible = false;
+      if (farDecoration) farDecoration.visible = false;
       const placement = this.map.decorations.find((candidate) => candidate.id === id);
       const collider = this.map.collisions.find((candidate) => candidate.id === id);
       if (!placement && !collider) continue;
@@ -169,10 +301,25 @@ export class BotSkirmishView {
     this.characters.clear();
     for (const corpse of this.corpseViews.values()) corpse.dispose();
     this.corpseViews.clear();
+    for (const pool of Object.values(this.pooledCorpseViews)) {
+      for (const corpse of pool) corpse.dispose();
+      pool.length = 0;
+    }
+    this.aliveCharacterIds.clear();
+    this.corpseIds.clear();
+    this.previousPositions.clear();
+    this.previousHealth.clear();
     for (const tracer of this.tracers) this.disposeTracer(tracer);
     this.tracers.length = 0;
     this.decorationViews.clear();
+    this.decorationFarViews.clear();
+    this.destroyedDecorationIds.clear();
     this.buildingPartViews.clear();
+    this.assetLodPairs.length = 0;
+    this.combatantById.clear();
+    this.root.traverse((child) => {
+      if (child instanceof InstancedMesh) child.dispose();
+    });
     this.scene.remove(this.root);
     for (const asset of this.generatedAssets) asset.dispose();
     this.generatedAssets.length = 0;
@@ -194,6 +341,7 @@ export class BotSkirmishView {
 
     const tileGeometry = this.ownGeometry(new PlaneGeometry(source.cellSize - 0.06, source.cellSize - 0.06));
     const tileMaterials = new Map<string, MeshStandardMaterial>();
+    const tilePositions = new Map<string, Vector3[]>();
     for (const cell of source.cells) {
       const color = CELL_COLORS[cell.kind] ?? CELL_COLORS.street ?? '#c4cdbc';
       let material = tileMaterials.get(color);
@@ -202,19 +350,44 @@ export class BotSkirmishView {
         tileMaterials.set(color, material);
       }
       const position = worldPosition(source, cell);
-      const tile = new Mesh(tileGeometry, material);
-      tile.rotation.x = -Math.PI / 2;
-      tile.position.set(position.x, 0.005, position.z);
-      this.root.add(tile);
+      const positions = tilePositions.get(color) ?? [];
+      positions.push(new Vector3(position.x, 0.005, position.z));
+      tilePositions.set(color, positions);
+    }
+    const tileTransform = new Object3D();
+    for (const [color, positions] of tilePositions) {
+      const material = tileMaterials.get(color);
+      if (!material || positions.length === 0) continue;
+      const tiles = new InstancedMesh(tileGeometry, material, positions.length);
+      tiles.instanceMatrix.setUsage(StaticDrawUsage);
+      tiles.receiveShadow = true;
+      for (const [index, position] of positions.entries()) {
+        tileTransform.position.copy(position);
+        tileTransform.rotation.set(-Math.PI / 2, 0, 0);
+        tileTransform.updateMatrix();
+        tiles.setMatrixAt(index, tileTransform.matrix);
+      }
+      tiles.instanceMatrix.needsUpdate = true;
+      tiles.computeBoundingSphere();
+      this.root.add(tiles);
     }
 
     const raisedTileGeometry = this.ownGeometry(new BoxGeometry(source.cellSize - 0.06, 1.25, source.cellSize - 0.06));
     const raisedTileMaterial = this.ownMaterial(new MeshStandardMaterial({ color: '#86a977', roughness: 0.9 }));
-    for (const elevation of this.map.elevations) {
+    if (this.map.elevations.length > 0) {
+      const raisedTiles = new InstancedMesh(raisedTileGeometry, raisedTileMaterial, this.map.elevations.length);
+      raisedTiles.instanceMatrix.setUsage(StaticDrawUsage);
+      raisedTiles.receiveShadow = true;
+      for (const [index, elevation] of this.map.elevations.entries()) {
       const position = worldPosition(source, elevation.cell);
-      const tile = new Mesh(raisedTileGeometry, raisedTileMaterial);
-      tile.position.set(position.x, elevation.height / 2, position.z);
-      this.root.add(tile);
+        tileTransform.position.set(position.x, elevation.height / 2, position.z);
+        tileTransform.rotation.set(0, 0, 0);
+        tileTransform.updateMatrix();
+        raisedTiles.setMatrixAt(index, tileTransform.matrix);
+      }
+      raisedTiles.instanceMatrix.needsUpdate = true;
+      raisedTiles.computeBoundingSphere();
+      this.root.add(raisedTiles);
     }
 
     for (const slope of this.map.slopes) {
@@ -247,16 +420,29 @@ export class BotSkirmishView {
       }
       const asset = createAsset(placement.assetId);
       this.generatedAssets.push(asset);
-      const model = asset.lods.close;
       const bounds = asset.bounds;
-      model.scale.set(
-        size / (bounds.max[0] - bounds.min[0]),
-        size / 2.8,
-        size / (bounds.max[2] - bounds.min[2]),
-      );
-      model.rotation.y = placement.quarterTurns * Math.PI / 2;
-      model.position.set(placement.position.x, 0.025, placement.position.z);
-      this.root.add(model);
+      asset.lods.close.name = `city building ${placement.cell.x}-${placement.cell.y} close LOD`;
+      asset.lods.far.name = `city building ${placement.cell.x}-${placement.cell.y} far LOD`;
+      const transformModel = (model: Object3D): void => {
+        model.scale.set(
+          size / (bounds.max[0] - bounds.min[0]),
+          size / 2.8,
+          size / (bounds.max[2] - bounds.min[2]),
+        );
+        model.rotation.y = placement.quarterTurns * Math.PI / 2;
+        model.position.set(placement.position.x, 0.025, placement.position.z);
+      };
+      transformModel(asset.lods.close);
+      transformModel(asset.lods.far);
+      asset.lods.far.visible = false;
+      this.root.add(asset.lods.close, asset.lods.far);
+      this.assetLodPairs.push({
+        close: asset.lods.close,
+        far: asset.lods.far,
+        position: new Vector3(placement.position.x, size * 0.5, placement.position.z),
+        radius: size * 1.2,
+        detail: 'close',
+      });
     }
   }
 
@@ -265,12 +451,27 @@ export class BotSkirmishView {
       const asset = createAsset(placement.assetId);
       this.generatedAssets.push(asset);
       const model = asset.lods.close;
+      const farModel = asset.lods.far;
       model.name = `destructible prop ${placement.id}`;
-      model.rotation.y = placement.rotation;
-      model.scale.setScalar(Math.min(1, this.map.source.cellSize / 4));
-      model.position.set(placement.position.x, placement.position.y + 0.02, placement.position.z);
+      farModel.name = `destructible prop ${placement.id} far LOD`;
+      const scale = Math.min(1, this.map.source.cellSize / 4);
+      for (const lod of [model, farModel]) {
+        lod.rotation.y = placement.rotation;
+        lod.scale.setScalar(scale);
+        lod.position.set(placement.position.x, placement.position.y + 0.02, placement.position.z);
+      }
+      farModel.visible = false;
       this.decorationViews.set(placement.id, model);
-      this.root.add(model);
+      this.decorationFarViews.set(placement.id, farModel);
+      this.root.add(model, farModel);
+      this.assetLodPairs.push({
+        id: placement.id,
+        close: model,
+        far: farModel,
+        position: new Vector3(placement.position.x, placement.position.y + 0.75, placement.position.z),
+        radius: Math.max(2.2, scale * 2.2),
+        detail: 'close',
+      });
     }
   }
 
@@ -328,21 +529,27 @@ export class BotSkirmishView {
   }
 
   private addCharacters(): void {
-    for (const bot of this.simulation.snapshots) {
-      const team: BotSide = bot.team;
-      const character = new ChickenCharacterView(this.scene, team, 'third-person');
-      character.object.name = `skirmish ${bot.team} bot ${bot.id}`;
-      character.object.position.set(bot.position.x, bot.position.y, bot.position.z);
+    this.simulation.forEachBotState((bot) => {
+      const team = bot.team as BotSide;
+      const character = new ChickenCharacterView(this.scene, team, 'third-person', 'far');
+      character.object.name = `skirmish ${team} bot ${bot.id}`;
+      character.object.position.copy(bot.position);
+      character.object.visible = bot.status === 'alive';
       this.characters.set(bot.id, character);
-      this.previousPositions.set(bot.id, new Vector3(bot.position.x, bot.position.y, bot.position.z));
+      this.previousPositions.set(bot.id, bot.position.clone());
       this.previousHealth.set(bot.id, bot.health);
-    }
+      if (bot.status === 'alive') this.aliveCharacterIds.add(bot.id);
+    });
   }
 
-  private syncCharacter(bot: BotSnapshot, allBots: ReadonlyMap<string, BotSnapshot>, deltaSeconds: number): void {
+  private syncCharacter(bot: Combatant, intent: BotIntent, deltaSeconds: number): void {
     const character = this.characters.get(bot.id);
     if (!character) return;
-    character.object.visible = bot.status === 'alive';
+    if (bot.status === 'alive') this.aliveCharacterIds.add(bot.id);
+    else {
+      this.aliveCharacterIds.delete(bot.id);
+      character.object.visible = false;
+    }
     const previous = this.previousPositions.get(bot.id);
     const movementSpeed = previous && deltaSeconds > 0
       ? Math.hypot(bot.position.x - previous.x, bot.position.z - previous.z) / deltaSeconds
@@ -352,7 +559,7 @@ export class BotSkirmishView {
     this.previousHealth.set(bot.id, bot.health);
     character.object.position.set(bot.position.x, bot.position.y, bot.position.z);
 
-    const target = bot.targetId ? allBots.get(bot.targetId) : undefined;
+    const target = intent.targetId ? this.combatantById.get(intent.targetId) : undefined;
     const directionX = target
       ? target.position.x - bot.position.x
       : bot.position.x - (previous?.x ?? bot.position.x);
@@ -364,34 +571,50 @@ export class BotSkirmishView {
       movementSpeed,
       sprinting: movementSpeed > 5.8,
       grounded: true,
-      aiming: bot.shouldFire,
+      aiming: intent.shouldFire,
       dead: false,
     });
-    character.update(deltaSeconds);
+    const storedPosition = previous ?? new Vector3();
+    storedPosition.set(bot.position.x, bot.position.y, bot.position.z);
+    this.previousPositions.set(bot.id, storedPosition);
+    if (character.object.visible) character.update(deltaSeconds);
   }
 
-  private syncCorpses(snapshots: readonly BotCorpseSnapshot[], deltaSeconds: number): void {
-    const present = new Set(snapshots.map((corpse) => corpse.id));
+  private syncCorpses(deltaSeconds: number): void {
+    this.corpseIds.clear();
+    this.match.forEachCorpse((corpse) => this.corpseIds.add(corpse.id));
     for (const [id, view] of this.corpseViews) {
-      if (present.has(id)) continue;
-      view.dispose();
+      if (this.corpseIds.has(id)) continue;
       this.corpseViews.delete(id);
+      view.object.visible = false;
+      view.object.name = 'pooled skirmish corpse view';
+      this.pooledCorpseViews[view.teamSide as BotSide].push(view);
     }
-    for (const corpse of snapshots) {
+    this.match.forEachCorpse((corpse) => {
       let view = this.corpseViews.get(corpse.id);
       if (!view) {
-        view = new ChickenCharacterView(this.scene, corpse.team, 'third-person');
+        const pool = this.pooledCorpseViews[corpse.team];
+        view = pool.pop();
+        if (!view) {
+          const allocated = this.corpseViews.size + this.pooledCorpseViews.friendly.length + this.pooledCorpseViews.enemy.length;
+          if (allocated >= MAX_CORPSE_VIEWS) return;
+          view = new ChickenCharacterView(this.scene, corpse.team, 'third-person', 'far');
+        } else {
+          view.setPose({ dead: false });
+        }
         view.object.name = `skirmish corpse ${corpse.id}`;
         view.object.position.set(corpse.position.x, corpse.position.y, corpse.position.z);
+        view.object.rotation.set(0, 0, 0);
+        view.object.visible = true;
         view.setPose({ grounded: true, dead: true, deathImpulse: corpse.deathImpulse });
         this.corpseViews.set(corpse.id, view);
       }
-      view.update(deltaSeconds);
-    }
+      if (view.object.visible) view.update(deltaSeconds);
+    });
   }
 
-  private addTracer(shot: BotShot, snapshots: ReadonlyMap<string, BotSnapshot>): void {
-    const shooter = snapshots.get(shot.shooterId);
+  private addTracer(shot: BotShot): void {
+    const shooter = this.combatantById.get(shot.shooterId);
     if (!shooter) return;
     const start = new Vector3(shooter.position.x, shooter.position.y + 1.08, shooter.position.z);
     const distance = shot.result.distance ?? this.weaponRange;

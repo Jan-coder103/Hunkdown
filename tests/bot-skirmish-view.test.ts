@@ -1,7 +1,8 @@
-import { Group, Scene } from 'three';
+import { Group, InstancedMesh, PerspectiveCamera, Scene } from 'three';
 import { describe, expect, it } from 'vitest';
 import { BotSkirmishView } from '../src/game/bots/bot-skirmish-view';
 import { createSkirmishShowcaseMap } from '../src/game/bots/skirmish-showcase';
+import { BotSkirmishMatch } from '../src/game/match/bot-skirmish-match';
 import { generateMap } from '../src/game/world/map-generator';
 import { createEmptyMap, paintMapCell } from '../src/game/world/map-types';
 
@@ -36,6 +37,116 @@ describe('rendered bot skirmish', () => {
     const stateBot = after.find((bot) => bot.id === 'friendly-001');
     expect(renderedBot?.position.x).toBeCloseTo(stateBot?.position.x ?? Number.NaN, 6);
     expect(renderedBot?.position.z).toBeCloseTo(stateBot?.position.z ?? Number.NaN, 6);
+  });
+
+  it('batches repeated map tiles and keeps bot simulation running while presentation is culled', () => {
+    const scene = new Scene();
+    const map = generateMap(createEmptyMap({ width: 7, height: 5, seed: 64, cellSize: 8 }));
+    const view = new BotSkirmishView(scene, map, {
+      friendlyCount: 4,
+      enemyCount: 4,
+      seed: 64,
+      countdownSeconds: 0.01,
+    });
+    const batches: InstancedMesh[] = [];
+    scene.traverse((object) => { if (object instanceof InstancedMesh) batches.push(object); });
+    expect(batches.some((batch) => batch.count === map.source.cells.length)).toBe(true);
+
+    const camera = new PerspectiveCamera(60, 1.4, 0.1, 300);
+    camera.position.set(0, 80, 0);
+    camera.up.set(0, 0, -1);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(view.botRenderDiagnostics).toMatchObject({
+      totalCharacters: 8,
+      visibleCharacters: 8,
+      farLodCharacters: 8,
+      closeLodCharacters: 0,
+    });
+    const bird = scene.getObjectByName('skirmish friendly bot friendly-001');
+    expect(bird?.children.filter((child) => child.visible)).toHaveLength(1);
+    expect(bird?.children.find((child) => child.visible)?.name).toContain('far LOD');
+
+    camera.position.set(0, 80, 200);
+    camera.lookAt(0, 80, 210);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(view.botRenderDiagnostics.visibleCharacters).toBe(0);
+    const before = view.snapshots;
+    for (let frame = 0; frame < 120; frame += 1) view.step(1 / 60);
+    const after = view.snapshots;
+    expect(after.some((bot, index) => {
+      const initial = before[index];
+      return initial && Math.hypot(bot.position.x - initial.position.x, bot.position.z - initial.position.z) > 0.1;
+    })).toBe(true);
+    view.dispose();
+  });
+
+  it('selects the far and close asset tiers by camera distance', () => {
+    const scene = new Scene();
+    const draft = paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 43, cellSize: 8 }), 2, 1, 'solid-house');
+    const map = generateMap(draft);
+    const building = map.buildings.find((placement) => placement.cell.x === 2 && placement.cell.y === 1);
+    if (!building) throw new Error('Expected the authored solid house');
+    const view = new BotSkirmishView(scene, map, { friendlyCount: 0, enemyCount: 0, seed: 43 });
+    const closeModel = scene.getObjectByName('city building 2-1 close LOD');
+    const farModel = scene.getObjectByName('city building 2-1 far LOD');
+    if (!closeModel || !farModel) throw new Error('Expected both building LOD models');
+
+    const camera = new PerspectiveCamera(60, 1.5, 0.1, 300);
+    camera.position.set(building.position.x, 80, building.position.z);
+    camera.up.set(0, 0, -1);
+    camera.lookAt(building.position.x, 0, building.position.z);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(closeModel.visible).toBe(false);
+    expect(farModel.visible).toBe(true);
+
+    camera.position.set(building.position.x, 2, building.position.z + 9);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(building.position.x, 1.4, building.position.z);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(closeModel.visible).toBe(true);
+    expect(farModel.visible).toBe(false);
+    view.dispose();
+  });
+
+  it('keeps match state identical while repeatedly switching character detail tiers', () => {
+    const scene = new Scene();
+    const map = generateMap(createEmptyMap({ width: 7, height: 5, seed: 73, cellSize: 8 }));
+    const options = { friendlyCount: 4, enemyCount: 4, seed: 73 } as const;
+    const view = new BotSkirmishView(scene, map, { ...options, countdownSeconds: 0.01 });
+    const reference = new BotSkirmishMatch(map, options, { seed: 73 }, 0.01);
+    const camera = new PerspectiveCamera(60, 1.4, 0.1, 300);
+
+    for (let frame = 0; frame < 1200; frame += 1) {
+      const bot = scene.getObjectByName('skirmish friendly bot friendly-001');
+      if (!bot) throw new Error('Expected the close-detail test bot');
+      if (frame % 2 === 0) {
+        camera.position.set(0, 80, 0);
+        camera.up.set(0, 0, -1);
+        camera.lookAt(0, 0, 0);
+      } else {
+        camera.position.set(bot.position.x, bot.position.y + 3, bot.position.z + 5);
+        camera.up.set(0, 1, 0);
+        camera.lookAt(bot.position.x, bot.position.y + 1, bot.position.z);
+      }
+      camera.updateMatrixWorld(true);
+      view.updatePresentation(camera);
+      if (frame < 2) {
+        const activeRig = bot.children.find((child) => child.visible);
+        expect(activeRig?.name).toContain(frame === 0 ? 'far LOD' : 'close LOD');
+      }
+      view.step(1 / 60);
+      reference.step(1 / 60);
+    }
+
+    expect(view.match.simulation.snapshots).toEqual(reference.simulation.snapshots);
+    expect(view.match.tickets).toEqual(reference.tickets);
+    expect(view.match.scoreSnapshots).toEqual(reference.scoreSnapshots);
+    view.dispose();
   });
 
   it('shows and cleans up bot shot tracers with their scene resources', () => {
@@ -73,11 +184,23 @@ describe('rendered bot skirmish', () => {
     const model = scene.getObjectByName(`destructible prop ${prop.id}`);
     expect(model?.visible).toBe(true);
 
-    view.showDestruction([prop.id]);
+    const camera = new PerspectiveCamera(55, 1, 0.1, 400);
+    camera.position.set(0, 80, 200);
+    camera.lookAt(0, 80, 210);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
     expect(model?.visible).toBe(false);
+
+    view.showDestruction([prop.id]);
     expect(view.debrisCount).toBe(4);
     view.showDestruction([prop.id]);
     expect(view.debrisCount).toBe(4);
+    camera.position.set(prop.position.x, prop.position.y + 4, prop.position.z + 8);
+    camera.lookAt(prop.position.x, prop.position.y + 0.5, prop.position.z);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(model?.visible).toBe(false);
+    expect(scene.getObjectByName(`destructible prop ${prop.id} far LOD`)?.visible).toBe(false);
     view.step(1.5);
     expect(view.debrisCount).toBe(0);
 
@@ -121,6 +244,36 @@ describe('rendered bot skirmish', () => {
     expect(view.match.corpseSnapshots.some((entry) => entry.id === corpse?.id)).toBe(false);
     expect(scene.getObjectByName(`skirmish corpse ${corpse?.id}`)).toBeFalsy();
 
+    view.dispose();
+    expect(scene.children).toHaveLength(0);
+  });
+
+  it('reuses an expired corpse view for the next body from the same team', () => {
+    const scene = new Scene();
+    const view = new BotSkirmishView(scene, generateMap(createEmptyMap({ width: 5, height: 3, seed: 74, cellSize: 4 })), {
+      friendlyCount: 3,
+      enemyCount: 0,
+      seed: 74,
+      countdownSeconds: 0.01,
+      rules: { captureDurationSeconds: 100, captureRadius: 0.1, respawnDelaySeconds: 10, corpseLifetimeSeconds: 0.1 },
+    });
+    view.step(0.02);
+    view.simulation.getCombatant('friendly-001')?.applyDamage(100);
+    view.step(1 / 60);
+    const firstCorpse = view.match.corpseSnapshots.find((corpse) => corpse.botId === 'friendly-001');
+    if (!firstCorpse) throw new Error('Expected the first friendly corpse');
+    const firstView = scene.getObjectByName(`skirmish corpse ${firstCorpse.id}`);
+    expect(firstView).toBeTruthy();
+
+    view.step(0.11);
+    expect(scene.getObjectByName(`skirmish corpse ${firstCorpse.id}`)).toBeFalsy();
+    expect(firstView?.visible).toBe(false);
+    view.simulation.getCombatant('friendly-002')?.applyDamage(100);
+    view.step(1 / 60);
+    const secondCorpse = view.match.corpseSnapshots.find((corpse) => corpse.botId === 'friendly-002');
+
+    expect(secondCorpse).toBeDefined();
+    expect(scene.getObjectByName(`skirmish corpse ${secondCorpse?.id}`)).toBe(firstView);
     view.dispose();
     expect(scene.children).toHaveLength(0);
   });

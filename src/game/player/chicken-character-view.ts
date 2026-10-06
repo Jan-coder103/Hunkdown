@@ -10,6 +10,7 @@ import {
   createFirstPersonChickenArms,
   createTacticalChickenModel,
   type ChickenArmsRig,
+  type ChickenDetail,
   type ChickenModelRig,
   type ChickenTeam,
 } from '../../content/assets/tactical-chicken.asset';
@@ -29,9 +30,12 @@ export type ChickenCharacterPose = Readonly<{
 /** Camera arms or a third-person body driven by presentation state, separate from gameplay simulation. */
 export class ChickenCharacterView {
   readonly object = new Group();
-  readonly thirdPersonRig: ChickenModelRig | null;
   readonly firstPersonRig: ChickenArmsRig | null;
   readonly representation: ChickenCharacterRepresentation;
+  private readonly thirdPersonRigs = new Map<ChickenDetail, ChickenModelRig>();
+  private readonly team: ChickenTeam;
+  private activeThirdPersonRig: ChickenModelRig | null = null;
+  private activeDetail: ChickenDetail | null = null;
   private pose: ChickenCharacterPose = {};
   private elapsed = 0;
   private deathElapsed = 0;
@@ -44,19 +48,33 @@ export class ChickenCharacterView {
     parent: Object3D,
     team: ChickenTeam,
     representation: ChickenCharacterRepresentation,
+    initialDetail: ChickenDetail = 'close',
   ) {
+    this.team = team;
     this.representation = representation;
     this.object.name = `${representation} chicken character — ${team}`;
     if (representation === 'first-person') {
       this.firstPersonRig = createFirstPersonChickenArms(team);
-      this.thirdPersonRig = null;
       this.object.add(this.firstPersonRig.root);
     } else {
-      this.thirdPersonRig = createTacticalChickenModel(team, 'close');
       this.firstPersonRig = null;
-      this.object.add(this.thirdPersonRig.root);
+      this.activeThirdPersonRig = this.createThirdPersonRig(initialDetail);
+      this.activeDetail = initialDetail;
+      this.activeThirdPersonRig.root.visible = true;
     }
     parent.add(this.object);
+  }
+
+  get thirdPersonRig(): ChickenModelRig | null {
+    return this.activeThirdPersonRig;
+  }
+
+  get detail(): ChickenDetail | null {
+    return this.activeDetail;
+  }
+
+  get teamSide(): ChickenTeam {
+    return this.team;
   }
 
   setPose(pose: ChickenCharacterPose): void {
@@ -86,8 +104,39 @@ export class ChickenCharacterView {
     this.elapsed += deltaSeconds;
     if (this.pose.dead) this.deathElapsed = Math.min(1.2, this.deathElapsed + deltaSeconds);
     this.damageRemaining = Math.max(0, this.damageRemaining - deltaSeconds);
-    if (this.damageRemaining === 0) this.damageMaterial.emissiveIntensity = 0;
     this.reloadRemaining = Math.max(0, this.reloadRemaining - deltaSeconds);
+    this.applyPose();
+  }
+
+  /** Selects one of the two authored render tiers; simulation state is unchanged. */
+  setDetail(detail: ChickenDetail): void {
+    if (this.disposed || this.representation !== 'third-person' || this.detail === detail) return;
+    if (this.activeThirdPersonRig) this.activeThirdPersonRig.root.visible = false;
+    this.activeThirdPersonRig = this.thirdPersonRigs.get(detail) ?? this.createThirdPersonRig(detail);
+    this.activeDetail = detail;
+    this.activeThirdPersonRig.root.visible = true;
+    this.applyPose();
+  }
+
+  private createThirdPersonRig(detail: ChickenDetail): ChickenModelRig {
+    const existing = this.thirdPersonRigs.get(detail);
+    if (existing) return existing;
+    const rig = createTacticalChickenModel(this.team, detail);
+    rig.root.visible = false;
+    this.object.add(rig.root);
+    this.thirdPersonRigs.set(detail, rig);
+    return rig;
+  }
+
+  private applyPose(): void {
+    if (this.disposed) return;
+    const damageMaterial = this.damageMaterial;
+    if (this.damageRemaining > 0) {
+      damageMaterial.emissive.set('#cf554a');
+      damageMaterial.emissiveIntensity = 0.85;
+    } else {
+      damageMaterial.emissiveIntensity = 0;
+    }
     const speed = clamp(Number.isFinite(this.pose.movementSpeed) ? this.pose.movementSpeed ?? 0 : 0, 0, 8);
     const moving = speed > 0.18;
     const dead = this.pose.dead ?? false;
@@ -102,8 +151,8 @@ export class ChickenCharacterView {
       : 0;
     const reloadDip = this.reloadRemaining > 0 ? Math.sin(Math.PI * clamp(reloadProgress, 0, 1)) : 0;
 
-    if (this.thirdPersonRig) {
-      const rig = this.thirdPersonRig;
+    if (this.activeThirdPersonRig) {
+      const rig = this.activeThirdPersonRig;
       const deathProgress = dead ? Math.min(1, this.deathElapsed / 0.8) : 0;
       const deathImpulse = this.pose.deathImpulse ?? { x: 0.6, y: 0.2, z: -0.6 };
       const impulseLength = Math.max(0.001, Math.hypot(deathImpulse.x, deathImpulse.y, deathImpulse.z));

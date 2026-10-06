@@ -214,13 +214,27 @@ Phase 11 assumptions: the current review pass keeps existing scale, palette, and
 
 Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repeated backward/upward kick, and hit knockback is stronger than the Phase 4 baseline. Decorations start at 68 health and enterable wall panels at 136 health. Debris settles and expires after about 1.35 seconds. Solid house shells remain static; wall panels and street props carry the destructible-cover behavior. These are initial tuning values for human review, not final balance approval. Phase 13 owns 100+ bot performance profiling.
 
+## Phase 13 — Performance and mass scale
+
+- [x] Set the reference target with the user: 60 FPS at 1920×1080 on their normal desktop.
+- [x] Raise playable and spectator skirmishes to 50 friendly plus 50 enemy bots; retain authoritative off-screen simulation.
+- [x] Use two chicken render tiers, distance and frustum culling for characters and city assets, instanced repeated floor tiles, and a two-draw far chicken silhouette.
+- [x] Stagger bot decision updates, reduce per-step snapshot and perception allocations, and pool expired corpse views by team under a 192-view cap. Destruction debris remains bounded at 32 pieces.
+- [x] Show frame work, simulation work, draw calls, triangle count, geometry count, and visible/close/far character counts in diagnostics.
+- [x] Add coverage for 100-bot simulation, off-screen simulation continuity, LOD changes without match-state drift, corpse-view reuse, culling, batching, and renderer telemetry.
+- [x] Run `npm run check`: 138 tests across 26 files passed; strict type checking and production build passed. The existing shared 531.02 kB asset/Three.js chunk warning remains.
+- [x] Profile the active match at 1920×1080, DPR 1, in Codex's in-app browser on the reference host (Intel Core i5-3570K, 3.40 GHz): first-person samples held 60 FPS with 2.4–4.0 ms frame work; bird's-eye samples with all 100 bots visible held 60 FPS with 5.6–7.7 ms work, roughly 469–506 draws and 33.7–39.0k triangles.
+- [ ] Confirm sustained 60 FPS in a stable foreground browser session. Later in-app-browser samples had irregular 83 ms to 1 s frame intervals and one 3 s work outlier; subsequent samples showed 1 ms simulation work and 6–8 ms total work while callbacks arrived about once a second. The embedded browser did not provide a reliable extended foreground profile, so that outlier is not attributed to the game or dismissed as tooling. Geometry count rose with accumulated bodies (up to 930 before corpse pooling); the 192-view cap and recycling are now covered, but a post-pooling long-match memory plateau still needs a reliable browser run.
+
+Phase 13 technical implementation is complete. Performance acceptance remains pending the stable foreground profile above. No user verification is claimed.
+
 ## Decisions to resolve before affected features
 
 1. **Objective — resolved for Phase 9:** one central point needs 30 seconds of control; contests and neutral time pause progress, and accumulated progress persists. Capture ends the round.
 2. **Death timing — resolved for Phase 9:** 20-second respawn eligibility; teammate revive can complete before respawn, takes four seconds, and restores 50% health at team spawn; a completed revive removes its corpse. Unrevived bodies are cleaned up after 30 seconds.
 3. **Tickets — resolved for Phase 9:** 200 per team; initial spawns are free; each respawn costs one; revives cost none; a team reaching zero ends the round. Simultaneous exhaustion is treated as a draw.
 4. **Progression/classes:** the user selected a simple placeholder economy for Phase 10. The provisional formulas and two progression-only bonuses are implemented and documented; rates, costs, class effects, and save/reset behavior need human review.
-5. **Performance:** bot count minimum is 100; FPS, reference hardware, resolution, and supported browsers need agreement before Phase 13 acceptance.
+5. **Performance target — resolved 2026-10-06:** 60 FPS at 1920×1080 on the user's normal desktop; the sustained foreground acceptance run is tracked in Phase 13 above.
 6. **Plane ability:** kill threshold, duration, cooldown, return-to-player behavior, and rewards need agreement before Phase 16.
 
 ## Revision queue

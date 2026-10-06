@@ -28,6 +28,9 @@ import {
 import { buildMatchLeaderboards } from './game/progression/leaderboards';
 import './style.css';
 
+const BOTS_PER_TEAM = 50;
+const TOTAL_MATCH_BOTS = BOTS_PER_TEAM * 2;
+
 export function mountApp(root: HTMLElement) {
   root.innerHTML = `
     <main class="engine-shell">
@@ -41,8 +44,8 @@ export function mountApp(root: HTMLElement) {
         <h1 id="mode-heading">Combat practice</h1>
         <div class="state-row"><span class="state-dot" aria-hidden="true"></span><output id="engine-state">Starting</output></div>
         <p id="pointer-state" class="hint" aria-live="polite">Click the scene to capture the mouse.</p>
-        <button id="mode-toggle" class="mode-toggle" type="button">Watch 16-bot skirmish</button>
-        <button id="join-match-button" class="mode-toggle" type="button">Join 16-bot match</button>
+        <button id="mode-toggle" class="mode-toggle" type="button">Watch ${TOTAL_MATCH_BOTS}-bot skirmish</button>
+        <button id="join-match-button" class="mode-toggle" type="button">Join ${TOTAL_MATCH_BOTS}-bot match</button>
         <output id="skirmish-readout" class="skirmish-readout" aria-live="polite" hidden></output>
         <output id="revive-readout" class="revive-readout" aria-live="polite" hidden></output>
         <div class="control-list" aria-label="Controls">
@@ -103,7 +106,7 @@ export function mountApp(root: HTMLElement) {
             </section>
           </div>
           <p id="profile-notice" class="profile-notice" role="status"></p>
-          <div class="menu-footer"><span>16-bird battle · 8 on each side</span><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div>
+          <div class="menu-footer"><span>${TOTAL_MATCH_BOTS}-bird battle · ${BOTS_PER_TEAM} on each side</span><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div>
         </div>
       </section>
       <section id="pause-overlay" class="pause-overlay" aria-labelledby="pause-title" hidden>
@@ -458,6 +461,7 @@ export function mountApp(root: HTMLElement) {
             grenadeView.updateProjectiles(combat.grenades.projectiles);
           }
           if (!isSkirmishMode) feedback.applyCameraShake(view.camera);
+          skirmishView?.updatePresentation(view.camera);
           view.render(interpolationAlpha);
         },
         dispose() {
@@ -509,7 +513,7 @@ export function mountApp(root: HTMLElement) {
           });
         }
 
-        const lifeBeforeStep = battle.match.lifeSnapshots.find((life) => life.botId === playerActor.id);
+        const lifeBeforeStep = battle.match.getLifeSnapshot(playerActor.id);
         if (aliveBeforeStep && lifeBeforeStep && activeReviveTargetId) {
           battle.match.cancelRevive(activeReviveTargetId);
           activeReviveTargetId = null;
@@ -601,7 +605,11 @@ export function mountApp(root: HTMLElement) {
     },
     onDiagnostics: (snapshot) => {
       if (snapshot.frameCount % 10 !== 0) return;
-      diagnosticsOutput.textContent = `${snapshot.framesPerSecond.toFixed(0)} FPS · ${snapshot.frameTimeMs.toFixed(1)} ms frame · ${snapshot.frameWorkMs.toFixed(2)} ms work · ${snapshot.fixedSteps} fixed steps`;
+      const rendererStats = sceneView?.rendererPerformanceStats;
+      const rendererSummary = rendererStats
+        ? ` · ${rendererStats.drawCalls} draws · ${(rendererStats.triangles / 1000).toFixed(1)}k tris · ${rendererStats.geometries} geometries`
+        : '';
+      diagnosticsOutput.textContent = `${snapshot.framesPerSecond.toFixed(0)} FPS · ${snapshot.frameTimeMs.toFixed(1)} ms frame · ${snapshot.frameWorkMs.toFixed(2)} ms work · ${snapshot.simulationTimeMs.toFixed(2)} ms sim · ${snapshot.fixedSteps} fixed steps${rendererSummary}`;
       if (player && !isSkirmishMode) {
         positionOutput.textContent = `Position ${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}, ${player.position.z.toFixed(1)}`;
       }
@@ -611,7 +619,7 @@ export function mountApp(root: HTMLElement) {
           const remaining = Math.ceil(skirmishView.match.countdown.secondsRemaining);
           classOutput.textContent = 'Round countdown · bots are holding their starts';
           weaponOutput.textContent = 'ROUND STARTING';
-          combatReadout.textContent = `Battle begins in ${remaining} ${remaining === 1 ? 'second' : 'seconds'} · 8 friendly · 8 enemy`;
+          combatReadout.textContent = `Battle begins in ${remaining} ${remaining === 1 ? 'second' : 'seconds'} · ${BOTS_PER_TEAM} friendly · ${BOTS_PER_TEAM} enemy`;
         } else if (skirmishView.match.matchState === 'complete') {
           const outcome = skirmishView.match.outcome;
           const label = outcome?.winner === 'draw'
@@ -640,7 +648,8 @@ export function mountApp(root: HTMLElement) {
           combatReadout.textContent = `Friendly ${friendlyAlive}/${friendlies.length} · Enemy ${enemyAlive}/${enemies.length} · tickets ${tickets.friendly}/${tickets.enemy} · ${skirmishView.totalKills} eliminations · ${firing} engaging`;
           skirmishReadout.textContent = `${captureReadout} · capture requires 30 seconds of control; contest pauses progress · revives complete before the 20-second respawn`;
         }
-        positionOutput.textContent = `Seeded Midtown · ${skirmishView.map.navigationNodes.length} reachable city cells · ${skirmishView.tracerCount} active tracers`;
+        const rendered = skirmishView.botRenderDiagnostics;
+        positionOutput.textContent = `Seeded Midtown · ${skirmishView.map.navigationNodes.length} cells · ${rendered.visibleCharacters}/${rendered.totalCharacters} characters visible (${rendered.closeLodCharacters} close, ${rendered.farLodCharacters} far) · ${skirmishView.tracerCount} tracers`;
       } else if (isPlayerMatchMode && skirmishView) {
         const battle = skirmishView;
         const match = battle.match;
@@ -655,7 +664,7 @@ export function mountApp(root: HTMLElement) {
           : capture.control === 'neutral'
             ? 'Objective neutral'
             : `${capture.control === 'friendly' ? 'Friendly' : 'Enemy'} control · ${Math.round((capture.control === 'friendly' ? capture.friendlyProgress : capture.enemyProgress) * 100)}%`;
-        const playerLife = match.lifeSnapshots.find((life) => life.botId === playerActor?.id);
+        const playerLife = playerActor ? match.getLifeSnapshot(playerActor.id) : null;
         if (playerActor?.status === 'dead') {
           const remaining = Math.ceil(playerLife?.respawnSecondsRemaining ?? 0);
           classOutput.textContent = 'Down · live bird’s-eye view';
@@ -686,7 +695,7 @@ export function mountApp(root: HTMLElement) {
           ? `${match.outcome?.winner === 'draw' ? 'Draw' : `${match.outcome?.winner === 'friendly' ? 'Friendly' : 'Enemy'} victory`} · ${match.outcome?.reason === 'capture' ? 'objective captured' : 'tickets exhausted'}`
           : `${captureReadout} · friendly ${friendlies} · enemy ${enemies} · tickets ${tickets.friendly}/${tickets.enemy}`;
         if (activeReviveTargetId) {
-          const progress = match.lifeSnapshots.find((life) => life.botId === activeReviveTargetId)?.reviveProgress ?? 0;
+          const progress = match.getLifeSnapshot(activeReviveTargetId)?.reviveProgress ?? 0;
           reviveReadout.textContent = `Reviving teammate · ${Math.round(progress * 100)}% · keep holding F and stay close`;
           reviveReadout.hidden = false;
         } else if (playerActor?.status === 'alive' && match.matchState === 'active') {
@@ -701,7 +710,8 @@ export function mountApp(root: HTMLElement) {
           skirmishReadout.textContent = `${winner} · ${match.outcome?.reason === 'capture' ? 'objective captured' : 'tickets exhausted'}`;
         }
         const position = player?.position;
-        positionOutput.textContent = `Player ${position?.x.toFixed(1) ?? '—'}, ${position?.z.toFixed(1) ?? '—'} · ${battle.map.navigationNodes.length} reachable city cells · ${battle.tracerCount} active tracers`;
+        const rendered = battle.botRenderDiagnostics;
+        positionOutput.textContent = `Player ${position?.x.toFixed(1) ?? '—'}, ${position?.z.toFixed(1) ?? '—'} · ${battle.map.navigationNodes.length} cells · ${rendered.visibleCharacters}/${rendered.totalCharacters} characters visible (${rendered.closeLodCharacters} close, ${rendered.farLodCharacters} far) · ${battle.tracerCount} tracers`;
       } else if (combat) {
         const ammo = combat.weapon.snapshot;
         weaponOutput.textContent = `${weaponDefinition.displayName} · ${ammo.magazine} / ${ammo.reserve}${ammo.reloading ? ' · RELOADING' : ''}`;
@@ -720,8 +730,8 @@ export function mountApp(root: HTMLElement) {
       pointerControls?.releaseLock();
       const generated = generateMap(createSkirmishShowcaseMap());
       skirmishView = new BotSkirmishView(view.scene, generated, {
-        friendlyCount: 8,
-        enemyCount: 8,
+        friendlyCount: BOTS_PER_TEAM,
+        enemyCount: BOTS_PER_TEAM,
         seed: generated.source.seed,
       });
       isSkirmishMode = true;
@@ -740,10 +750,10 @@ export function mountApp(root: HTMLElement) {
       viewport.setAttribute('aria-label', 'Bird’s-eye view of a live bot skirmish');
       hud.setAttribute('aria-label', 'Live bot skirmish status');
       pointerOutput.textContent = 'Bird’s-eye spectator · press Esc to pause';
-      classOutput.textContent = 'Live seeded skirmish · 8 friendly bots vs 8 enemy bots';
+      classOutput.textContent = `Live seeded skirmish · ${BOTS_PER_TEAM} friendly bots vs ${BOTS_PER_TEAM} enemy bots`;
       weaponOutput.textContent = 'ROUND STARTING';
       const remaining = Math.ceil(skirmishView.match.countdown.secondsRemaining);
-      combatReadout.textContent = `Battle begins in ${remaining} seconds · 8 friendly · 8 enemy`;
+      combatReadout.textContent = `Battle begins in ${remaining} seconds · ${BOTS_PER_TEAM} friendly · ${BOTS_PER_TEAM} enemy`;
       skirmishReadout.hidden = false;
       root.dataset.viewMode = 'skirmish';
     } else {
@@ -756,7 +766,7 @@ export function mountApp(root: HTMLElement) {
       weaponView?.setVisible(true);
       grenadeView?.setVisible(true);
       player?.render(1);
-      modeToggle.textContent = 'Watch 16-bot skirmish';
+      modeToggle.textContent = `Watch ${TOTAL_MATCH_BOTS}-bot skirmish`;
       modeHeading.textContent = 'Combat practice';
       viewport.setAttribute('aria-label', 'First-person combat practice range');
       hud.setAttribute('aria-label', 'Combat practice controls and status');
@@ -800,7 +810,7 @@ export function mountApp(root: HTMLElement) {
       viewport.setAttribute('aria-label', 'First-person combat practice range');
       hud.setAttribute('aria-label', 'Combat practice controls and status');
       modeToggle.hidden = false;
-      joinMatchButton.textContent = 'Join 16-bot match';
+      joinMatchButton.textContent = `Join ${TOTAL_MATCH_BOTS}-bot match`;
       pointerOutput.textContent = 'Click the scene to capture the mouse.';
       deathOverlay.hidden = true;
       reviveReadout.hidden = true;
@@ -823,8 +833,8 @@ export function mountApp(root: HTMLElement) {
     const mapSpawn = worldPosition(generated.source, spawnCell);
     const playerSpawn = { x: mapSpawn.x, y: 0, z: mapSpawn.z + generated.source.cellSize * 0.18 };
     skirmishView = new BotSkirmishView(view.scene, generated, {
-      friendlyCount: 8,
-      enemyCount: 8,
+      friendlyCount: BOTS_PER_TEAM,
+      enemyCount: BOTS_PER_TEAM,
       seed: generated.source.seed,
       simulation: { seed: generated.source.seed, humanPlayer: { id: 'player', team: 'friendly', spawn: playerSpawn } },
     });
@@ -857,7 +867,7 @@ export function mountApp(root: HTMLElement) {
     pointerOutput.textContent = 'Click the scene to capture the mouse.';
     classOutput.textContent = 'Round countdown · local player on the friendly squad';
     weaponOutput.textContent = 'ROUND STARTING';
-    combatReadout.textContent = `Battle begins in ${countdown} seconds · 8 friendly · 8 enemy`;
+    combatReadout.textContent = `Battle begins in ${countdown} seconds · ${BOTS_PER_TEAM} friendly · ${BOTS_PER_TEAM} enemy`;
     skirmishReadout.hidden = false;
     deathOverlay.hidden = true;
     root.dataset.viewMode = 'match';

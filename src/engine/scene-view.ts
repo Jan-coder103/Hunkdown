@@ -21,6 +21,20 @@ export interface ResizeObserverPort {
   disconnect(): void;
 }
 
+export type RendererPerformanceStats = Readonly<{
+  drawCalls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
+}>;
+
+type RendererWithInfo = RendererPort & {
+  readonly info?: Readonly<{
+    render: Readonly<{ calls: number; triangles: number }>;
+    memory: Readonly<{ geometries: number; textures: number }>;
+  }>;
+};
+
 export type SceneViewOptions = Readonly<{
   container: HTMLElement;
   pixelRatio?: number;
@@ -64,6 +78,17 @@ export class SceneView {
     this.resizeObserver = (options.createResizeObserver ?? createBrowserResizeObserver)(() => this.resize());
     this.resizeObserver.observe(options.container);
     this.resize();
+  }
+
+  get rendererPerformanceStats(): RendererPerformanceStats | null {
+    const info = (this.renderer as RendererWithInfo).info;
+    if (!info) return null;
+    return Object.freeze({
+      drawCalls: info.render.calls,
+      triangles: info.render.triangles,
+      geometries: info.memory.geometries,
+      textures: info.memory.textures,
+    });
   }
 
   render(_interpolationAlpha: number): void {

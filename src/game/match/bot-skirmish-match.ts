@@ -19,6 +19,14 @@ export type BotCorpseSnapshot = Readonly<{
   deathImpulse: Readonly<{ x: number; y: number; z: number }>;
   secondsRemaining: number;
 }>;
+
+export type BotCorpsePresentation = Readonly<{
+  id: string;
+  botId: string;
+  team: BotSide;
+  position: Readonly<{ x: number; y: number; z: number }>;
+  deathImpulse: Readonly<{ x: number; y: number; z: number }>;
+}>;
 export type BotLifeSnapshot = Readonly<{
   botId: string;
   team: BotSide;
@@ -146,6 +154,22 @@ export class BotSkirmishMatch {
       respawnSecondsRemaining: life.respawnRemaining,
       reviveProgress: life.reviveRemaining === null ? null : 1 - life.reviveRemaining / this.rules.reviveDurationSeconds,
     })));
+  }
+
+  getLifeSnapshot(botId: string): BotLifeSnapshot | null {
+    const life = this.lives.get(botId);
+    if (!life) return null;
+    return Object.freeze({
+      botId: life.botId,
+      team: life.team,
+      respawnSecondsRemaining: life.respawnRemaining,
+      reviveProgress: life.reviveRemaining === null ? null : 1 - life.reviveRemaining / this.rules.reviveDurationSeconds,
+    });
+  }
+
+  /** Visits match-owned corpse anchors directly for rendering without materializing a snapshot array. */
+  forEachCorpse(visitor: (corpse: BotCorpsePresentation) => void): void {
+    for (const corpse of this.corpses.values()) visitor(corpse);
   }
 
   get scoreSnapshots(): readonly CombatantScore[] {

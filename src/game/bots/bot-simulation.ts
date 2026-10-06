@@ -65,6 +65,8 @@ type BotActor = {
   readonly random: RandomSource;
   intent: BotIntent;
   thinkRemaining: number;
+  readonly thinkStaggerSeconds: number;
+  hasThought: boolean;
   wasFireHeld: boolean;
 };
 
@@ -106,6 +108,7 @@ export class BotSkirmishSimulation {
   readonly world: MovementWorld;
   readonly playerCombatant: Combatant | null;
   private readonly playerSpawn: Readonly<{ x: number; y: number; z: number }> | null;
+  private readonly allCombatants: readonly Combatant[];
   private readonly actors: readonly BotActor[];
   private readonly movementSpeed: number;
   private readonly thinkInterval: number;
@@ -133,7 +136,7 @@ export class BotSkirmishSimulation {
     const weapon = getWeaponDefinition(options.weaponId ?? 'honk-47');
     const ids = new Set<string>();
     if (playerSpawn) ids.add(playerSpawn.id);
-    this.actors = Object.freeze(roster.map((spawn) => {
+    this.actors = Object.freeze(roster.map((spawn, index) => {
       if (ids.has(spawn.id)) throw new Error(`Duplicate bot id: ${spawn.id}`);
       ids.add(spawn.id);
       if (spawn.team !== 'friendly' && spawn.team !== 'enemy') throw new Error(`Bot ${spawn.id} must belong to a battle team`);
@@ -149,16 +152,25 @@ export class BotSkirmishSimulation {
         random: createSeededRandom(botSeed ^ 0xa511e9b3),
         intent: idleIntent(),
         thinkRemaining: 0,
+        thinkStaggerSeconds: roster.length > 1 ? index / roster.length * this.thinkInterval : 0,
+        hasThought: false,
         wasFireHeld: false,
       };
     }));
     this.playerSpawn = playerSpawn ? Object.freeze({ ...playerSpawn.spawn }) : null;
     this.playerCombatant = playerSpawn ? new Combatant(playerSpawn.id, playerSpawn.team, playerSpawn.spawn) : null;
+    const botCombatants = this.actors.map((actor) => actor.combatant);
+    this.allCombatants = Object.freeze(this.playerCombatant ? [...botCombatants, this.playerCombatant] : botCombatants);
   }
 
   /** All simulation-owned hit targets, including the local player when this is a playable match. */
   get combatants(): readonly Combatant[] {
-    return this.playerCombatant ? [...this.actors.map((actor) => actor.combatant), this.playerCombatant] : this.actors.map((actor) => actor.combatant);
+    return this.allCombatants;
+  }
+
+  /** Visits mutable render data without allocating the frozen public snapshot array each simulation step. */
+  forEachBotState(visitor: (combatant: Combatant, intent: BotIntent, magazine: number, reserve: number) => void): void {
+    for (const actor of this.actors) visitor(actor.combatant, actor.intent, actor.weapon.magazine, actor.weapon.reserve);
   }
 
   getCombatant(id: string): Combatant | null {
@@ -233,7 +245,13 @@ export class BotSkirmishSimulation {
       actor.thinkRemaining -= deltaSeconds;
       if (actor.thinkRemaining <= 0) {
         actor.intent = actor.brain.decide(bot, combatants, this.objective, (observer, target) => this.canSee(observer, target));
-        actor.thinkRemaining = this.thinkInterval;
+        if (!actor.hasThought) {
+          actor.thinkRemaining += this.thinkInterval + actor.thinkStaggerSeconds;
+          actor.hasThought = true;
+        } else {
+          do actor.thinkRemaining += this.thinkInterval;
+          while (actor.thinkRemaining <= 0);
+        }
       }
     }
 
@@ -303,6 +321,7 @@ export class BotSkirmishSimulation {
   private resetActorAfterLifecycle(actor: BotActor): void {
     actor.intent = idleIntent();
     actor.thinkRemaining = 0;
+    actor.hasThought = false;
     actor.wasFireHeld = false;
   }
 
