@@ -1,6 +1,6 @@
 # Current progress
 
-Updated: 2026-10-06.
+Updated: 2026-10-07.
 
 ## Summary
 
@@ -18,6 +18,7 @@ Updated: 2026-10-06.
 - Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
 - Phase 13: performance and mass-scale implementation is complete; sustained profile verified in the foreground browser, with one near-round-end work spike recorded below.
 - Active phase — 14: audio playback/settings scaffolding is complete; user-provided clips and audible review remain.
+- Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
@@ -243,6 +244,18 @@ Phase 13 technical and performance checks are complete. The browser HUD reports 
 - [ ] Import user-provided clips with source/license records and manually review the audible balance and clarity. `public/audio/manifest.json` currently has no mapped clips, so sound output was not audibly verified.
 
 Phase 14 is active. Its playback and settings infrastructure is technically implemented; sound clip integration and human listening review remain open. No user verification is claimed.
+
+## Phase 15 — Base-game quality control
+
+- [x] Review menu entry, saved map selection, 100-bot match launch, countdown, ticket-based match completion, leaderboards, rewards, and return to the ready room in the browser. Garden District completed with a friendly ticket-exhaustion victory; the payout showed 100 XP and 50 credits.
+- [x] Review pause/resume and opening Settings from a paused match. Both volume sliders displayed the saved 80% defaults.
+- [x] Observe match progression, player death/automatic respawn, and the overhead view with up to 135 characters including corpses. Browser HUD samples showed 60 FPS, 1.1–5.8 ms frame work, and 0.0–3.4 ms simulation work at the in-app browser's 663 × 658 viewport. This was a functional smoke run, not a replacement for the 1920 × 1080 Phase 13 acceptance profile.
+- [x] Check browser console during the run: no warnings or errors.
+- [x] Run `npm run check`: 144 tests across 27 files passed; strict type checking passed; production build passed. The shared 531.02 kB asset/Three.js chunk warning remains.
+- [ ] Human playtest of pointer lock, movement, aiming, shooting, reload, grenades, and revive. The in-app browser did not acquire pointer lock, so these controls were not verified by hand in this pass.
+- [ ] Human approval of the complete base game before expansion. Existing visual, feel, balance, and comedy review items remain open in earlier phases.
+
+Phase 15 technical review is in progress. The browser completed an unattended bot battle from menu to results and payout, but this does not establish hands-on playability or user approval. Audio remains silent pending approved user-supplied clips in Phase 14.
 
 ## Decisions to resolve before affected features
 
