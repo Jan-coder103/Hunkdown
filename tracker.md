@@ -22,6 +22,14 @@ Updated: 2026-10-07.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Reference rifle revision and red-dot aiming — 2026-10-07
+
+Rebuilt the Honk-47 from typed geometry toward the user's reference: dark steel/polymer palette, layered receiver and dust cover, exposed bolt/charging handle/selector/pins, rail teeth, handguard vents, front sight guards, extended stock, suppressor, trigger guard, textured grip, and a continuous curved magazine with pressed ribs. Close and far models share the main silhouette; fine fittings are close-only. Updated the asset bounds/collision envelope to contain the longer muzzle and magazine.
+
+Held right mouse now smoothly translates and rotates the rifle from hip carry into an authored optical-axis alignment at 0.65 m eye relief. The optic has an open tube, annular rims, a lightly tinted transparent lens, and a visible red dot while aimed; the HUD crosshair hides during aim. Reload lowers the weapon and dot, then restores held aim; recoil recovers to the aligned sight, and respawn resets the hip pose. Presentation changes leave combat rules untouched.
+
+Verification: `npm run check` passed with 188 tests across 30 files, strict type checking, and production build. New tests project the optical axis and dot to screen center, raycast through the optic to detect occluding geometry, verify camera look/roll alignment, update-rate consistency, recoil/reload/reset behavior, and held mouse integration through the mounted app. Existing asset tests validate both LOD envelopes. Browser visual QA at `http://127.0.0.1:5189/`, 1280 × 720 in-app browser, inspected side silhouette, hip carry, and centered open optic in a temporary real-renderer preview (removed afterward), plus the updated rifle in the actual shooting range. Console warnings/errors were empty. Physical held-mouse aiming with native pointer lock and human visual/feel approval remain unverified. The shared bundle warning now reports 561.71 kB, including procedural extrusion support. No sustained 100-bot performance profile was rerun.
+
 ## Requested controls and combat HUD fixes — 2026-10-07
 
 Corrected vertical camera recoil so shots lift the aim ray, and lifted the rifle during its existing upward muzzle rotation. Q now rolls left and E right, with smooth recentering. The live death view uses a compact bottom information panel with transparent surroundings and no backdrop blur; the large HUD and crosshair hide while dead. Mouse wheel zooms the death camera between 25 m and 180 m, resets to 90 m for each death, and ignores alive, paused, menu, and results views. Camera shake no longer disturbs the death camera. Added a top-center countdown driven by the existing match timer and a restrained red edge vignette proportional to missing health, cleared at full health, death, menus, and results.

@@ -472,6 +472,7 @@ export function mountApp(root: HTMLElement) {
         combatFlash.classList.add('active');
       }
     }
+    weaponView?.setAiming(allowPlayerActions && !activeCombat.grenades.equipped && (pointerControls?.isAiming ?? false));
     if (!feedback.freezeWeaponPose) weaponView?.update(stepSeconds);
     root.dataset.aiming = String(pointerControls?.isAiming ?? false);
     root.dataset.hitFlash = String(feedback.showHitFlash);

@@ -301,3 +301,5 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 #app[data-player-dead="true"] .engine-hud,
 #app[data-player-dead="true"] .crosshair { display: none; }
 @media (max-width: 760px) { .round-countdown { top: .5rem; } #app[data-view-mode="match"] .engine-hud { top: 3.5rem; } }
+
+#app[data-aiming="true"] .crosshair { opacity: 0; }

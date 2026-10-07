@@ -64,6 +64,8 @@ The map editor paints cells on a top-down flat grid: blue houses, yellow enterab
 
 ## Combat, bots, and presentation
 
+The Honk-47 uses a dark tactical silhouette with a curved magazine and tube red-dot optic. Held aiming smoothly brings the optical axis to screen center so the player looks through the clear sight opening at its red dot. Reload lowers the sight before returning to held aim.
+
 Satisfying detailed guns, firing/reload animation, reliable hit registration, health/death/revive, hit flashes, short hit freeze, small knockback, and nearby-explosion shake. Bots navigate, choose alternate routes, target enemies with imperfect accuracy, avoid overwhelming enemy groups, and seek cover when hurt. Off-screen battles continue in cheaper simulation.
 
 Rendering uses two visual LOD tiers: close detail and far detail suitable for top-down views. Profile culling, batching, instancing, bot schedules, debris, and ragdolls against the 100+ bot target.

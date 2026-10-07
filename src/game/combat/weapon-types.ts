@@ -27,6 +27,9 @@ export type WeaponModelRig = Readonly<{
   root: import('three').Group;
   muzzleFlash: import('three').Object3D;
   magazine: import('three').Object3D;
+  /** Local optical axis, parallel to model -Z. Used to center the camera through the optic. */
+  sight?: import('three').Object3D;
+  reticle?: import('three').Object3D;
 }>;
 
 export type WeaponRegistry = ReadonlyMap<string, WeaponDefinition>;

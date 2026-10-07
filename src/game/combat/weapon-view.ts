@@ -1,6 +1,7 @@
 import {
   BufferGeometry,
   Camera,
+  Quaternion,
   Line,
   LineBasicMaterial,
   Mesh,
@@ -17,6 +18,11 @@ export class WeaponView {
   private readonly basePosition: Vector3;
   private readonly baseRotation: import('three').Euler;
   private readonly baseMagazinePosition: Vector3;
+  private readonly aimPosition: Vector3;
+  private readonly hipQuaternion: Quaternion;
+  private readonly aimQuaternion = new Quaternion();
+  private aiming = false;
+  private aimBlend = 0;
   private recoil = 0;
   private flashRemaining = 0;
   private reloadRemaining = 0;
@@ -27,7 +33,15 @@ export class WeaponView {
     this.basePosition = this.rig.root.position.clone();
     this.baseRotation = this.rig.root.rotation.clone();
     this.baseMagazinePosition = this.rig.magazine.position.clone();
+    this.hipQuaternion = this.rig.root.quaternion.clone();
+    const sightPosition = this.rig.sight?.position.clone() ?? new Vector3(0, 0.235, 0);
+    this.aimPosition = sightPosition.multiply(this.rig.root.scale).negate();
+    this.aimPosition.z -= 0.65;
     this.camera.add(this.rig.root);
+  }
+
+  setAiming(aiming: boolean): void {
+    if (!this.disposed) this.aiming = aiming;
   }
 
   fire(): void {
@@ -45,6 +59,9 @@ export class WeaponView {
 
   resetForRespawn(): void {
     if (this.disposed) return;
+    this.aiming = false;
+    this.aimBlend = 0;
+    if (this.rig.reticle) this.rig.reticle.visible = false;
     this.recoil = 0;
     this.flashRemaining = 0;
     this.reloadRemaining = 0;
@@ -61,6 +78,10 @@ export class WeaponView {
 
   update(deltaSeconds: number): void {
     if (this.disposed || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
+    const targetAim = this.aiming && this.reloadRemaining <= 0 ? 1 : 0;
+    this.aimBlend += (targetAim - this.aimBlend) * (1 - Math.exp(-18 * deltaSeconds));
+    if (Math.abs(targetAim - this.aimBlend) < 0.001) this.aimBlend = targetAim;
+    if (this.rig.reticle) this.rig.reticle.visible = this.aimBlend > 0.95 && this.reloadRemaining <= 0;
     this.recoil = Math.max(0, this.recoil - deltaSeconds * 11);
     this.flashRemaining = Math.max(0, this.flashRemaining - deltaSeconds);
     this.rig.muzzleFlash.visible = this.flashRemaining > 0;
@@ -85,16 +106,12 @@ export class WeaponView {
       this.rig.magazine.position.copy(this.baseMagazinePosition);
     }
 
-    this.rig.root.position.set(
-      this.basePosition.x,
-      this.basePosition.y + 0.012 * this.recoil - reloadDip,
-      this.basePosition.z + 0.065 * this.recoil,
-    );
-    this.rig.root.rotation.set(
-      this.baseRotation.x + 0.045 * this.recoil,
-      this.baseRotation.y,
-      this.baseRotation.z + reloadRoll,
-    );
+    this.rig.root.position.copy(this.basePosition).lerp(this.aimPosition, this.aimBlend);
+    this.rig.root.position.y += 0.012 * this.recoil - reloadDip;
+    this.rig.root.position.z += 0.065 * this.recoil;
+    this.rig.root.quaternion.copy(this.hipQuaternion).slerp(this.aimQuaternion, this.aimBlend);
+    this.rig.root.rotation.x += 0.045 * this.recoil;
+    this.rig.root.rotation.z += reloadRoll;
   }
 
   dispose(): void {

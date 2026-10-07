@@ -125,7 +125,7 @@ describe('generated asset pipeline', () => {
 
     expect(asset.displayName).toBe('Honk-47');
     expect(ASSET_DEFINITIONS.some((definition) => definition.id === 'practice-rifle')).toBe(false);
-    expect(asset.bounds.max[2] - asset.bounds.min[2]).toBeCloseTo(1.28);
+    expect(asset.bounds.max[2] - asset.bounds.min[2]).toBeCloseTo(1.41);
     expect(viewerParts).toContain('muzzle brake');
     expect(viewerParts).toContain('optic housing');
     expect(combatParts).toContain('muzzle brake');

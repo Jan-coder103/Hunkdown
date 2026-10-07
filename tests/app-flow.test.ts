@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Scene, PerspectiveCamera } from 'three';
+import { Scene, PerspectiveCamera, Vector3 } from 'three';
 import type { BotSkirmishView } from '../src/game/bots/bot-skirmish-view';
 import type { SceneViewOptions } from '../src/engine/scene-view';
 import { AppElement } from './helpers/app-dom';
 import { FakeEventTarget, FakeVisibilityTarget, ManualFrameScheduler, makeKeyEvent } from './helpers/engine-fixtures';
 
-const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[], cameras: [] as PerspectiveCamera[], countdownSeconds: 0.01 }));
+const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[], cameras: [] as PerspectiveCamera[], countdownSeconds: 0.01, canvas: null as AppElement | null }));
 
 vi.mock('../src/engine/scene-view', () => ({
   SceneView: class {
@@ -13,7 +13,7 @@ vi.mock('../src/engine/scene-view', () => ({
     readonly camera = new PerspectiveCamera(65, 1, 0.1, 500);
     readonly renderer = { domElement: new AppElement() };
     readonly rendererPerformanceStats = null;
-    constructor(_options: SceneViewOptions) { this.scene.add(this.camera); harness.cameras.push(this.camera); }
+    constructor(_options: SceneViewOptions) { this.scene.add(this.camera); harness.cameras.push(this.camera); harness.canvas = this.renderer.domElement; }
     render(): void {}
     dispose(): void { this.scene.clear(); }
   },
@@ -58,7 +58,7 @@ function createHarness() {
   let time = 0;
   const frame = () => { scheduler.runFrame(time); time += 20; };
   const element = (id: string) => root.querySelector(`#${id}`)!;
-  return { app, root, frame, element, windowTarget, stored };
+  return { app, root, frame, element, windowTarget, documentTarget, stored };
 }
 
 afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; });
@@ -118,6 +118,29 @@ describe('application match flow', () => {
       expect(element('death-overlay').hidden).toBe(true);
       expect(element('damage-vignette').style.opacity).toBe('0');
       expect(wheel(-100).defaultPrevented).toBe(false);
+    } finally { app.dispose(); }
+  });
+
+  it('connects held right mouse to the centered sight and lowers it when released', () => {
+    const { app, frame, element, documentTarget } = createHarness();
+    try {
+      element('menu-range-button').click(); frame(); frame();
+      const camera = harness.cameras[0]!;
+      const rifle = camera.children.find(child => child.name === 'Honk-47 — close LOD')!;
+      const dot = rifle.getObjectByName('red-dot reticle')!;
+      // The renderer's DOM port is the canvas PointerLockControls attaches to.
+      documentTarget.pointerLockElement = harness.canvas as never;
+      documentTarget.dispatchEvent(new Event('pointerlockchange'));
+      documentTarget.dispatchEvent(Object.assign(new Event('mousedown'), { button: 2 }));
+      for (let i = 0; i < 60; i += 1) frame();
+      camera.updateMatrixWorld(true);
+      expect(dot.visible).toBe(true);
+      expect(dot.getWorldPosition(new Vector3()).project(camera).x).toBeCloseTo(0, 6);
+      expect(dot.getWorldPosition(new Vector3()).project(camera).y).toBeCloseTo(0, 6);
+      documentTarget.dispatchEvent(Object.assign(new Event('mouseup'), { button: 2 }));
+      for (let i = 0; i < 60; i += 1) frame();
+      expect(dot.visible).toBe(false);
+      expect(rifle.position.x).toBeCloseTo(0.32);
     } finally { app.dispose(); }
   });
 
