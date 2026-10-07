@@ -1,5 +1,6 @@
 /** Minimal DOM port for application flow tests; rendering stays on real Three.js objects. */
 export class AppElement extends EventTarget {
+  readonly style = { opacity: '' };
   readonly dataset: Record<string, string> = {};
   readonly attributes = new Map<string, string>();
   readonly children: AppElement[] = [];

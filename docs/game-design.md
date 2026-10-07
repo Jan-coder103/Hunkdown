@@ -24,6 +24,8 @@ The user selected a simple placeholder economy. Until human review changes it, e
 
 Match results show top-five damage, kills, healing, and deaths leaderboards, followed by a separate rewards screen. Healing counts health restored by revives and is credited to the reviver. A versioned local profile records settings, selected map, XP, credits, skills, and the latest 100 rewarded match IDs so a result cannot pay twice.
 
+The round countdown appears at the top center. Wounded players see a light red edge vignette that grows with missing health and clears at full health or death. While dead, a compact bottom panel leaves the live map unblurred; mouse wheel zooms in/out, with camera height bounded between 25 m and 180 m and reset to 90 m for each death.
+
 Results open even when the player is dead. Escape keeps the ready room and completed-round screens paused. The live death view exists, but changing loadout from that screen remains unimplemented; Honk-47 is currently the only available primary.
 
 ## Controls
@@ -32,6 +34,7 @@ Results open even when the player is dead. Escape keeps the ready room and compl
 | --- | --- |
 | WASD | Move |
 | Mouse | Look |
+| Mouse wheel while dead | Zoom the live bird’s-eye map |
 | Space | Jump |
 | Right mouse, held | Aim/zoom; mouse sensitivity reduced by 20% |
 | Left mouse | Shoot; throw when grenade equipped |

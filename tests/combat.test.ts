@@ -315,7 +315,11 @@ describe('grenades and presentation feedback', () => {
     const weaponView = new WeaponView(camera, rig, 1.8);
     expect(camera.children).toContain(rig.root);
     expect(rig.muzzleFlash.visible).toBe(false);
+    const restingMuzzle = rig.muzzleFlash.getWorldPosition(new Vector3());
     weaponView.fire();
+    weaponView.update(0.01);
+    expect(rig.muzzleFlash.getWorldPosition(new Vector3()).y).toBeGreaterThan(restingMuzzle.y);
+    expect(rig.muzzleFlash.getWorldPosition(new Vector3()).z).toBeGreaterThan(restingMuzzle.z);
     expect(rig.muzzleFlash.visible).toBe(true);
     weaponView.update(0.06);
     expect(rig.muzzleFlash.visible).toBe(false);

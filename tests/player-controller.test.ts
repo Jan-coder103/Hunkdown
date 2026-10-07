@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PerspectiveCamera } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 import { KeyboardInput } from '../src/engine/keyboard-input';
 import { PlayerController, type PlayerControllerOptions } from '../src/game/player/player-controller';
 import { MovementWorld, type MovementWorldOptions } from '../src/game/player/movement-world';
@@ -145,7 +145,7 @@ describe('PlayerController', () => {
 
     keyDown(keyboard, 'KeyQ');
     for (let frame = 0; frame < 10; frame += 1) tick(player, input);
-    expect(camera.rotation.z).toBeLessThan(0);
+    expect(camera.rotation.z).toBeGreaterThan(0);
     for (let frame = 0; frame < 50; frame += 1) tick(player, input);
     expect(player.isSliding).toBe(false);
 
@@ -154,6 +154,19 @@ describe('PlayerController', () => {
     tick(player, input);
     expect(player.isCrouched).toBe(false);
     expect(camera.position.y).toBeCloseTo(1.58);
+  });
+
+  it.each([['KeyQ', 1], ['KeyE', -1]] as const)('leans with %s in the expected screen direction and recenters', (key, sign) => {
+    const { keyboard, input, camera, player } = createHarness();
+    keyDown(keyboard, key);
+    for (let i = 0; i < 30; i += 1) tick(player, input);
+    player.render(1);
+    expect(camera.rotation.z * sign).toBeGreaterThan(0.13);
+    keyUp(keyboard, key);
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    player.render(1);
+    expect(camera.rotation.z).toBeCloseTo(0, 4);
+    input.dispose();
   });
 
   it('supports configurable crouch toggle and keeps it engaged until toggled again', () => {
@@ -247,10 +260,11 @@ describe('PlayerController', () => {
   it('applies weapon recoil to the live aim ray and smoothly returns to the look direction', () => {
     const { input, camera, player } = createHarness();
     player.applyRecoil(0.08, 0.03);
-    expect(camera.rotation.x).toBeCloseTo(-0.08);
+    expect(camera.rotation.x).toBeCloseTo(0.08);
     expect(camera.rotation.y).toBeCloseTo(0.03);
+    expect(camera.getWorldDirection(new Vector3()).y).toBeGreaterThan(0);
     for (let frame = 0; frame < 40; frame += 1) tick(player, input);
-    expect(camera.rotation.x).toBeGreaterThan(-0.08);
+    expect(camera.rotation.x).toBeLessThan(0.08);
     expect(camera.rotation.x).toBeCloseTo(0, 2);
     expect(camera.rotation.y).toBeCloseTo(0, 2);
     input.dispose();

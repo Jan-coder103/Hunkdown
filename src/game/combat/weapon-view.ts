@@ -87,7 +87,7 @@ export class WeaponView {
 
     this.rig.root.position.set(
       this.basePosition.x,
-      this.basePosition.y - 0.012 * this.recoil - reloadDip,
+      this.basePosition.y + 0.012 * this.recoil - reloadDip,
       this.basePosition.z + 0.065 * this.recoil,
     );
     this.rig.root.rotation.set(

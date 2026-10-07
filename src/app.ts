@@ -40,6 +40,8 @@ export function mountApp(root: HTMLElement) {
         <span class="crosshair" aria-hidden="true"></span>
         <span id="hit-marker" class="hit-marker" aria-hidden="true"></span>
       </div>
+      <div id="damage-vignette" class="damage-vignette" aria-hidden="true"></div>
+      <output id="round-countdown" class="round-countdown" aria-live="polite" hidden></output>
       <div id="combat-flash" class="combat-flash" aria-hidden="true"></div>
       <section class="engine-hud" aria-label="Shooting range controls and status">
         <p class="eyebrow">OPERATION HONKDOWN · MATCH PREVIEW</p>
@@ -148,7 +150,7 @@ export function mountApp(root: HTMLElement) {
           <p class="eyebrow">FIELD REPORT</p>
           <h2 id="death-title">You’re down, chicken.</h2>
           <p id="death-readout" aria-live="polite">Switching to the live map view.</p>
-          <p class="hint">Hold <kbd>F</kbd> near a fallen teammate for four seconds to revive them. Your spawn returns after 20 seconds.</p>
+          <p class="hint">Scroll the mouse wheel to zoom the live map. Your spawn returns after 20 seconds.</p>
         </div>
       </section>
     </main>
@@ -196,6 +198,18 @@ export function mountApp(root: HTMLElement) {
   const rewardSummary = root.querySelector<HTMLElement>('#reward-summary');
   const resultsMenuButton = root.querySelector<HTMLButtonElement>('#results-menu-button');
   const deathOverlay = root.querySelector<HTMLElement>('#death-overlay');
+  const damageVignette = root.querySelector<HTMLElement>('#damage-vignette')!;
+  const roundCountdown = root.querySelector<HTMLOutputElement>('#round-countdown')!;
+  let deathViewHeight = 90;
+  const handleDeathZoom = (event: WheelEvent): void => {
+    if (!isPlayerMatchMode || skirmishView?.simulation.playerCombatant?.status !== 'dead'
+      || runtime.state !== 'running' || !menuEl.hidden || resultsShown || !sceneView) return;
+    event.preventDefault();
+    const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (viewport?.clientHeight ?? 800) : 1);
+    if (!Number.isFinite(pixels)) return;
+    deathViewHeight = Math.max(25, Math.min(180, deathViewHeight * Math.exp(Math.max(-1, Math.min(1, pixels * 0.001)))));
+    sceneView.camera.position.y = deathViewHeight;
+  };
   const deathReadout = root.querySelector<HTMLElement>('#death-readout');
   if (
     !viewport || !hud || !stateOutput || !pointerOutput || !modeToggle || !resetRangeButton || !joinMatchButton || !skirmishReadout || !reviveReadout || !modeHeading || !classOutput || !weaponOutput || !combatReadout ||
@@ -526,6 +540,14 @@ export function mountApp(root: HTMLElement) {
 
       return {
         render(interpolationAlpha: number) {
+          const actor = isPlayerMatchMode ? skirmishView?.simulation.playerCombatant : null;
+          const damageOpacity = actor?.status === 'alive' && menuEl.hidden && !resultsShown
+            ? 0.55 * Math.max(0, Math.min(1, 1 - actor.health / actor.maxHealth)) : 0;
+          damageVignette.style.opacity = String(damageOpacity);
+          const countdown = skirmishView?.match;
+          roundCountdown.hidden = !menuEl.hidden || resultsShown || !countdown || countdown.matchState !== 'countdown';
+          if (!roundCountdown.hidden && countdown) roundCountdown.textContent = `Round starts in ${Math.ceil(countdown.countdown.secondsRemaining)}`;
+          root.dataset.playerDead = String(actor?.status === 'dead');
           view.camera.getWorldDirection(audioForward);
           audioManager.updateListener(view.camera.position, audioForward);
           if (!isSkirmishMode && (!isPlayerMatchMode || skirmishView?.match.simulation.playerCombatant?.status === 'alive')) {
@@ -539,7 +561,7 @@ export function mountApp(root: HTMLElement) {
             );
             grenadeView.updateProjectiles(combat.grenades.projectiles);
           }
-          if (!isSkirmishMode) feedback.applyCameraShake(view.camera);
+          if (!isSkirmishMode && (!isPlayerMatchMode || skirmishView?.simulation.playerCombatant?.status === 'alive')) feedback.applyCameraShake(view.camera);
           skirmishView?.updatePresentation(view.camera);
           view.render(interpolationAlpha);
         },
@@ -641,7 +663,8 @@ export function mountApp(root: HTMLElement) {
           deathOverlay.hidden = false;
           const camera = sceneView?.camera;
           if (camera) {
-            camera.position.set(0, 90, 0);
+            deathViewHeight = 90;
+            camera.position.set(0, deathViewHeight, 0);
             camera.up.set(0, 0, -1);
             camera.lookAt(0, 0, 0);
             camera.updateProjectionMatrix();
@@ -1094,6 +1117,7 @@ export function mountApp(root: HTMLElement) {
   sensitivitySetting.addEventListener('input', handleSensitivity);
   masterVolumeInput.addEventListener('input', handleMasterVolume);
   effectsVolumeInput.addEventListener('input', handleEffectsVolume);
+  root.addEventListener('wheel', handleDeathZoom, { passive: false });
   runtime.start();
   runtimeHasStarted = true;
   runtime.pause();
@@ -1104,6 +1128,7 @@ export function mountApp(root: HTMLElement) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      root.removeEventListener('wheel', handleDeathZoom);
       resumeButton.removeEventListener('click', handleResume);
       pauseSettingsButton.removeEventListener('click', handlePauseSettings);
       returnMenuButton.removeEventListener('click', returnToMainMenu);

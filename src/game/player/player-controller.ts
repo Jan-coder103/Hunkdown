@@ -154,7 +154,7 @@ export class PlayerController {
   /** Adds a short weapon kick without changing the player's underlying look direction. */
   applyRecoil(pitchRadians: number, yawRadians: number): void {
     if (!Number.isFinite(pitchRadians) || !Number.isFinite(yawRadians)) return;
-    this.recoilPitch -= Math.max(0, pitchRadians);
+    this.recoilPitch += Math.max(0, pitchRadians);
     this.recoilYaw += yawRadians;
     this.syncCameraRotation();
   }
@@ -353,7 +353,7 @@ export class PlayerController {
   }
 
   private updateLean(deltaSeconds: number, input: KeyboardInput): void {
-    const leanInput = Number(input.isDown('KeyE')) - Number(input.isDown('KeyQ'));
+    const leanInput = Number(input.isDown('KeyQ')) - Number(input.isDown('KeyE'));
     const targetLean = leanInput * 0.14;
     this.lean += (targetLean - this.lean) * Math.min(1, deltaSeconds * 10);
   }

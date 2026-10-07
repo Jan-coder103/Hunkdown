@@ -288,3 +288,16 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
   .control-list span { justify-content: flex-start; }
   .engine-hud .diagnostics { margin-top: .75rem; }
 }
+
+.damage-vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, transparent 45%, rgb(155 15 24 / 75%) 100%); transition: opacity .15s ease-out; }
+.round-countdown { position: absolute; z-index: 2; top: 1.25rem; left: 50%; transform: translateX(-50%); padding: .65rem 1rem; border-radius: .7rem; background: rgb(248 245 231 / 94%); color: #354e43; font-weight: 800; font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap; }
+.round-countdown[hidden] { display: none; }
+.death-overlay { place-items: end center; background: transparent; backdrop-filter: none; pointer-events: none; }
+.death-card { width: min(100%, 38rem); padding: 1rem 1.25rem; border-radius: .85rem; box-shadow: 0 .4rem 1.2rem rgb(23 43 39 / 12%); }
+.death-card .eyebrow { margin-bottom: .3rem; }
+.death-card h2 { font-size: 1.3rem; }
+.death-card > p:not(.eyebrow):not(.hint) { margin: .4rem 0; }
+.death-card .hint { margin-top: .4rem; font-size: .76rem; }
+#app[data-player-dead="true"] .engine-hud,
+#app[data-player-dead="true"] .crosshair { display: none; }
+@media (max-width: 760px) { .round-countdown { top: .5rem; } #app[data-view-mode="match"] .engine-hud { top: 3.5rem; } }

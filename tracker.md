@@ -22,6 +22,12 @@ Updated: 2026-10-07.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Requested controls and combat HUD fixes — 2026-10-07
+
+Corrected vertical camera recoil so shots lift the aim ray, and lifted the rifle during its existing upward muzzle rotation. Q now rolls left and E right, with smooth recentering. The live death view uses a compact bottom information panel with transparent surroundings and no backdrop blur; the large HUD and crosshair hide while dead. Mouse wheel zooms the death camera between 25 m and 180 m, resets to 90 m for each death, and ignores alive, paused, menu, and results views. Camera shake no longer disturbs the death camera. Added a top-center countdown driven by the existing match timer and a restrained red edge vignette proportional to missing health, cleared at full health, death, menus, and results.
+
+Verification: `npm run check` passed with 184 tests across 29 files, strict type checking, and production build. Behavioral regressions cover upward aim/muzzle movement, both lean directions and recentering, countdown completion and pause, damage intensity, zoom direction/limits, and respawn cleanup. Browser smoke at `http://127.0.0.1:5188/` (663 × 658 in-app browser) confirmed the top-center countdown; computed death-overlay styles showed bottom alignment, transparent background, and no blur. Browser warnings/errors were empty. Hands-on recoil/lean, visible wounded/death presentation, and physical wheel interaction remain for human playtest. No human verification is claimed. The existing 530.96 kB shared chunk warning remains.
+
 ## Shooting range access and training update — 2026-10-07
 
 The first-person scene behind the ready-room menu was the existing movement/combat prototype, but the menu's only action entered a 100-bot match. The ready room now has a separate Shooting range action. The former test map has three marked firing lanes, nine chicken targets at 10 m, 15 m, and 20 m, bullseyes, backstops, cover, and the movement ramp. Targets stand again after 1.6 seconds. Reset range restores targets, ammunition/grenades, player position, and local range stats. HUD stats show shots, hits, accuracy, bullet/grenade damage, knockdowns, and remaining targets; range play does not award match rewards.

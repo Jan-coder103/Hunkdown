@@ -5,7 +5,7 @@ import type { SceneViewOptions } from '../src/engine/scene-view';
 import { AppElement } from './helpers/app-dom';
 import { FakeEventTarget, FakeVisibilityTarget, ManualFrameScheduler, makeKeyEvent } from './helpers/engine-fixtures';
 
-const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[] }));
+const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[], cameras: [] as PerspectiveCamera[], countdownSeconds: 0.01 }));
 
 vi.mock('../src/engine/scene-view', () => ({
   SceneView: class {
@@ -13,7 +13,7 @@ vi.mock('../src/engine/scene-view', () => ({
     readonly camera = new PerspectiveCamera(65, 1, 0.1, 500);
     readonly renderer = { domElement: new AppElement() };
     readonly rendererPerformanceStats = null;
-    constructor(_options: SceneViewOptions) { this.scene.add(this.camera); }
+    constructor(_options: SceneViewOptions) { this.scene.add(this.camera); harness.cameras.push(this.camera); }
     render(): void {}
     dispose(): void { this.scene.clear(); }
   },
@@ -25,7 +25,7 @@ vi.mock('../src/game/bots/bot-skirmish-view', async (importOriginal) => {
     ...original,
     BotSkirmishView: class extends original.BotSkirmishView {
       constructor(...args: ConstructorParameters<typeof original.BotSkirmishView>) {
-        super(args[0], args[1], { ...args[2], countdownSeconds: 0.01, rules: {
+        super(args[0], args[1], { ...args[2], countdownSeconds: harness.countdownSeconds, rules: {
           initialTickets: 1, respawnDelaySeconds: 0.2, captureDurationSeconds: 1000,
         } });
         harness.battles.push(this);
@@ -61,9 +61,66 @@ function createHarness() {
   return { app, root, frame, element, windowTarget, stored };
 }
 
-afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; });
+afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; });
 
 describe('application match flow', () => {
+  it('shows the live countdown, pauses its timer, and hides it when combat starts', () => {
+    harness.countdownSeconds = 1;
+    const { app, frame, element } = createHarness();
+    try {
+      element('menu-join-button').click();
+      frame(); frame();
+      expect(element('round-countdown').hidden).toBe(false);
+      expect(element('round-countdown').textContent).toBe('Round starts in 1');
+      app.runtime.pause();
+      const remaining = harness.battles[0]!.match.countdown.secondsRemaining;
+      for (let i = 0; i < 60; i += 1) frame();
+      expect(harness.battles[0]!.match.countdown.secondsRemaining).toBe(remaining);
+      app.runtime.resume();
+      for (let i = 0; i < 60; i += 1) frame();
+      expect(element('round-countdown').hidden).toBe(true);
+    } finally { app.dispose(); }
+  });
+
+  it('scales damage feedback and zooms only the live death view with bounded wheel input', () => {
+    const { app, root, frame, element } = createHarness();
+    const wheel = (deltaY: number) => {
+      const event = Object.assign(new Event('wheel', { cancelable: true }), { deltaY, deltaMode: 0 });
+      root.dispatchEvent(event);
+      return event;
+    };
+    try {
+      element('menu-join-button').click(); frame(); frame();
+      const actor = harness.battles[0]!.simulation.playerCombatant!;
+      const camera = harness.cameras[0]!;
+      expect(element('damage-vignette').style.opacity).toBe('0');
+      expect(wheel(-100).defaultPrevented).toBe(false);
+      actor.applyDamage(20); frame();
+      const light = Number(element('damage-vignette').style.opacity);
+      expect(light).toBeGreaterThan(0);
+      actor.applyDamage(50); frame();
+      expect(Number(element('damage-vignette').style.opacity)).toBeGreaterThan(light);
+      actor.applyDamage(100); frame(); frame();
+      expect(element('death-overlay').hidden).toBe(false);
+      expect(element('damage-vignette').style.opacity).toBe('0');
+      expect(camera.position.y).toBe(90);
+      expect(wheel(-100).defaultPrevented).toBe(true);
+      expect(camera.position.y).toBeLessThan(90);
+      for (let i = 0; i < 10; i += 1) wheel(-1000);
+      expect(camera.position.y).toBe(25);
+      for (let i = 0; i < 10; i += 1) wheel(1000);
+      expect(camera.position.y).toBe(180);
+      app.runtime.pause();
+      expect(wheel(-100).defaultPrevented).toBe(false);
+      app.runtime.resume();
+      for (let i = 0; i < 20; i += 1) frame();
+      expect(actor.status).toBe('alive');
+      expect(element('death-overlay').hidden).toBe(true);
+      expect(element('damage-vignette').style.opacity).toBe('0');
+      expect(wheel(-100).defaultPrevented).toBe(false);
+    } finally { app.dispose(); }
+  });
+
   it('opens the shooting range from the ready room and returns to it from pause', () => {
     const { app, frame, element, windowTarget } = createHarness();
     try {
