@@ -208,19 +208,43 @@ describe('rendered bot skirmish', () => {
     expect(scene.children).toHaveLength(0);
   });
 
-  it('removes a destroyed enterable-house wall segment from the rendered shell', () => {
+  it('renders enterable houses in two distance tiers and hides destroyed wall parts in both', () => {
     const scene = new Scene();
     const draft = paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 18, cellSize: 8 }), 2, 1, 'enterable-house', 'west-east');
     const map = generateMap(draft);
     const wall = map.collisions.find((collision) => collision.role === 'enterable-wall');
     if (!wall?.id) throw new Error('Expected the enterable house to have a named wall segment');
     const view = new BotSkirmishView(scene, map, { friendlyCount: 0, enemyCount: 0, seed: 18 });
-    const wallView = scene.getObjectByName(`destructible building part ${wall.id}`);
-    expect(wallView?.visible).toBe(true);
+    const close = scene.getObjectByName(`enterable house ${wall.cell.x},${wall.cell.y} — close LOD`);
+    const far = scene.getObjectByName(`enterable house ${wall.cell.x},${wall.cell.y} — far LOD`);
+    const partName = `destructible building part ${wall.id}`;
+    const closePart = close?.getObjectByName(partName);
+    const farPart = far?.getObjectByName(partName);
+    expect(closePart?.visible).toBe(true);
+    expect(farPart?.visible).toBe(true);
+    expect(far?.visible).toBe(false);
+
+    const camera = new PerspectiveCamera(60, 1.5, 0.1, 300);
+    camera.position.set(0, 80, 0);
+    camera.up.set(0, 0, -1);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(close?.visible).toBe(false);
+    expect(far?.visible).toBe(true);
 
     view.showDestruction([wall.id]);
-    expect(wallView?.visible).toBe(false);
+    expect(closePart?.visible).toBe(false);
+    expect(farPart?.visible).toBe(false);
     expect(view.debrisCount).toBe(4);
+    camera.position.set(wall.center.x, 2, wall.center.z + 6);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(wall.center.x, 2, wall.center.z);
+    camera.updateMatrixWorld(true);
+    view.updatePresentation(camera);
+    expect(close?.visible).toBe(true);
+    expect(far?.visible).toBe(false);
+    expect(closePart?.visible).toBe(false);
     view.dispose();
     expect(scene.children).toHaveLength(0);
   });

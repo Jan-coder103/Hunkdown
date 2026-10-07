@@ -76,6 +76,8 @@ type AssetLodPair = {
   detail: 'close' | 'far';
 };
 
+type DestructibleBuildingPart = Readonly<{ close: Object3D; far: Object3D }>;
+
 const CLOSE_LOD_DISTANCE = 23;
 const CLOSE_LOD_RETURN_DISTANCE = 18;
 const MAX_CHARACTER_DRAW_DISTANCE = 190;
@@ -102,7 +104,8 @@ export class BotSkirmishView {
   private readonly decorationViews = new Map<string, Object3D>();
   private readonly decorationFarViews = new Map<string, Object3D>();
   private readonly destroyedDecorationIds = new Set<string>();
-  private readonly buildingPartViews = new Map<string, Object3D>();
+  private readonly buildingPartViews = new Map<string, DestructibleBuildingPart>();
+  private readonly destroyedBuildingPartIds = new Set<string>();
   private readonly assetLodPairs: AssetLodPair[] = [];
   private readonly debris: DebrisParticle[] = [];
   private readonly frustum = new Frustum();
@@ -260,9 +263,15 @@ export class BotSkirmishView {
   showDestruction(ids: readonly string[]): void {
     if (this.disposed) return;
     for (const id of new Set(ids)) {
-      const model = this.decorationViews.get(id) ?? this.buildingPartViews.get(id);
+      const buildingPart = this.buildingPartViews.get(id);
+      const model = this.decorationViews.get(id);
       const farDecoration = this.decorationFarViews.get(id);
-      if (farDecoration) {
+      if (buildingPart) {
+        if (this.destroyedBuildingPartIds.has(id)) continue;
+        this.destroyedBuildingPartIds.add(id);
+        buildingPart.close.visible = false;
+        buildingPart.far.visible = false;
+      } else if (farDecoration) {
         if (this.destroyedDecorationIds.has(id)) continue;
         this.destroyedDecorationIds.add(id);
       } else if (!model?.visible) continue;
@@ -315,6 +324,7 @@ export class BotSkirmishView {
     this.decorationFarViews.clear();
     this.destroyedDecorationIds.clear();
     this.buildingPartViews.clear();
+    this.destroyedBuildingPartIds.clear();
     this.assetLodPairs.length = 0;
     this.combatantById.clear();
     this.root.traverse((child) => {
@@ -408,14 +418,26 @@ export class BotSkirmishView {
     const size = this.map.source.cellSize;
     for (const placement of this.map.buildings) {
       if (placement.enterable) {
-        const model = createEnterableBuilding(this.map, placement.cell);
+        const close = createEnterableBuilding(this.map, placement.cell, 'close', placement.assetId);
+        const far = createEnterableBuilding(this.map, placement.cell, 'far', placement.assetId);
         for (const collision of this.map.collisions) {
           if (collision.role !== 'enterable-wall' || collision.cell.x !== placement.cell.x || collision.cell.y !== placement.cell.y || !collision.id) continue;
-          const part = model.getObjectByName(`destructible building part ${collision.id}`);
-          if (part) this.buildingPartViews.set(collision.id, part);
+          const partName = `destructible building part ${collision.id}`;
+          const closePart = close.getObjectByName(partName);
+          const farPart = far.getObjectByName(partName);
+          if (closePart && farPart) this.buildingPartViews.set(collision.id, { close: closePart, far: farPart });
         }
-        this.trackObjectResources(model);
-        this.root.add(model);
+        this.trackObjectResources(close);
+        this.trackObjectResources(far);
+        far.visible = false;
+        this.root.add(close, far);
+        this.assetLodPairs.push({
+          close,
+          far,
+          position: new Vector3(placement.position.x, size * 0.5, placement.position.z),
+          radius: size * 1.25,
+          detail: 'close',
+        });
         continue;
       }
       const asset = createAsset(placement.assetId);

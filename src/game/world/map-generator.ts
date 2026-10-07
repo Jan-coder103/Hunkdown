@@ -260,6 +260,7 @@ function createEnterableWallCollisions(
           role: 'enterable-wall',
           id: `house-${cell.x}-${cell.y}-${side}-${segment}`,
           health: ENTERABLE_WALL_HEALTH,
+          direction: side,
         }));
       }
     } else {
@@ -272,6 +273,7 @@ function createEnterableWallCollisions(
           role: 'enterable-wall',
           id: `house-${cell.x}-${cell.y}-${side}-${segment}`,
           health: ENTERABLE_WALL_HEALTH,
+          direction: side,
         }));
       }
     }

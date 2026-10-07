@@ -1,4 +1,4 @@
-import { Box3, Mesh, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, Mesh, Raycaster, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { createEmptyMap, paintMapCell } from '../src/game/world/map-types';
 import { generateMap, worldPosition } from '../src/game/world/map-generator';
@@ -7,19 +7,46 @@ import { createEnterableBuilding, createSlopeGeometry } from '../src/tools/map-e
 describe('generated city preview geometry', () => {
   it('renders open doorways and solid walls from the same collision records', () => {
     const generated = generateMap(paintMapCell(createEmptyMap({ width: 3, height: 3 }), 1, 1, 'enterable-house', 'north-south'));
-    const building = createEnterableBuilding(generated, { x: 1, y: 1 });
-    building.updateMatrixWorld(true);
-    const northDoor = new Raycaster(new Vector3(0, 1, -6), new Vector3(0, 0, 1));
-    expect(northDoor.intersectObject(building, true)).toHaveLength(0);
-    const closedWest = new Raycaster(new Vector3(-6, 1, 0), new Vector3(1, 0, 0));
-    expect(closedWest.intersectObject(building, true).length).toBeGreaterThan(0);
-    for (const child of building.children) {
-      expect(child).toBeInstanceOf(Mesh);
-      const bounds = new Box3().setFromObject(child);
-      const wall = generated.collisions.find((item) => item.center.x === child.position.x && item.center.z === child.position.z);
-      expect(wall).toBeDefined();
-      expect(bounds.getSize(new Vector3()).x).toBeCloseTo(wall!.size.x);
-      expect(bounds.getSize(new Vector3()).z).toBeCloseTo(wall!.size.z);
+    for (const detail of ['close', 'far'] as const) {
+      const building = createEnterableBuilding(generated, { x: 1, y: 1 }, detail);
+      building.updateMatrixWorld(true);
+      const northDoor = new Raycaster(new Vector3(0, 1, -6), new Vector3(0, 0, 1));
+      expect(northDoor.intersectObject(building, true)).toHaveLength(0);
+      const closedWest = new Raycaster(new Vector3(-6, 1, 0), new Vector3(1, 0, 0));
+      expect(closedWest.intersectObject(building, true).length).toBeGreaterThan(0);
+
+      const wallParts = building.children.filter((child) => child.name.startsWith('destructible building part '));
+      const expectedWalls = generated.collisions.filter((item) => item.role === 'enterable-wall');
+      expect(wallParts).toHaveLength(expectedWalls.length);
+      for (const child of wallParts) {
+        expect(child).toBeInstanceOf(Mesh);
+        const mesh = child as Mesh;
+        const id = child.name.replace('destructible building part ', '');
+        const wall = expectedWalls.find((item) => item.id === id);
+        expect(wall).toBeDefined();
+        const dimensions = (mesh.geometry as BoxGeometry).parameters;
+        expect(dimensions.width).toBeCloseTo(wall!.size.x);
+        expect(dimensions.height).toBeCloseTo(wall!.size.y);
+        expect(dimensions.depth).toBeCloseTo(wall!.size.z);
+        expect(mesh.children.length).toBeGreaterThan(detail === 'close' ? 4 : 2);
+      }
+    }
+  });
+
+  it('keeps each authored doorway clear at both visual detail levels', () => {
+    const generated = generateMap(paintMapCell(createEmptyMap({ width: 3, height: 3 }), 1, 1, 'enterable-house', 'all-sides'));
+    const crossings = [
+      [new Vector3(0, 1, -6), new Vector3(0, 0, 1)],
+      [new Vector3(0, 1, 6), new Vector3(0, 0, -1)],
+      [new Vector3(-6, 1, 0), new Vector3(1, 0, 0)],
+      [new Vector3(6, 1, 0), new Vector3(-1, 0, 0)],
+    ] as const;
+    for (const detail of ['close', 'far'] as const) {
+      const building = createEnterableBuilding(generated, { x: 1, y: 1 }, detail);
+      building.updateMatrixWorld(true);
+      for (const [origin, direction] of crossings) {
+        expect(new Raycaster(origin, direction).intersectObject(building, true)).toHaveLength(0);
+      }
     }
   });
 

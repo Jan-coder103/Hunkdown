@@ -14,9 +14,9 @@ Updated: 2026-10-07.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
 - Phase 10: match/menu/results/progression shell is implemented; death-screen loadout editing and human gameplay/reward review remain.
-- Phase 11: registered asset candidate pass is implemented; enterable-house production visuals and human visual review remain.
+- Phase 11: registered asset candidate pass and enterable-house facade set are technically complete; human visual review remains.
 - Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
-- Phase 13: 100-bot render optimization and the prior foreground profile are verified; cheaper off-screen simulation and enterable-house LOD/culling remain.
+- Phase 13: 100-bot render optimization and the prior foreground profile are verified; cheaper off-screen simulation remains.
 - Active phase — 14: audio playback/settings scaffolding is complete; user-provided clips and audible review remain.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
@@ -39,9 +39,11 @@ Verification:
 - Browser smoke in Codex's in-app browser at `http://127.0.0.1:5188/`, 663 × 658: ready room remained open on Escape, Garden District launched with 100 bots, the countdown/city/player rig rendered, and Escape opened pause. Captured warnings/errors were empty. A running-view sample showed 60 FPS with 2.4 ms frame work and 0.2 ms simulation work; an earlier startup/background sample was 4 FPS, so this is functional evidence, not a new sustained performance profile.
 - The corrected death-to-results path and physical terrain/grenade/revive behavior were verified by automated tests, not a hands-on browser playtest. No human approval is claimed; the prior Phase 13 profile has not been rerun.
 
+Continuation — 2026-10-07: replaced plain enterable-house panels with palette-specific stucco facades, base and roof bands, windows, shutters, and doorway trim generated around the existing collision segments. Added close/far models, paired distance/frustum culling, and destruction synchronization so a broken wall stays hidden after tier changes. Doorway trim stays outside the 1.5 m opening. `npm run check` passed with 168 tests across 28 files, strict type checking, and production build; the existing 530.95 kB shared asset/Three.js chunk warning remains. Browser smoke at `http://127.0.0.1:5189/` painted an enterable cell in the map editor (one generated building) and launched the 100-bot Midtown match at 60 FPS. The preview is top-down and pointer lock did not engage, so side-on facade review and combat interaction were not established; browser console logs were not inspected. No human visual approval is claimed.
+
 Remaining acceptance work:
 - Phase 10 has a live death view but no loadout editing controls while dead; the ready-room loadout lists only Honk-47. This is now tracked explicitly instead of treating all Phase 10 requirements as finished.
-- Phase 11 enterable-house production visuals and Phase 13 enterable-house LOD/culling and cheaper off-screen simulation remain open as recorded in the prior review. Phase 14 needs user-supplied clips; the current manifest is empty. All human visual, gameplay, balance, and comedy reviews remain open.
+- Phase 11 enterable-house production visuals and Phase 13 enterable-house LOD/culling are complete as recorded in the 2026-10-07 continuation. Phase 13's cheaper off-screen simulation remains open. Phase 14 needs user-supplied clips; the current manifest is empty. All human visual, gameplay, balance, and comedy reviews remain open.
 - No new expansion phase was started in this review.
 
 ## Phases 9–14 review — 2026-10-07
@@ -55,8 +57,8 @@ Corrections:
 - Phase 14: snapshot spatial event positions before asynchronous clip loading, disconnect source/gain/panner nodes when a voice ends or fails, and prevent pending gesture unlocks from reconnecting a disposed manager.
 
 Acceptance gaps made explicit:
-- Phase 11's registered viewer inventory contains refined candidates, but generated enterable houses still use plain collision-shaped wall panels. They have no authored close/far pair and still need a production visual pass.
-- Phase 13 keeps off-screen battles running with staggered decisions, but applies the same simulation fidelity everywhere. A separate cheaper off-screen simulation mode and transition verification are not implemented. Enterable-house panels also bypass asset LOD/culling. Prior 100-bot measurements remain valid evidence for that build, not proof these requirements are complete.
+- Phase 11's registered viewer inventory contains refined candidates. Enterable-house facade visuals and their close/far runtime tiers were subsequently implemented in the 2026-10-07 continuation below.
+- Phase 13 keeps off-screen battles running with staggered decisions, but applies the same simulation fidelity everywhere. A separate cheaper off-screen simulation mode and transition verification remain unimplemented. Enterable-house LOD/culling was added in the 2026-10-07 continuation below. Prior 100-bot measurements remain valid evidence for that build, not proof these requirements are complete.
 - Phase 14 remains silent because no user-provided sound clips are available. Human visual, gameplay, comedy, and sound reviews remain open.
 
 Verification:
@@ -234,6 +236,8 @@ Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires
 ## Phase 11 — High-quality asset production
 
 - [x] Refine the pastel row house and tall townhouse with layered facades, framed windows, trim, entries, and low-poly roof details.
+- [x] Replace plain enterable-house panels with asset-colored stucco, foundation/roof courses, windows, shutters, and collision-aligned door surrounds; preserve the existing open-door geometry and destructible panel IDs.
+- [x] Add separate close/far enterable-house models and behavior coverage for clear doorways and wall destruction across LOD transitions.
 - [x] Refine the street lamp, street tree, cafe kiosk, plaza fountain, and street bicycle with clearer silhouettes and street-level detail.
 - [x] Keep code-generated close/far LODs and collision metadata; generated visual bounds remain inside each declared asset envelope.
 - [x] Remove the duplicate tactical bird placeholder from the asset registry and viewer. The detailed Tactical chicken remains the canonical bird asset; the Honk-47 remains the shared combat/viewer model.
@@ -243,7 +247,7 @@ Phase 10 assumptions: player revive uses a 2.5 m interaction radius and requires
 - [ ] Human visual approval of the refined city set and the existing cafe, chicken, and Honk-47 direction.
 - [ ] Iterate from user feedback before closing the production set.
 
-Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, and Honk-47. All registered assets are code-generated TypeScript models with two render LODs; no placeholder asset remains in the registered viewer set. Outside that registry, generated enterable houses retain plain collision-shaped wall visuals and lack a close/far pair; these remain unfinished Phase 11 content. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
+Phase 11 review inventory: Pastel row house, Corner cafe, Tall townhouse, Street lamp, Street tree, Cafe kiosk, Plaza fountain, Street bicycle, Tactical chicken, Honk-47, and the generated enterable-house facade set. Registered assets are code-generated TypeScript models with two render LODs; enterable houses now also build collision-aligned close/far facades from map data. No placeholder asset remains in the registered viewer set. New weapons, classes, and future tactical gear are not part of this phase's finished inventory.
 
 Phase 11 assumptions: the current review pass keeps existing scale, palette, and gameplay collision metadata. New facade and prop details are presentation-only. Visual direction and final production approval remain with the user.
 
@@ -265,6 +269,7 @@ Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repea
 - [x] Set the reference target with the user: 60 FPS at 1920×1080 on their normal desktop.
 - [x] Raise playable and spectator skirmishes to 50 friendly plus 50 enemy bots; retain authoritative off-screen simulation.
 - [x] Use two chicken render tiers, distance and frustum culling for characters and city assets, instanced repeated floor tiles, and a two-draw far chicken silhouette.
+- [x] Give enterable houses close/far render tiers with distance/frustum culling while keeping their shared wall collisions and destruction state intact.
 - [x] Stagger bot decision updates, reduce per-step snapshot and perception allocations, and pool expired corpse views by team under a 192-view cap. Destruction debris remains bounded at 32 pieces.
 - [x] Show frame work, simulation work, draw calls, triangle count, geometry count, and visible/close/far character counts in diagnostics.
 - [x] Add coverage for 100-bot simulation, off-screen simulation continuity, LOD changes without match-state drift, corpse-view reuse, culling, batching, and renderer telemetry.
@@ -273,7 +278,7 @@ Phase 12 assumptions: impulse speed is capped at 12 m/s; rifle recoil is a repea
 - [x] Confirm sustained performance in a stable foreground browser session at 1920×1080 on the Intel Core i5-3570K host. A dedicated spectator match ran for about 84 seconds: all interval samples displayed 60 FPS, with 4.8–8.3 ms frame work and 0.3–3.1 ms simulation work. The 100-bot view showed about 480–522 draws and 33.9–42.2k triangles. Geometry settled at 889–890 over the final 30 seconds while 126/126 close/far character views were visible. A separate first-person match stayed at 60 FPS across 50 seconds of samples, with 2.6–4.5 ms frame work.
 - [x] Check browser console and post-pooling geometry: no console warnings/errors; geometry remained at 889–890 during the stable overhead plateau. One 45.1 ms frame-work sample appeared in a separate player match near ticket exhaustion; it did not recur in the dedicated 84-second spectator profile.
 
-Phase 13 render optimization and the recorded performance checks passed. The requirements for a separate cheaper off-screen simulation mode, detail transitions, and enterable-house LOD/culling remain open (see the phases 9–14 review). The browser HUD reports a rounded instantaneous rate and the samples were taken every 10 seconds, not as a per-frame histogram. No user verification is claimed.
+Phase 13 render optimization and the recorded performance checks passed. Enterable houses now have two render tiers with distance/frustum culling; collision, destruction, and simulation state remain shared across tiers. A separate cheaper off-screen simulation mode and its transition verification remain open (see the phases 9–14 review). The browser HUD reports a rounded instantaneous rate and the samples were taken every 10 seconds, not as a per-frame histogram. No user verification is claimed.
 
 ## Phase 14 — Sound design
 
