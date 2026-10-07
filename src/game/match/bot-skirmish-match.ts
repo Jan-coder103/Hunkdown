@@ -167,6 +167,31 @@ export class BotSkirmishMatch {
     });
   }
 
+  /** Old corpses may outlive a respawn; only the current death is a revive anchor. */
+  findReviveTarget(reviverId: string, radius = 2.5): BotCorpseSnapshot | null {
+    const reviver = this.simulation.getCombatant(reviverId);
+    if (this.state !== 'active' || !reviver || reviver.status !== 'alive'
+      || !Number.isFinite(radius) || radius <= 0) return null;
+    let nearest: MutableCorpse | null = null;
+    let nearestDistance = radius;
+    for (const life of this.lives.values()) {
+      if (life.team !== reviver.team || life.botId === reviverId) continue;
+      const target = this.simulation.getCombatant(life.botId);
+      const corpse = this.corpses.get(life.corpseId);
+      if (!corpse || target?.status !== 'dead') continue;
+      const distance = Math.hypot(corpse.position.x - reviver.position.x, corpse.position.y - reviver.position.y, corpse.position.z - reviver.position.z);
+      if (distance > nearestDistance || distance === nearestDistance && nearest && corpse.botId.localeCompare(nearest.botId) >= 0) continue;
+      nearest = corpse;
+      nearestDistance = distance;
+    }
+    return nearest ? Object.freeze({
+      id: nearest.id, botId: nearest.botId, team: nearest.team,
+      position: Object.freeze({ ...nearest.position }),
+      deathImpulse: Object.freeze({ ...nearest.deathImpulse }),
+      secondsRemaining: nearest.remaining,
+    }) : null;
+  }
+
   /** Visits match-owned corpse anchors directly for rendering without materializing a snapshot array. */
   forEachCorpse(visitor: (corpse: BotCorpsePresentation) => void): void {
     for (const corpse of this.corpses.values()) visitor(corpse);

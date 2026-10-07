@@ -21,6 +21,7 @@ After every feature:
 - Character: team-readable marks, close/far bounds, first/third-person rendering ownership, and locomotion, jump, aim, reload, damage, and death presentation states.
 - Bots/match: reachability, targeting, crowd behavior, countdown, revive/respawn/ticket edge cases, capture/tie rules.
 - UI/progression: complete state transitions, reward idempotency, saved-data recovery.
+- Application integration: use the mounted app with DOM/renderer ports and real engine/match/profile logic to cover alive/dead results, Escape overlay protection, one payout, and returning to the next match. These tests do not establish browser pointer-lock or visual acceptance.
 - Physics/performance: bounded debris, collision updates, cheap/detailed simulation transitions, 100+ bot stress tests and memory trends.
 - Sound/ability: gesture unlock, spatial routing, voice caps, missing/unsafe manifest entries, profile migration and volume validation, activation/exit, damage and match end.
 

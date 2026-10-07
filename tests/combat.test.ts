@@ -211,6 +211,40 @@ describe('combat session integration', () => {
 });
 
 describe('grenades and presentation feedback', () => {
+  it('sweeps from the preview origin even when thin cover is closer than a muzzle offset', () => {
+    const grenade = new GrenadeSystem();
+    const world = new MovementWorld({
+      halfExtent: 20,
+      obstacles: [{ minX: -2, maxX: 2, minZ: -0.3, maxZ: -0.2, maxY: 3 }],
+    });
+    const origin = { x: 0, y: 1, z: 0 };
+    const direction = { x: 0, y: 0, z: -1 };
+    const near = combatant('near', 'enemy', 0, 0.5);
+    const behind = combatant('behind', 'enemy', 0, -1);
+    const preview = grenade.trajectory(origin, direction, world);
+    grenade.toggleEquipped();
+    grenade.throw(origin, direction);
+    expect(grenade.projectiles[0]?.toArray()).toEqual([0, 1, 0]);
+    const explosions = grenade.update(0.1, world, [near, behind], 'player');
+    expect(explosions).toHaveLength(1);
+    expect(explosions[0]?.position.z).toBeGreaterThan(-0.2);
+    expect(explosions[0]?.position.z).toBeCloseTo(preview.at(-1)!.z, 4);
+    expect(near.health).toBeLessThan(100);
+    expect(behind.health).toBe(100);
+    expect(grenade.projectiles).toHaveLength(0);
+  });
+
+  it('matches ballistic preview samples during unobstructed flight', () => {
+    const grenade = new GrenadeSystem();
+    const origin = { x: 0, y: 10, z: 0 };
+    const direction = { x: 1, y: 0, z: 0 };
+    const preview = grenade.trajectory(origin, direction, openWorld(), 22);
+    grenade.toggleEquipped();
+    grenade.throw(origin, direction);
+    grenade.update(0.5, openWorld(), [], 'player');
+    expect(grenade.projectiles[0]?.distanceTo(preview[5]!)).toBeLessThan(1e-8);
+  });
+
   it('shows a ballistic path, spends one grenade per throw, and damages opponents on detonation', () => {
     const grenade = new GrenadeSystem();
     const world = openWorld();

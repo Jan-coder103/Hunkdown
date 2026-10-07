@@ -388,9 +388,7 @@ export class BotSkirmishSimulation {
   }
 
   private groundHeightAt(x: number, z: number): number {
-    const cell = this.navigation.nearestCell({ x, z });
-    const tileHeight = cell ? this.navigation.worldPosition(cell)?.y ?? 0 : 0;
-    return Math.max(tileHeight, this.world.groundHeightAt(x, z));
+    return this.world.groundHeightAt(x, z);
   }
 }
 
@@ -447,8 +445,19 @@ function createMapWorld(map: GeneratedMap): MovementWorld {
   });
   return new MovementWorld({
     halfExtent: Math.max(map.source.width, map.source.height) * map.source.cellSize / 2,
+    halfWidth: map.source.width * map.source.cellSize / 2,
+    halfDepth: map.source.height * map.source.cellSize / 2,
     obstacles: Object.freeze(obstacles),
     ramps: Object.freeze(ramps),
+    groundSurfaces: Object.freeze(map.elevations.map((elevation) => {
+      const center = worldPosition(map.source, elevation.cell);
+      const half = map.source.cellSize / 2;
+      return Object.freeze({
+        minX: center.x - half, maxX: center.x + half,
+        minZ: center.z - half, maxZ: center.z + half,
+        height: elevation.height,
+      });
+    })),
   });
 }
 

@@ -22,6 +22,7 @@ export type EngineRuntimeOptions = Readonly<{
   now?: () => number;
   seed?: number;
   onStateChange?: (state: GameState) => void;
+  canResume?: () => boolean;
   onDiagnostics?: (snapshot: FrameDiagnosticsSnapshot) => void;
 }>;
 
@@ -91,6 +92,7 @@ export class EngineRuntime {
   }
 
   resume(): boolean {
+    if (this.options.canResume && !this.options.canResume()) return false;
     if (!this.stateMachine.resume()) return false;
     this.simulation.reset();
     this.input.clear();
@@ -131,7 +133,7 @@ export class EngineRuntime {
     this.lastFrameTimestamp = timestampMs;
 
     let changedState = false;
-    if (this.input.wasPressed('Escape')) {
+    if (this.input.consumePressed('Escape')) {
       changedState = this.state === 'running' ? this.pause() : this.state === 'paused' ? this.resume() : false;
     }
     if (changedState) {

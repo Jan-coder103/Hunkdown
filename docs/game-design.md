@@ -10,7 +10,7 @@ Main menu → select map/loadout → join → map loads and player spawns at the
 
 Each team begins with 200 tickets. Initial spawns are free; each respawn consumes one ticket, and a team reaching zero tickets ends the round immediately. Simultaneous ticket exhaustion is a draw. Player and bots become eligible to respawn after 20 seconds. A teammate may start a 4-second revive before respawn; it restores 50% health at the team starting point and costs no ticket. Completing a revive removes that death's corpse immediately. Otherwise a body remains for up to 30 seconds, including after its bot respawns. Player death controls and the live bird's-eye loadout screen are part of Phase 10.
 
-The Phase 10 player interaction starts a teammate revive by holding F within 2.5 m of a friendly corpse. Releasing F, moving out of range, changing targets, or dying cancels the revive. The local player shares the match's authoritative hit targets and lifecycle rules; after the 20-second respawn timer, the player returns automatically to the friendly spawn and spends one team ticket. The in-app browser did not support pointer lock during implementation review, so movement, death, and revive interaction still need a human playtest.
+The Phase 10 player interaction starts a teammate revive by holding F within 2.5 m of the corpse for their current death. The range includes vertical distance; older corpses left after respawn cannot anchor a new revive. Releasing F, moving out of range, changing targets, or dying cancels the revive. The local player shares the match's authoritative hit targets and lifecycle rules; after the 20-second respawn timer, the player returns automatically to the friendly spawn and spends one team ticket. The in-app browser did not support pointer lock during implementation review, so movement, death, and revive interaction still need a human playtest.
 
 The source calls this capture the flag but describes a single central capture point. One team must control it for 30 seconds. A contest pauses both teams' progress, and earned progress persists through contested or neutral time. Completing the capture ends the round.
 
@@ -21,6 +21,8 @@ The main menu has Loadout, Settings, Maps, and Skill tree tabs. The current load
 The user selected a simple placeholder economy. Until human review changes it, each completed round awards 100 base XP, +25 XP per kill, +1 XP per 10 damage, and +20 XP per revive; credits add 50 per round, +10 per kill, and +25 per revive. Field Notes costs 250 credits and adds 25% XP; Scrounger costs 400 credits and adds 25% credits. Bonuses round down to whole points. These skills only affect progression and are not final balance decisions.
 
 Match results show top-five damage, kills, healing, and deaths leaderboards, followed by a separate rewards screen. Healing counts health restored by revives and is credited to the reviver. A versioned local profile records settings, selected map, XP, credits, skills, and the latest 100 rewarded match IDs so a result cannot pay twice.
+
+Results open even when the player is dead. Escape keeps the ready room and completed-round screens paused. The live death view exists, but changing loadout from that screen remains unimplemented; Honk-47 is currently the only available primary.
 
 ## Controls
 

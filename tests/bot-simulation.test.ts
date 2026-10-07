@@ -2,8 +2,53 @@ import { describe, expect, it } from 'vitest';
 import { BotSkirmishSimulation, createMapBotRoster, createBotSkirmish, type BotSpawn } from '../src/game/bots/bot-simulation';
 import { generateMap } from '../src/game/world/map-generator';
 import { createEmptyMap, paintMapCell } from '../src/game/world/map-types';
+import { PerspectiveCamera } from 'three';
+import { KeyboardInput } from '../src/engine/keyboard-input';
+import { PlayerController } from '../src/game/player/player-controller';
+import { FakeEventTarget, FakeVisibilityTarget, makeKeyEvent } from './helpers/engine-fixtures';
 
 describe('map-backed bot skirmish', () => {
+  it('lets the player traverse a generated ramp, stand on its raised tile, and jump back onto it', () => {
+    const map = generateMap(paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 40, cellSize: 8 }), 2, 1, 'elevation'));
+    const simulation = new BotSkirmishSimulation(map, []);
+    expect(simulation.world.moveHorizontal(0, 11.6, 0, 1, 0, 1.75, 0.34).z).toBeCloseTo(11.66);
+    const keyboard = new FakeEventTarget();
+    const input = new KeyboardInput({ windowTarget: keyboard, documentTarget: new FakeVisibilityTarget() });
+    input.attach();
+    const player = new PlayerController(new PerspectiveCamera(), simulation.world, { spawn: { x: -8, y: 0, z: 0 } });
+    keyboard.dispatchEvent(makeKeyEvent('keydown', 'KeyD'));
+    for (let step = 0; step < 104; step += 1) { player.update(1 / 60, input, false); input.endFrame(); }
+    keyboard.dispatchEvent(makeKeyEvent('keyup', 'KeyD'));
+    expect(player.position.x).toBeCloseTo(0, 1);
+    for (let step = 0; step < 60; step += 1) player.update(1 / 60, input, false);
+    expect(player.position.y).toBeCloseTo(1.25);
+    keyboard.dispatchEvent(makeKeyEvent('keydown', 'Space'));
+    player.update(1 / 60, input, false);
+    input.endFrame();
+    expect(player.position.y).toBeGreaterThan(1.25);
+    for (let step = 0; step < 90; step += 1) player.update(1 / 60, input, false);
+    expect(player.position.y).toBeCloseTo(1.25);
+    expect(player.isGrounded).toBe(true);
+    input.dispose();
+  });
+
+  it('keeps bot elevation continuous throughout ascent and descent', () => {
+    const map = generateMap(paintMapCell(createEmptyMap({ width: 5, height: 3, seed: 40, cellSize: 8 }), 3, 1, 'elevation'));
+    const simulation = new BotSkirmishSimulation(map, [{ id: 'runner', team: 'friendly', cell: { x: 4, y: 1 } }]);
+    let previousY = 0;
+    let maximumY = 0;
+    for (let step = 0; step < 240; step += 1) {
+      simulation.step(1 / 60);
+      const runner = simulation.getCombatant('runner')!;
+      expect(Math.abs(runner.position.y - previousY)).toBeLessThan(0.05);
+      expect(runner.position.y).toBeCloseTo(simulation.world.groundHeightAt(runner.position.x, runner.position.z), 8);
+      previousY = runner.position.y;
+      maximumY = Math.max(maximumY, previousY);
+    }
+    expect(maximumY).toBe(1.25);
+    expect(previousY).toBe(0);
+  });
+
   it('creates repeatable opposing spawn rosters from cells connected to the center objective', () => {
     const map = generateMap(createEmptyMap({ width: 9, height: 7, seed: 35, cellSize: 8 }));
     const first = createMapBotRoster(map, { friendlyCount: 12, enemyCount: 12, seed: 928 });

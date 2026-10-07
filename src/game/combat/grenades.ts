@@ -72,7 +72,7 @@ export class GrenadeSystem {
       const distance = segment.length();
       const wall = distance > 0 ? world.raycast(previous, segment, distance) : null;
       if (wall) {
-        points.push(previous.clone().addScaledVector(segment.normalize(), wall.distance));
+        points.push(previous.clone().addScaledVector(segment.normalize(), Math.max(0, wall.distance - 0.002)));
         break;
       }
       const groundY = world.groundHeightAt(point.x, point.z);
@@ -94,7 +94,8 @@ export class GrenadeSystem {
     if (!this.equipped || this.remaining === 0) return false;
     const position = new Vector3(origin.x, origin.y, origin.z);
     const velocity = initialVelocity(direction);
-    position.addScaledVector(velocity.clone().normalize(), 0.42);
+    // Start at the same checked origin as the preview. A muzzle offset can
+    // place a grenade beyond thin cover before its first collision sweep.
     this.active.push({ position, velocity, age: 0 });
     this.projectiles.push(position);
     this.remaining -= 1;
@@ -126,8 +127,9 @@ export class GrenadeSystem {
       if (!projectile) continue;
       const oldPosition = projectile.position.clone();
       projectile.age += deltaSeconds;
-      projectile.velocity.y -= GRENADE_RULES.gravity * deltaSeconds;
       projectile.position.addScaledVector(projectile.velocity, deltaSeconds);
+      projectile.position.y -= 0.5 * GRENADE_RULES.gravity * deltaSeconds * deltaSeconds;
+      projectile.velocity.y -= GRENADE_RULES.gravity * deltaSeconds;
 
       const movement = projectile.position.clone().sub(oldPosition);
       const movementDistance = movement.length();
@@ -137,7 +139,9 @@ export class GrenadeSystem {
       if (!detonated) continue;
 
       if (wall && movementDistance > 0) {
-        projectile.position.copy(oldPosition).addScaledVector(movement.normalize(), wall.distance);
+        // Keep the blast just outside the struck surface so that the surface
+        // blocks its far side, without occluding every ray at distance zero.
+        projectile.position.copy(oldPosition).addScaledVector(movement.normalize(), Math.max(0, wall.distance - 0.002));
       } else if (hitGround) {
         projectile.position.y = world.groundHeightAt(projectile.position.x, projectile.position.z);
       }

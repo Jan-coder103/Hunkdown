@@ -2,7 +2,9 @@
 
 Massive battles. Total bird-brained chaos. A bright low-poly tactical chicken FPS built with TypeScript and Three.js, aiming for 100+ bots and ridiculous physics.
 
-The main page is a combat practice range with the Phase 3 movement test map, a code-generated Honk-47, hitscan targets, reloads, and throwable grenades. The separate Phase 5 asset viewer is available at `/asset-viewer.html`; it previews the generated placeholder set, bounds, collision metadata, and both visual LODs. This is a feature playground, not yet a complete match. Read `agent.md` first when working with a coding agent; the original concept is in `idea_notes.md`.
+The main page opens the ready room. Choose Midtown or Garden District and join a match with 50 friendly and 50 enemy bots. The implemented loop includes the countdown, central capture point, tickets, player death/respawn, teammate revives, leaderboards, and local XP/credit rewards. Combat includes the code-generated Honk-47, reloads, grenades, recoil, and destructible street props and house panels.
+
+The asset viewer at `/asset-viewer.html` previews the generated content, bounds, collision metadata, and close/far detail tiers. The grid map editor at `/map-editor.html` supports seeded city previews and JSON save/load. Read `agent.md` first when working with a coding agent; the original concept is in `idea_notes.md`.
 
 ## Local development
 
@@ -23,4 +25,6 @@ npm run check
 npm run preview
 ```
 
-The development page opens directly into the combat practice range. Mouse look and firing require pointer lock; keyboard movement, R reload, and G grenade equip are shown in the HUD. The viewer is a separate page until the Escape menu is added in Phase 10. The map editor, bots, and playable match are still planned. See `plan.md` for acceptance criteria and `tracker.md` for current evidence and open decisions.
+Click the scene to capture the mouse. Use WASD to move, Space to jump, Shift to sprint, C to crouch/slide, Q/E to lean, right mouse to aim, left mouse to fire, R to reload, and G to equip grenades. Hold F within 2.5 m of a current friendly corpse for four seconds to revive. Escape pauses the match; its menu includes settings and an asset-viewer link. The practice range and bot spectator preview remain development tools accessible after leaving a match.
+
+This build still needs human review of controls, visuals, balance, and comedy. Enterable-house production visuals/LODs, cheaper off-screen simulation, and death-screen loadout editing remain unfinished. Audio infrastructure exists, but the build is silent until user-provided clips are mapped in `public/audio/manifest.json`. The giant bird ability is planned. See `plan.md` for acceptance criteria and `tracker.md` for verification evidence and outstanding work.

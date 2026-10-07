@@ -51,6 +51,10 @@ export class KeyboardInput {
     return this.pressedKeys.has(code);
   }
 
+  consumePressed(code: string): boolean {
+    return this.pressedKeys.delete(code);
+  }
+
   endFrame(): void {
     this.pressedKeys.clear();
   }

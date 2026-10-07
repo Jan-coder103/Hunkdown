@@ -13,7 +13,7 @@ Updated: 2026-10-07.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
-- Phase 10: UI/UX and progression shell is technically implemented and verified; human gameplay and reward review remain.
+- Phase 10: match/menu/results/progression shell is implemented; death-screen loadout editing and human gameplay/reward review remain.
 - Phase 11: registered asset candidate pass is implemented; enterable-house production visuals and human visual review remain.
 - Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
 - Phase 13: 100-bot render optimization and the prior foreground profile are verified; cheaper off-screen simulation and enterable-house LOD/culling remain.
@@ -21,6 +21,28 @@ Updated: 2026-10-07.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## All implemented phases review — 2026-10-07
+
+Reviewed the implemented portions of phases 1–15 against the source brief, plan, specifications, tracker, and earlier review handoffs. Inspected the engine/input/movement, weapon/lifecycle/grenade logic, typed assets and tools, map/navigation/AI, match and UI/progression integration, destruction/LOD/resource ownership, and audio infrastructure. The baseline passed all 154 tests; this review adds 13 behavior cases.
+
+Corrections:
+- Phases 9/10: finish the round and show leaderboards/rewards immediately even if the player is dead. Hide the death overlay and keep results paused; Escape cannot resume completed-round screens or bypass the ready room. Consume refused Escape presses so they cannot trigger a delayed resume.
+- Phases 3/6/9: share raised tile ground surfaces between player and bot movement. Players now stay on elevated tiles and can jump/land on them; bots traverse ramps continuously in both directions. Unsupported ledges block entry rather than snapping actors upward. Rectangular map bounds now use the actual width and depth.
+- Phases 4/6/9: raised tiles and ramp wedges occlude shots, visibility, and grenade sweeps. Empty air above the slope remains clear.
+- Phase 4: remove the unchecked grenade spawn offset that could throw through nearby thin cover. The visible arc and projectile share an origin and ballistic integration; wall blasts remain slightly outside the surface so near-side targets take damage while far-side cover still blocks it.
+- Phases 9/10: select revive anchors from current match-owned deaths. Older corpses cannot mask a nearby revivable teammate or revive a later death from an old location. Range includes vertical distance.
+- Phases 1/2/10: separate the application mount from its browser bootstrap for integration testing, detach retained menu/map/skill listeners on disposal, and update the outdated README to describe the implemented match and tools.
+
+Verification:
+- `npm run check`: 167 tests across 28 files passed; strict type checking and production build passed. New application-flow tests use the real engine, 100-bot match, combat, and profile code with DOM/renderer ports to verify alive/dead match completion, rewards applied once, blocked Escape, and the next-round loop. Terrain, grenade, and revive regressions cover the corrections above.
+- Browser smoke in Codex's in-app browser at `http://127.0.0.1:5188/`, 663 × 658: ready room remained open on Escape, Garden District launched with 100 bots, the countdown/city/player rig rendered, and Escape opened pause. Captured warnings/errors were empty. A running-view sample showed 60 FPS with 2.4 ms frame work and 0.2 ms simulation work; an earlier startup/background sample was 4 FPS, so this is functional evidence, not a new sustained performance profile.
+- The corrected death-to-results path and physical terrain/grenade/revive behavior were verified by automated tests, not a hands-on browser playtest. No human approval is claimed; the prior Phase 13 profile has not been rerun.
+
+Remaining acceptance work:
+- Phase 10 has a live death view but no loadout editing controls while dead; the ready-room loadout lists only Honk-47. This is now tracked explicitly instead of treating all Phase 10 requirements as finished.
+- Phase 11 enterable-house production visuals and Phase 13 enterable-house LOD/culling and cheaper off-screen simulation remain open as recorded in the prior review. Phase 14 needs user-supplied clips; the current manifest is empty. All human visual, gameplay, balance, and comedy reviews remain open.
+- No new expansion phase was started in this review.
 
 ## Phases 9–14 review — 2026-10-07
 
@@ -116,7 +138,7 @@ Phase 4 tuning assumptions: Honk-47 starts with a 30-round magazine and 120 rese
 - [x] Run `npm run check`: 62 tests across 14 files passed; strict typecheck and production build passed. Vite builds the main app and viewer as separate HTML entry points with a shared Three.js chunk; no bundle-size warning.
 - [x] Browser check in Codex in-app browser at `http://127.0.0.1:5176/asset-viewer.html`: all four assets report loaded; far LOD and bounds toggle work; drag changes the orbit; wheel changes zoom; no browser warnings or errors captured.
 - [ ] Human review of placeholder appearance and viewer workflow.
-- [ ] Link the viewer from the Escape menu when Phase 10 creates that menu.
+- [x] Link the viewer from the Escape menu; implemented in Phase 10.
 
 Phase 5 assumption: collision metadata uses axis-aligned boxes, and visual bounds are authored per asset. Close/far tiers alter only rendering; both keep the same collision records. The viewer entry is directly addressable until the planned Escape menu exists.
 
@@ -203,6 +225,7 @@ The Phase 9 preview remains a spectator bot match; Phase 10 adds a separate play
 - [x] Run `npm run check`: 120 tests across 26 files passed; strict typecheck and production build passed. The existing 514.84 kB shared asset/Three.js chunk warning remains.
 - [x] Browser check in Codex's in-app browser at `http://127.0.0.1:5186/`: the menu and all tab content rendered; selected Garden District persisted across reload and launched the matching city; Escape opened pause; Settings opened from pause and Resume returned to the live match. Console error/warning log was empty; sample match view showed about 60 FPS.
 - [x] Manually observe a completed round, both results screens, and the visible payout; completed in the 2026-10-07 Phase 15 browser smoke run recorded below.
+- [ ] Add loadout editing from the live death screen. Only the ready-room listing of the sole implemented primary exists today.
 - [ ] Human playtest movement, combat, revive range/hold behavior, player death view, and respawn feel. The in-app browser did not acquire pointer lock, so movement, death, and revive were not driven manually in this pass.
 - [ ] Human review the provisional XP/credit rates and skill costs/effects, menu presentation, and complete result-to-next-round loop.
 

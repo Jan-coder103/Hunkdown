@@ -2,6 +2,50 @@ import { describe, expect, it } from 'vitest';
 import { MovementWorld } from '../src/game/player/movement-world';
 
 describe('MovementWorld', () => {
+  it('supports raised flat tiles continuously beyond adjoining ramp ends', () => {
+    const world = new MovementWorld({
+      halfExtent: 20, obstacles: [],
+      groundSurfaces: [{ minX: 0, maxX: 8, minZ: -4, maxZ: 4, height: 1.25 }],
+      ramps: [{ minX: -2.8, maxX: 0, minZ: -2.8, maxZ: 2.8, lowY: 0, rise: 1.25, risesAlong: 'x', risesTowardPositive: true }],
+    });
+    expect(world.groundHeightAt(-1.4, 0)).toBeCloseTo(0.625);
+    expect(world.groundHeightAt(0, 0)).toBe(1.25);
+    expect(world.groundHeightAt(4, 0)).toBe(1.25);
+    expect(world.groundHeightAt(8.1, 0)).toBe(0);
+    expect(world.groundHeightAt(4, 4.1)).toBe(0);
+    expect(world.moveHorizontal(-0.05, 3.5, 0.1, 0, 0, 1.75, 0.34)).toMatchObject({ x: -0.05, wallNormalX: -1 });
+    expect(world.moveHorizontal(-0.05, 3.5, 0.1, 0, 1.3, 1.75, 0.34).x).toBeCloseTo(0.05);
+  });
+
+  it('keeps actors inside each axis of a rectangular map', () => {
+    const world = new MovementWorld({ halfExtent: 20, halfWidth: 20, halfDepth: 8, obstacles: [] });
+    const move = world.moveHorizontal(19.6, 7.6, 1, 1, 0, 1.75, 0.34);
+    expect(move).toMatchObject({ wallNormalX: -1, wallNormalZ: -1 });
+    expect(move.x).toBeCloseTo(19.66);
+    expect(move.z).toBeCloseTo(7.66);
+  });
+
+  it('blocks rays with raised tiles and sloping terrain without blocking empty air above them', () => {
+    const world = new MovementWorld({
+      halfExtent: 20, obstacles: [],
+      groundSurfaces: [{ minX: 0, maxX: 8, minZ: -4, maxZ: 4, height: 1.25 }],
+      ramps: [{ minX: -4, maxX: 0, minZ: -2, maxZ: 2, lowY: 0, rise: 1.25, risesAlong: 'x', risesTowardPositive: true }],
+    });
+    expect(world.raycast({ x: 4, y: 3, z: 0 }, { x: 0, y: -1, z: 0 }, 10)).toEqual({ distance: 1.75, destructible: false });
+    expect(world.raycast({ x: -2, y: 3, z: 0 }, { x: 0, y: -1, z: 0 }, 10)?.distance).toBeCloseTo(2.375);
+    expect(world.raycast({ x: -8, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }, 10)?.distance).toBeCloseTo(7.2);
+    expect(world.raycast({ x: -8, y: 1.5, z: 0 }, { x: 1, y: 0, z: 0 }, 16)).toBeNull();
+    expect(world.raycast({ x: -2, y: 3, z: 3 }, { x: 0, y: -1, z: 0 }, 10)).toBeNull();
+    expect(world.raycast({ x: -2, y: 3, z: 0 }, { x: 0, y: -1, z: 0 }, 2)).toBeNull();
+  });
+
+  it.each(['x', 'z'] as const)('intersects descending %s ramps at their actual sloping top', (axis) => {
+    const world = new MovementWorld({ halfExtent: 20, obstacles: [], ramps: [{
+      minX: 0, maxX: 4, minZ: 0, maxZ: 4, lowY: 0, rise: 2, risesAlong: axis, risesTowardPositive: false,
+    }] });
+    expect(world.raycast({ x: axis === 'x' ? 1 : 2, y: 4, z: axis === 'z' ? 1 : 2 }, { x: 0, y: -1, z: 0 }, 10)?.distance).toBeCloseTo(2.5);
+  });
+
   it('resolves a circular player footprint against obstacles and reports wall normals', () => {
     const world = new MovementWorld({
       halfExtent: 10,

@@ -166,6 +166,40 @@ describe('bot skirmish match start', () => {
     }
   });
 
+  it('targets only current deaths, ignoring older corpses and teammates on another floor', () => {
+    const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 71, cellSize: 4 }));
+    const match = new BotSkirmishMatch(map, { friendlyCount: 2, enemyCount: 0 }, {
+      humanPlayer: { id: 'player', team: 'friendly', spawn: { x: -8, y: 0, z: 0 } },
+    }, 0.01, { captureDurationSeconds: 1000, respawnDelaySeconds: 0.2 });
+    match.step(1 / 60);
+    const player = match.simulation.playerCombatant!;
+    const first = match.simulation.getCombatant('friendly-001')!;
+    const second = match.simulation.getCombatant('friendly-002')!;
+    first.position.copy(player.position);
+    first.applyDamage(100);
+    match.step(1 / 60);
+    expect(match.findReviveTarget('player')?.botId).toBe(first.id);
+    const oldCorpseId = match.findReviveTarget('player')!.id;
+    match.step(0.2);
+    expect(match.corpseSnapshots.some((corpse) => corpse.id === oldCorpseId)).toBe(true);
+    expect(match.findReviveTarget('player')).toBeNull();
+
+    // The first bird dies again away from its still-visible old corpse.
+    first.position.set(-3, 0, 0);
+    first.applyDamage(100);
+    second.position.copy(player.position).add({ x: 1, y: 0, z: 0 });
+    second.applyDamage(100);
+    match.step(1 / 60);
+    expect(match.findReviveTarget('player')?.botId).toBe(second.id);
+    player.position.y = 5;
+    expect(match.findReviveTarget('player')).toBeNull();
+    player.position.set(-3, 0, 0);
+    expect(match.findReviveTarget('player')?.id).not.toBe(oldCorpseId);
+    expect(match.findReviveTarget('player')?.botId).toBe(first.id);
+    player.applyDamage(100);
+    expect(match.findReviveTarget('player')).toBeNull();
+  });
+
   it('lets the living player revive a teammate and owns the player death, respawn, and ticket lifecycle', () => {
     const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 71, cellSize: 4 }));
     const match = new BotSkirmishMatch(

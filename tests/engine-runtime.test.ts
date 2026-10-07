@@ -4,6 +4,31 @@ import { createSeededRandom } from '../src/engine/seeded-random';
 import { FakeEngineView, FakeEventTarget, FakeVisibilityTarget, ManualFrameScheduler, makeKeyEvent } from './helpers/engine-fixtures';
 
 describe('EngineRuntime', () => {
+  it('keeps blocking overlays paused and consumes a refused Escape without a deferred resume', () => {
+    const windowTarget = new FakeEventTarget();
+    const scheduler = new ManualFrameScheduler();
+    let allowResume = false;
+    const runtime = new EngineRuntime({
+      createView: () => new FakeEngineView(), frameScheduler: scheduler,
+      inputTargets: { windowTarget, documentTarget: new FakeVisibilityTarget() },
+      canResume: () => allowResume,
+    });
+    runtime.start();
+    runtime.pause();
+    windowTarget.dispatchEvent(makeKeyEvent('keydown', 'Escape'));
+    scheduler.runFrame(0);
+    expect(runtime.state).toBe('paused');
+    expect(runtime.resume()).toBe(false);
+    allowResume = true;
+    scheduler.runFrame(20);
+    expect(runtime.state).toBe('paused');
+    windowTarget.dispatchEvent(makeKeyEvent('keyup', 'Escape'));
+    windowTarget.dispatchEvent(makeKeyEvent('keydown', 'Escape'));
+    scheduler.runFrame(40);
+    expect(runtime.state).toBe('running');
+    runtime.dispose();
+  });
+
   it('pauses simulation, keeps rendering, and resumes without catching up paused time', () => {
     const windowTarget = new FakeEventTarget();
     const documentTarget = new FakeVisibilityTarget();

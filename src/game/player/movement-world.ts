@@ -20,6 +20,14 @@ export type RampSurface = Readonly<{
   risesTowardPositive: boolean;
 }>;
 
+export type GroundSurface = Readonly<{
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  height: number;
+}>;
+
 export type HorizontalMoveResult = Readonly<{
   x: number;
   z: number;
@@ -44,18 +52,28 @@ type MutableObstacle = {
 
 export type MovementWorldOptions = Readonly<{
   halfExtent: number;
+  halfWidth?: number;
+  halfDepth?: number;
   obstacles: readonly RectangleObstacle[];
   ramps?: readonly RampSurface[];
+  groundSurfaces?: readonly GroundSurface[];
 }>;
 
 /** Kinematic horizontal collision and walkable ramp surfaces for the movement playground. */
 export class MovementWorld {
+  private readonly halfWidth: number;
+  private readonly halfDepth: number;
   private readonly ramps: readonly RampSurface[];
   private readonly obstacles: MutableObstacle[];
 
   constructor(private readonly options: MovementWorldOptions) {
     if (!Number.isFinite(options.halfExtent) || options.halfExtent <= 0) {
       throw new RangeError('halfExtent must be a finite positive number');
+    }
+    this.halfWidth = options.halfWidth ?? options.halfExtent;
+    this.halfDepth = options.halfDepth ?? options.halfExtent;
+    if (![this.halfWidth, this.halfDepth].every((extent) => Number.isFinite(extent) && extent > 0)) {
+      throw new RangeError('World width and depth must be finite and positive');
     }
     this.ramps = options.ramps ?? [];
     this.obstacles = options.obstacles.map((definition) => ({
@@ -109,6 +127,11 @@ export class MovementWorld {
 
   groundHeightAt(x: number, z: number): number {
     let height = 0;
+    for (const surface of this.options.groundSurfaces ?? []) {
+      if (x >= surface.minX && x <= surface.maxX && z >= surface.minZ && z <= surface.maxZ) {
+        height = Math.max(height, surface.height);
+      }
+    }
     for (const ramp of this.ramps) {
       if (x < ramp.minX || x > ramp.maxX || z < ramp.minZ || z > ramp.maxZ) continue;
       const coordinate = ramp.risesAlong === 'x' ? x : z;
@@ -151,6 +174,25 @@ export class MovementWorld {
       }
     }
 
+    // Raised terrain blocks shots and projectiles as well as supporting feet.
+    for (const surface of this.options.groundSurfaces ?? []) {
+      const distance = rayBoxDistance(origin.x, origin.y, origin.z, dx, dy, dz,
+        surface.minX, 0, surface.minZ, surface.maxX, surface.height, surface.maxZ);
+      if (distance !== null && distance <= maxDistance && distance < nearest) {
+        nearest = distance;
+        nearestId = undefined;
+        nearestDestructible = false;
+      }
+    }
+    for (const ramp of this.ramps) {
+      const distance = rayRampDistance(origin, { x: dx, y: dy, z: dz }, ramp, maxDistance);
+      if (distance !== null && distance < nearest) {
+        nearest = distance;
+        nearestId = undefined;
+        nearestDestructible = false;
+      }
+    }
+
     return Number.isFinite(nearest)
       ? { distance: nearest, ...(nearestId ? { obstacleId: nearestId } : {}), destructible: nearestDestructible }
       : null;
@@ -171,7 +213,7 @@ export class MovementWorld {
     let wallNormalZ = 0;
 
     const requestedX = x + deltaX;
-    const boundedX = Math.min(this.options.halfExtent - radius, Math.max(-this.options.halfExtent + radius, requestedX));
+    const boundedX = Math.min(this.halfWidth - radius, Math.max(-this.halfWidth + radius, requestedX));
     if (boundedX !== requestedX) {
       wallNormalX = requestedX > boundedX ? -1 : 1;
       nextX = boundedX;
@@ -182,7 +224,7 @@ export class MovementWorld {
     }
 
     const requestedZ = z + deltaZ;
-    const boundedZ = Math.min(this.options.halfExtent - radius, Math.max(-this.options.halfExtent + radius, requestedZ));
+    const boundedZ = Math.min(this.halfDepth - radius, Math.max(-this.halfDepth + radius, requestedZ));
     if (boundedZ !== requestedZ) {
       wallNormalZ = requestedZ > boundedZ ? -1 : 1;
       nextZ = boundedZ;
@@ -196,6 +238,9 @@ export class MovementWorld {
   }
 
   private collides(x: number, z: number, feetY: number, bodyHeight: number, radius: number): boolean {
+    // Ramps remain walkable, but an unsupported ledge cannot snap the actor
+    // straight up onto a raised tile. Jumping above it still permits entry.
+    if (this.groundHeightAt(x, z) > feetY + 0.2 + 1e-9) return true;
     return this.obstacles.some(({ definition: obstacle }) => {
       const minY = obstacle.minY ?? 0;
       if (feetY >= obstacle.maxY || feetY + bodyHeight <= minY) return false;
@@ -206,6 +251,40 @@ export class MovementWorld {
       return offsetX * offsetX + offsetZ * offsetZ < radius * radius;
     });
   }
+}
+
+/** Intersects the ramp's solid wedge using its rectangular footprint and sloping top. */
+function rayRampDistance(
+  origin: Readonly<{ x: number; y: number; z: number }>,
+  direction: Readonly<{ x: number; y: number; z: number }>,
+  ramp: RampSurface,
+  maxDistance: number,
+): number | null {
+  const min = ramp.risesAlong === 'x' ? ramp.minX : ramp.minZ;
+  const max = ramp.risesAlong === 'x' ? ramp.maxX : ramp.maxZ;
+  const gradient = ramp.rise / (max - min) * (ramp.risesTowardPositive ? 1 : -1);
+  const intercept = ramp.lowY + (ramp.risesTowardPositive ? 0 : ramp.rise) - gradient * min;
+  // Each plane describes ax + by + cz <= d.
+  const planes: readonly (readonly [number, number, number, number])[] = [
+    [-1, 0, 0, -ramp.minX], [1, 0, 0, ramp.maxX],
+    [0, 0, -1, -ramp.minZ], [0, 0, 1, ramp.maxZ], [0, -1, 0, 0],
+    [ramp.risesAlong === 'x' ? -gradient : 0, 1, ramp.risesAlong === 'z' ? -gradient : 0, intercept],
+  ];
+  let near = 0;
+  let far = maxDistance;
+  for (const [a, b, c, d] of planes) {
+    const available = d - a * origin.x - b * origin.y - c * origin.z;
+    const rate = a * direction.x + b * direction.y + c * direction.z;
+    if (Math.abs(rate) < 1e-10) {
+      if (available < 0) return null;
+      continue;
+    }
+    const distance = available / rate;
+    if (rate < 0) near = Math.max(near, distance);
+    else far = Math.min(far, distance);
+    if (near > far) return null;
+  }
+  return near;
 }
 
 function rayBoxDistance(
