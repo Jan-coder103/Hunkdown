@@ -6,7 +6,7 @@ import { WeaponController } from '../combat/weapon-controller';
 import { MovementWorld, type RampSurface, type RectangleObstacle } from '../player/movement-world';
 import type { GridPoint } from '../world/map-types';
 import { worldPosition, type GeneratedMap } from '../world/map-generator';
-import { BotBrain, type BotIntent } from './bot-brain';
+import { BOT_RULES, BotBrain, type BotIntent } from './bot-brain';
 import { BotNavigation } from './navigation';
 
 export type BotSide = Extract<CombatTeam, 'friendly' | 'enemy'>;
@@ -57,6 +57,14 @@ export type BotSnapshot = Readonly<{
   reserve: number;
 }>;
 
+export type BotSimulationPerformance = Readonly<{
+  detailedBots: number;
+  cheapBots: number;
+  brainDecisionsThisStep: number;
+}>;
+
+type SimulationDetail = 'detailed' | 'cheap';
+
 type BotActor = {
   readonly combatant: Combatant;
   readonly spawn: BotSpawn;
@@ -64,6 +72,7 @@ type BotActor = {
   readonly weapon: WeaponController;
   readonly random: RandomSource;
   intent: BotIntent;
+  simulationDetail: SimulationDetail;
   thinkRemaining: number;
   readonly thinkStaggerSeconds: number;
   hasThought: boolean;
@@ -77,6 +86,8 @@ type PendingShot = Readonly<{
 }>;
 
 const DEFAULT_THINK_INTERVAL = 0.2;
+const DETAILED_REENTRY_RADIUS = 26;
+const DETAILED_EXIT_RADIUS = 32;
 const DEFAULT_MOVEMENT_SPEED = 4.2;
 const BOT_IMPACT_DRAG = 4.2;
 
@@ -112,6 +123,7 @@ export class BotSkirmishSimulation {
   private readonly actors: readonly BotActor[];
   private readonly movementSpeed: number;
   private readonly thinkInterval: number;
+  private brainDecisionsThisStep = 0;
 
   constructor(readonly map: GeneratedMap, roster: readonly BotSpawn[], options: BotSimulationOptions = {}) {
     const seed = options.seed ?? map.source.seed;
@@ -151,6 +163,7 @@ export class BotSkirmishSimulation {
         weapon: new WeaponController(weapon),
         random: createSeededRandom(botSeed ^ 0xa511e9b3),
         intent: idleIntent(),
+        simulationDetail: 'detailed' as const,
         thinkRemaining: 0,
         thinkStaggerSeconds: roster.length > 1 ? index / roster.length * this.thinkInterval : 0,
         hasThought: false,
@@ -166,6 +179,18 @@ export class BotSkirmishSimulation {
   /** All simulation-owned hit targets, including the local player when this is a playable match. */
   get combatants(): readonly Combatant[] {
     return this.allCombatants;
+  }
+
+  /** Current authoritative simulation detail and AI work for the most recent fixed step. */
+  get performance(): BotSimulationPerformance {
+    let detailedBots = 0;
+    let cheapBots = 0;
+    for (const actor of this.actors) {
+      if (actor.combatant.status !== 'alive') continue;
+      if (actor.simulationDetail === 'detailed') detailedBots += 1;
+      else cheapBots += 1;
+    }
+    return Object.freeze({ detailedBots, cheapBots, brainDecisionsThisStep: this.brainDecisionsThisStep });
   }
 
   /** Visits mutable render data without allocating the frozen public snapshot array each simulation step. */
@@ -232,9 +257,11 @@ export class BotSkirmishSimulation {
 
   step(deltaSeconds: number): BotSimulationStep {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return Object.freeze({ shots: Object.freeze([]), killedIds: Object.freeze([]), destroyedObstacleIds: Object.freeze([]) });
+    this.brainDecisionsThisStep = 0;
     const combatants = this.combatants;
     const aliveBefore = new Set(combatants.filter((combatant) => combatant.status === 'alive').map((combatant) => combatant.id));
     const pendingShots: PendingShot[] = [];
+    const focus = this.playerCombatant?.position ?? this.navigation.worldPosition(this.objective);
 
     for (const actor of this.actors) {
       if (actor.combatant.status === 'alive') this.applyImpactMotion(actor.combatant, deltaSeconds);
@@ -242,14 +269,17 @@ export class BotSkirmishSimulation {
     for (const actor of this.actors) {
       const bot = actor.combatant;
       if (bot.status !== 'alive') continue;
+      this.updateSimulationDetail(actor, focus);
       actor.thinkRemaining -= deltaSeconds;
       if (actor.thinkRemaining <= 0) {
         actor.intent = actor.brain.decide(bot, combatants, this.objective, (observer, target) => this.canSee(observer, target));
+        this.brainDecisionsThisStep += 1;
+        const interval = this.thinkInterval * (actor.simulationDetail === 'cheap' ? 4 : 1);
         if (!actor.hasThought) {
-          actor.thinkRemaining += this.thinkInterval + actor.thinkStaggerSeconds;
+          actor.thinkRemaining += interval + actor.thinkStaggerSeconds;
           actor.hasThought = true;
         } else {
-          do actor.thinkRemaining += this.thinkInterval;
+          do actor.thinkRemaining += interval;
           while (actor.thinkRemaining <= 0);
         }
       }
@@ -316,6 +346,25 @@ export class BotSkirmishSimulation {
     if (distance === 0) return true;
     const hit = this.world.raycast(origin, direction, distance);
     return hit === null || hit.distance >= distance - target.radius;
+  }
+
+  private updateSimulationDetail(actor: BotActor, focus: Readonly<{ x: number; z: number }> | null): void {
+    const position = actor.combatant.position;
+    const focusDistance = focus ? Math.hypot(position.x - focus.x, position.z - focus.z) : Number.POSITIVE_INFINITY;
+    const threshold = actor.simulationDetail === 'detailed' ? DETAILED_EXIT_RADIUS : DETAILED_REENTRY_RADIUS;
+    const target = actor.intent.targetId ? this.getCombatant(actor.intent.targetId) : null;
+    const maintainingContact = !!target
+      && target.status === 'alive'
+      && target.team !== actor.combatant.team
+      && actor.combatant.position.distanceTo(target.position) <= BOT_RULES.sightRange;
+    const nextDetail = maintainingContact || focusDistance <= threshold ? 'detailed' : 'cheap';
+    if (nextDetail === actor.simulationDetail) return;
+    const wasCheap = actor.simulationDetail === 'cheap';
+    actor.simulationDetail = nextDetail;
+    if (wasCheap && nextDetail === 'detailed') {
+      // A returning bot should react within one normal AI interval without losing its current intent.
+      actor.thinkRemaining = Math.min(actor.thinkRemaining, this.thinkInterval);
+    }
   }
 
   private resetActorAfterLifecycle(actor: BotActor): void {

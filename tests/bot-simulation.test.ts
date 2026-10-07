@@ -100,6 +100,73 @@ describe('map-backed bot skirmish', () => {
     })).toBe(true);
   });
 
+  it('reduces distant bot decision work while keeping bots near the focus detailed', () => {
+    const map = generateMap(createEmptyMap({ width: 11, height: 9, seed: 218, cellSize: 8 }));
+    const near = new BotSkirmishSimulation(map, [
+      { id: 'near', team: 'friendly', cell: { x: 5, y: 4 } },
+    ], { seed: 218 });
+    const far = new BotSkirmishSimulation(map, [
+      { id: 'far', team: 'friendly', cell: { x: 0, y: 4 } },
+    ], { seed: 218 });
+    let nearDecisions = 0;
+    let farDecisions = 0;
+
+    for (let step = 0; step < 60; step += 1) {
+      near.step(1 / 60);
+      nearDecisions += near.performance.brainDecisionsThisStep;
+      far.step(1 / 60);
+      farDecisions += far.performance.brainDecisionsThisStep;
+    }
+
+    expect(near.performance).toMatchObject({ detailedBots: 1, cheapBots: 0 });
+    expect(far.performance).toMatchObject({ detailedBots: 0, cheapBots: 1 });
+    expect(nearDecisions).toBeGreaterThan(farDecisions);
+    expect(far.snapshots[0]?.position.x).toBeGreaterThan(-40);
+  });
+
+  it('preserves bot state through focus transitions and keeps nearby combat detailed', () => {
+    const map = generateMap(createEmptyMap({ width: 11, height: 9, seed: 219, cellSize: 8 }));
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'visitor', team: 'friendly', cell: { x: 5, y: 4 } },
+    ], {
+      seed: 219,
+      humanPlayer: { id: 'player', team: 'friendly', spawn: { x: -40, y: 0, z: 0 } },
+    });
+    const visitor = simulation.getCombatant('visitor');
+    if (!visitor) throw new Error('Expected the bot combatant');
+    visitor.applyDamage(15);
+
+    simulation.step(1 / 60);
+    expect(simulation.performance).toMatchObject({ detailedBots: 0, cheapBots: 1 });
+    simulation.playerCombatant?.position.set(visitor.position.x, visitor.position.y, visitor.position.z);
+    simulation.step(1 / 60);
+    expect(simulation.performance).toMatchObject({ detailedBots: 1, cheapBots: 0 });
+    expect(simulation.getCombatant('visitor')).toBe(visitor);
+    expect(visitor.health).toBe(85);
+    expect(simulation.snapshots[0]?.magazine).toBe(30);
+
+    simulation.playerCombatant?.position.set(-40, 0, 0);
+    simulation.step(1 / 60);
+    expect(simulation.performance).toMatchObject({ detailedBots: 0, cheapBots: 1 });
+    expect(simulation.getCombatant('visitor')).toBe(visitor);
+    expect(visitor.health).toBe(85);
+  });
+
+  it('keeps an off-focus bot pair detailed while they have a live nearby target', () => {
+    const map = generateMap(createEmptyMap({ width: 15, height: 9, seed: 220, cellSize: 8 }));
+    const simulation = new BotSkirmishSimulation(map, [
+      { id: 'friendly', team: 'friendly', cell: { x: 0, y: 4 } },
+      { id: 'enemy', team: 'enemy', cell: { x: 1, y: 4 } },
+    ], { seed: 220 });
+
+    simulation.step(1 / 60);
+    expect(simulation.performance.cheapBots).toBe(2);
+    expect(simulation.snapshots.every((bot) => bot.targetId !== null)).toBe(true);
+    simulation.step(1 / 60);
+
+    expect(simulation.performance).toMatchObject({ detailedBots: 2, cheapBots: 0 });
+  });
+
   it('gives an actively firing bot a bounded recoil push away from its target', () => {
     const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 33, cellSize: 4 }));
     const simulation = new BotSkirmishSimulation(map, [
