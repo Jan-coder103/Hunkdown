@@ -23,6 +23,7 @@ export type ChickenCharacterPose = Readonly<{
   crouched?: boolean;
   grounded?: boolean;
   aiming?: boolean;
+  leanRadians?: number;
   dead?: boolean;
   deathImpulse?: Readonly<{ x: number; y: number; z: number }>;
 }>;
@@ -161,7 +162,7 @@ export class ChickenCharacterView {
       rig.root.position.y = dead ? -0.08 + bounce : (moving ? Math.abs(stride) * 0.025 : 0) + (airborne ? 0.045 : 0);
       rig.root.rotation.x = dead ? (deathImpulse.z / impulseLength) * flop : 0;
       rig.root.rotation.y = dead ? Math.sin(this.deathElapsed * 19) * 0.16 * Math.exp(-3.8 * this.deathElapsed) : 0;
-      rig.root.rotation.z = dead ? (-deathImpulse.x / impulseLength) * flop : 0;
+      rig.root.rotation.z = dead ? (-deathImpulse.x / impulseLength) * flop : clamp(this.pose.leanRadians ?? 0, -0.28, 0.28);
       rig.body.rotation.x = dead ? -0.48 : aiming ? -0.12 : crouched ? 0.14 : 0;
       rig.body.rotation.z = dead ? 0.52 : moving ? stride * 0.045 : 0;
       rig.head.rotation.x = dead ? 0.36 : aiming ? -0.08 : 0;

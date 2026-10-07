@@ -610,8 +610,11 @@ export function mountApp(root: HTMLElement) {
             audioManager.play('footstep', { position: activePlayer.position });
           }
           playerActor.position.copy(activePlayer.position);
+          playerActor.leanOffset.copy(activePlayer.bodyLeanOffset);
+          playerActor.poseHeight = activePlayer.leanedBodyHeight;
           playerCharacter?.setPose({
             movementSpeed: activePlayer.horizontalSpeed,
+            leanRadians: activePlayer.leanRadians,
             sprinting: activePlayer.horizontalSpeed > 5.8,
             crouched: activePlayer.isCrouched,
             grounded: activePlayer.isGrounded,
@@ -696,6 +699,7 @@ export function mountApp(root: HTMLElement) {
         }
         playerCharacter?.setPose({
           movementSpeed: player.horizontalSpeed,
+          leanRadians: player.leanRadians,
           sprinting: player.horizontalSpeed > 5.8,
           crouched: player.isCrouched,
           grounded: player.isGrounded,

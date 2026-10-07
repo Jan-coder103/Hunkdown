@@ -4,6 +4,20 @@ import { ChickenCharacterView } from '../src/game/player/chicken-character-view'
 import { createCombatPracticeRange } from '../src/game/combat/combat-practice-range';
 
 describe('chicken character presentations', () => {
+  it('tilts the complete third-person rig in both LODs', () => {
+    const scene = new Scene();
+    const character = new ChickenCharacterView(scene, 'friendly', 'third-person');
+    character.setPose({ leanRadians: 0.28 }); character.update(1 / 60);
+    expect(character.thirdPersonRig!.root.rotation.z).toBeCloseTo(0.28);
+    character.setDetail('far');
+    expect(character.thirdPersonRig!.root.rotation.z).toBeCloseTo(0.28);
+    character.setPose({ leanRadians: -0.28 }); character.update(1 / 60);
+    expect(character.thirdPersonRig!.root.rotation.z).toBeCloseTo(-0.28);
+    character.setPose({ leanRadians: 0 }); character.update(1 / 60);
+    expect(character.thirdPersonRig!.root.rotation.z).toBe(0);
+    character.dispose();
+  });
+
   it('switches between close and far LODs while preserving the current pose', () => {
     const scene = new Scene();
     const view = new ChickenCharacterView(scene, 'enemy', 'third-person', 'far');

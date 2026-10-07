@@ -173,10 +173,11 @@ function noisyAimPoint(observer: Combatant, target: Combatant, random: RandomSou
   const distance = Math.max(1, observer.position.distanceTo(target.position));
   const horizontalError = distance * 0.018;
   const verticalError = distance * 0.009;
+  const point = target.aimPoint();
   return Object.freeze({
-    x: target.position.x + (random() * 2 - 1) * horizontalError,
-    y: target.position.y + target.height * 0.56 + (random() * 2 - 1) * verticalError,
-    z: target.position.z + (random() * 2 - 1) * horizontalError,
+    x: point.x + (random() * 2 - 1) * horizontalError,
+    y: point.y + (random() * 2 - 1) * verticalError,
+    z: point.z + (random() * 2 - 1) * horizontalError,
   });
 }
 

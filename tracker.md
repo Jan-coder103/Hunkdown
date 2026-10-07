@@ -22,6 +22,14 @@ Updated: 2026-10-07.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Physical corner-peeking lean — 2026-10-07
+
+Replaced camera-only roll with a feet-anchored body tilt up to 0.28 radians. Eyes move approximately 44 cm sideways standing or 28 cm crouched and drop slightly; the camera-mounted rifle and wings follow automatically while the red-dot alignment remains centered. Lean direction follows player yaw, Q/E together cancel, and release/respawn recenters. Five sampled body volumes sweep the lean angle to limit it against walls, terrain, and world bounds; render interpolation and mouse turns also recheck clearance.
+
+The player match combatant receives the leaned top displacement and stance height. Hitscan uses a height-dependent tilted hit volume, so the exposed upper body can take return fire. Bot perception/aim samples the leaned upper body, and grenade occlusion/damage samples its shifted center. Third-person chicken rigs support the same whole-rig tilt in both LODs; first-person wings inherit camera tilt.
+
+Verification: `npm run check` passed with 193 tests across 30 files, strict type checking, and production build. Behavior tests verify blocked neutral shots become corner-peeking hits, camera/gun translation with planted feet, return fire hitting the exposed body, adjacent-wall and turning/interpolation clearance, facing-relative direction, crouch, both keys, full-rig close/far tilt, and match hit-volume/respawn synchronization. Browser visual QA at `http://127.0.0.1:5190/` (1280 × 720 in-app browser) used a temporary preview with the real controller/weapon/world: a hidden target became visible through the centered optic after leaning, while eye X moved from 0.20 m to -0.24 m and feet X stayed at 0.20 m. Console warnings/errors were empty; preview removed after inspection. Physical held-key pointer-lock play and human feel review remain unverified. Shared bundle warning remains 561.71 kB; sustained 100-bot performance was not rerun.
+
 ## Reference rifle revision and red-dot aiming — 2026-10-07
 
 Rebuilt the Honk-47 from typed geometry toward the user's reference: dark steel/polymer palette, layered receiver and dust cover, exposed bolt/charging handle/selector/pins, rail teeth, handguard vents, front sight guards, extended stock, suppressor, trigger guard, textured grip, and a continuous curved magazine with pressed ribs. Close and far models share the main silhouette; fine fittings are close-only. Updated the asset bounds/collision envelope to contain the longer muzzle and magazine.

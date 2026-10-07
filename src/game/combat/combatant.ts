@@ -25,6 +25,16 @@ const IMPACT_DRAG = 4.2;
 export class Combatant {
   readonly position: Vector3;
   readonly velocity = new Vector3();
+  /** Horizontal displacement at the top of the feet-anchored leaning hit volume. */
+  readonly leanOffset = new Vector3();
+  poseHeight: number;
+
+  aimPoint(): Readonly<{ x: number; y: number; z: number }> {
+    const fraction = this.leanOffset.lengthSq() > 0.0001 ? 0.9 : 0.56;
+    return { x: this.position.x + this.leanOffset.x * fraction,
+      y: this.position.y + this.poseHeight * fraction,
+      z: this.position.z + this.leanOffset.z * fraction };
+  }
   health: number;
   status: CombatantStatus = 'alive';
   private deaths = 0;
@@ -46,6 +56,7 @@ export class Combatant {
     }
     if (![spawn.x, spawn.y, spawn.z].every(Number.isFinite)) throw new RangeError(`Combatant ${id} has invalid spawn`);
     this.position = new Vector3(spawn.x, spawn.y, spawn.z);
+    this.poseHeight = height;
     this.health = maxHealth;
   }
 
@@ -95,6 +106,8 @@ export class Combatant {
     this.health = Math.max(1, this.maxHealth * healthFraction);
     this.velocity.set(0, 0, 0);
     this.status = 'alive';
+    this.leanOffset.set(0, 0, 0);
+    this.poseHeight = this.height;
     return true;
   }
 
@@ -105,6 +118,8 @@ export class Combatant {
     this.health = this.maxHealth;
     this.velocity.set(0, 0, 0);
     this.status = 'alive';
+    this.leanOffset.set(0, 0, 0);
+    this.poseHeight = this.height;
     return true;
   }
 }

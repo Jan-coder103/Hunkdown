@@ -165,7 +165,7 @@ function detonate(position: Vector3, world: MovementWorld, combatants: readonly 
   const propDamage: { id: string; amount: number }[] = [];
   for (const target of combatants) {
     if (target.status !== 'alive' || !areOpponents(shooterTeam, target.team)) continue;
-    const center = target.position.clone().add(new Vector3(0, target.height * 0.5, 0));
+    const center = target.position.clone().addScaledVector(target.leanOffset, 0.5).add(new Vector3(0, target.poseHeight * 0.5, 0));
     const offset = center.clone().sub(position);
     const distance = offset.length();
     if (distance > GRENADE_RULES.blastRadius) continue;

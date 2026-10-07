@@ -144,6 +144,26 @@ describe('application match flow', () => {
     } finally { app.dispose(); }
   });
 
+  it('syncs the leaning body hit volume into the live match and resets it on respawn', () => {
+    const { app, frame, element, windowTarget } = createHarness();
+    try {
+      element('menu-join-button').click(); frame(); frame();
+      const actor = harness.battles[0]!.simulation.playerCombatant!;
+      const feet = actor.position.clone();
+      windowTarget.dispatchEvent(makeKeyEvent('keydown', 'KeyQ'));
+      for (let i = 0; i < 25; i += 1) frame();
+      expect(actor.leanOffset.length()).toBeGreaterThan(0.3);
+      expect(actor.poseHeight).toBeLessThan(actor.height + 0.05);
+      expect(actor.position.distanceTo(feet)).toBeLessThan(0.01);
+      expect(actor.aimPoint().x).toBeLessThan(actor.position.x);
+      actor.applyDamage(100);
+      windowTarget.dispatchEvent(makeKeyEvent('keyup', 'KeyQ'));
+      for (let i = 0; i < 20; i += 1) frame();
+      expect(actor.status).toBe('alive');
+      expect(actor.leanOffset.lengthSq()).toBe(0);
+    } finally { app.dispose(); }
+  });
+
   it('opens the shooting range from the ready room and returns to it from pause', () => {
     const { app, frame, element, windowTarget } = createHarness();
     try {

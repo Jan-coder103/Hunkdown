@@ -237,6 +237,13 @@ export class MovementWorld {
     return { x: nextX, z: nextZ, wallNormalX, wallNormalZ };
   }
 
+  /** Clearance for an offset body/head volume, including world edges and raised ground. */
+  isBodyClear(x: number, z: number, feetY: number, bodyHeight: number, radius: number): boolean {
+    return x >= -this.halfWidth + radius && x <= this.halfWidth - radius
+      && z >= -this.halfDepth + radius && z <= this.halfDepth - radius
+      && !this.collides(x, z, feetY, bodyHeight, radius);
+  }
+
   private collides(x: number, z: number, feetY: number, bodyHeight: number, radius: number): boolean {
     // Ramps remain walkable, but an unsupported ledge cannot snap the actor
     // straight up onto a raised tile. Jumping above it still permits entry.

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Vector3 } from 'three';
+import { Combatant } from '../src/game/combat/combatant';
+import { resolveHitscan } from '../src/game/combat/hitscan';
+import { createWeaponModel } from '../src/content/weapons/registry';
+import { WeaponView } from '../src/game/combat/weapon-view';
 import { KeyboardInput } from '../src/engine/keyboard-input';
 import { PlayerController, type PlayerControllerOptions } from '../src/game/player/player-controller';
 import { MovementWorld, type MovementWorldOptions } from '../src/game/player/movement-world';
@@ -153,6 +157,7 @@ describe('PlayerController', () => {
     keyUp(keyboard, 'KeyQ');
     tick(player, input);
     expect(player.isCrouched).toBe(false);
+    for (let frame = 0; frame < 60; frame += 1) tick(player, input);
     expect(camera.position.y).toBeCloseTo(1.58);
   });
 
@@ -161,11 +166,96 @@ describe('PlayerController', () => {
     keyDown(keyboard, key);
     for (let i = 0; i < 30; i += 1) tick(player, input);
     player.render(1);
-    expect(camera.rotation.z * sign).toBeGreaterThan(0.13);
+    expect(camera.rotation.z * sign).toBeGreaterThan(0.27);
     keyUp(keyboard, key);
     for (let i = 0; i < 60; i += 1) tick(player, input);
     player.render(1);
     expect(camera.rotation.z).toBeCloseTo(0, 4);
+    input.dispose();
+  });
+
+  it('peeks and shoots around a corner with planted feet and an exposed body hitbox', () => {
+    const { keyboard, input, camera, player, world } = createHarness({ halfExtent: 40,
+      obstacles: [{ minX: 0, maxX: 2, minZ: -2, maxZ: -1, maxY: 3 }] },
+      { spawn: { x: 0.2, y: 0, z: 0 } });
+    const target = new Combatant('enemy', 'enemy', { x: -0.23, y: 0, z: -4 }, 100, 0.1);
+    const rig = createWeaponModel('honk-47');
+    const weapon = new WeaponView(camera, rig, 1.8);
+    const shot = () => resolveHitscan({ world, combatants: [target], shooterTeam: 'friendly',
+      origin: camera.position, direction: camera.getWorldDirection(new Vector3()), range: 20, damage: 10 });
+    try {
+      expect(shot().blocked).toBe(true);
+      const feet = player.position.clone();
+      keyDown(keyboard, 'KeyQ');
+      for (let i = 0; i < 60; i += 1) tick(player, input);
+      player.render(1);
+      camera.updateMatrixWorld(true);
+      expect(player.position.equals(feet)).toBe(true);
+      expect(camera.position.x).toBeLessThan(-0.22);
+      expect(camera.position.y).toBeLessThan(1.58);
+      expect(shot().targetId).toBe('enemy');
+      const gunPosition = rig.root.getWorldPosition(new Vector3());
+      keyUp(keyboard, 'KeyQ');
+      for (let i = 0; i < 60; i += 1) tick(player, input);
+      player.render(1); camera.updateMatrixWorld(true);
+      expect(rig.root.getWorldPosition(new Vector3()).x).toBeGreaterThan(gunPosition.x + 0.3);
+      expect(camera.position.x).toBeCloseTo(feet.x, 2);
+
+      const defender = new Combatant('player', 'friendly', feet);
+      // Return fire can strike the tilted upper body outside cover.
+      keyDown(keyboard, 'KeyQ');
+      for (let i = 0; i < 60; i += 1) tick(player, input);
+      defender.leanOffset.copy(player.bodyLeanOffset);
+      defender.poseHeight = player.leanedBodyHeight;
+      const returnFire = () => resolveHitscan({ world, combatants: [defender], shooterTeam: 'enemy',
+        origin: { x: -0.23, y: 1.5, z: -4 }, direction: { x: 0, y: 0, z: 1 }, range: 20, damage: 10 });
+      expect(returnFire().targetId).toBe('player');
+      defender.leanOffset.set(0, 0, 0);
+      expect(returnFire().targetId).toBeNull();
+    } finally { weapon.dispose(); input.dispose(); }
+  });
+
+  it('limits leaning against adjacent walls, including interpolated views and turns', () => {
+    const { keyboard, input, camera, player } = createHarness({ halfExtent: 40,
+      obstacles: [{ minX: -2, maxX: -0.4, minZ: -2, maxZ: 2, maxY: 3 }] },
+      { spawn: { x: 0, y: 0, z: 0 } });
+    keyDown(keyboard, 'KeyQ');
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    expect(camera.position.x).toBeGreaterThan(-0.22);
+    expect(player.leanRadians).toBeLessThan(0.15);
+    for (const alpha of [0, 0.5, 1]) {
+      player.render(alpha);
+      expect(camera.position.x).toBeGreaterThan(-0.22);
+    }
+    keyUp(keyboard, 'KeyQ'); keyDown(keyboard, 'KeyE');
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    expect(camera.position.x).toBeGreaterThan(0.4);
+    player.handleMouseMove(-Math.PI / player.lookSensitivity, 0);
+    expect(camera.position.x).toBeGreaterThan(-0.22);
+    input.dispose();
+  });
+
+  it('leans relative to facing direction and handles crouch, simultaneous keys, and spawn reset', () => {
+    const { keyboard, input, camera, player } = createHarness(undefined, { spawn: { x: 0, y: 0, z: 0 } });
+    player.handleMouseMove(-Math.PI / 2 / player.lookSensitivity, 0);
+    keyDown(keyboard, 'KeyQ');
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    expect(camera.position.x).toBeCloseTo(0);
+    expect(camera.position.z).toBeGreaterThan(0.4);
+    keyDown(keyboard, 'KeyC');
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    expect(camera.position.z).toBeGreaterThan(0.27);
+    expect(camera.position.z).toBeLessThan(0.3);
+    expect(camera.position.y).toBeLessThan(1.02);
+    keyDown(keyboard, 'KeyE');
+    for (let i = 0; i < 60; i += 1) tick(player, input);
+    expect(camera.position.z).toBeCloseTo(0, 2);
+    player.setSpawn({ x: 3, y: 0, z: 2 });
+    player.render(0.5);
+    expect(player.leanRadians).toBe(0);
+    expect(player.bodyLeanOffset.lengthSq()).toBe(0);
+    expect(camera.position.x).toBe(3);
+    expect(camera.position.z).toBe(2);
     input.dispose();
   });
 

@@ -43,12 +43,14 @@ Results open even when the player is dead. Escape keeps the ready room and compl
 | R | Reload |
 | F | Interact/open doors/revive; enter vehicles in future |
 | G | Equip grenade and show predicted arc |
-| Q / E | Lean left/right |
+| Q / E | Hold to lean the body left/right and peek around cover |
 | Escape | Pause and show resume/settings/tools menu |
 | Second Space press | Boosted double jump if class allows |
 | Space against wall after jumping | Wall jump with speed boost if class allows |
 
 Crouch defaults to hold; the controller also supports a configurable toggle mode. The Phase 3 movement test class enables boosted double jump and wall jump so both can be evaluated. Final class assignments remain open for later class/progression design. Jump timing windows, grenade cancellation, and control rebinding should be defined during the relevant input/UI work.
+
+Leaning pivots the body around planted feet by up to 0.28 radians. Camera, rifle, and first-person wings move together: approximately 44 cm sideways while standing or 28 cm crouched, with a small natural eye-height drop. Collision clearance limits the lean beside walls, raised terrain, and world edges, including while turning and during render interpolation. The upper hit volume follows the tilt, so an exposed player can receive return fire; bots aim at the leaned upper body. Releasing Q/E recenters, holding both cancels the lean, and respawn resets it.
 
 ## Sound and audio settings
 

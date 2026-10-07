@@ -43,11 +43,15 @@ export function resolveHitscan(options: Readonly<{
 
   for (const target of options.combatants) {
     if (target.status !== 'alive' || !areOpponents(options.shooterTeam, target.team)) continue;
+    // Undo the body's shear along height; the ray parameter remains world distance.
+    const shearX = target.leanOffset.x / target.poseHeight;
+    const shearZ = target.leanOffset.z / target.poseHeight;
     const distance = rayBoxDistance(
-      options.origin.x, options.origin.y, options.origin.z,
-      direction.x, direction.y, direction.z,
+      options.origin.x - shearX * (options.origin.y - target.position.y), options.origin.y,
+      options.origin.z - shearZ * (options.origin.y - target.position.y),
+      direction.x - shearX * direction.y, direction.y, direction.z - shearZ * direction.y,
       target.position.x - target.radius, target.position.y, target.position.z - target.radius,
-      target.position.x + target.radius, target.position.y + target.height, target.position.z + target.radius,
+      target.position.x + target.radius, target.position.y + target.poseHeight, target.position.z + target.radius,
     );
     if (distance !== null && distance <= options.range && distance < nearestDistance) {
       nearestTarget = target;

@@ -42,6 +42,7 @@ const AIM_FOV = 48;
 const MAX_PITCH = Math.PI * 0.48;
 const IMPACT_DRAG = 4.2;
 const MAX_IMPULSE_SPEED = 12;
+const MAX_LEAN = 0.28;
 
 /** Kinematic first-person controller for the movement playground. */
 export class PlayerController {
@@ -104,6 +105,19 @@ export class PlayerController {
     this.lookSensitivity = value;
   }
 
+  get leanRadians(): number { return this.lean; }
+
+  /** Feet stay anchored; the upper hit volume follows the same body tilt as the eyes. */
+  get bodyLeanOffset(): Vector3 {
+    const height = this.isCrouched ? CROUCHED_HEIGHT : STANDING_HEIGHT;
+    return new Vector3(-Math.sin(this.lean) * height * Math.cos(this.yaw), 0,
+      Math.sin(this.lean) * height * Math.sin(this.yaw));
+  }
+
+  get leanedBodyHeight(): number {
+    return (this.isCrouched ? CROUCHED_HEIGHT : STANDING_HEIGHT) * Math.cos(this.lean);
+  }
+
   get horizontalSpeed(): number {
     return Math.hypot(this.velocity.x, this.velocity.z);
   }
@@ -148,7 +162,8 @@ export class PlayerController {
     const sensitivity = this.lookSensitivity * (aiming ? 0.8 : 1);
     this.yaw -= movementX * sensitivity;
     this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch - movementY * sensitivity));
-    this.syncCameraRotation();
+    this.lean = this.limitLean(this.lean, this.position, this.yaw, this.isCrouched ? CROUCHED_HEIGHT : STANDING_HEIGHT);
+    this.syncCamera();
   }
 
   /** Adds a short weapon kick without changing the player's underlying look direction. */
@@ -296,12 +311,17 @@ export class PlayerController {
         this.previousEyeHeight + (eyeHeight - this.previousEyeHeight) * alpha,
       this.previousPosition.z + (this.position.z - this.previousPosition.z) * alpha,
     );
+    const renderYaw = this.previousYaw + (this.yaw - this.previousYaw) * alpha;
+    const renderLean = this.limitLean(this.previousLean + (this.lean - this.previousLean) * alpha,
+      { x: this.camera.position.x, y: this.camera.position.y - (this.previousEyeHeight + (eyeHeight - this.previousEyeHeight) * alpha), z: this.camera.position.z },
+      renderYaw, this.isCrouched ? CROUCHED_HEIGHT : STANDING_HEIGHT);
+    this.offsetCamera(renderLean, renderYaw, this.previousEyeHeight + (eyeHeight - this.previousEyeHeight) * alpha);
     this.camera.rotation.set(
       Math.max(-MAX_PITCH, Math.min(MAX_PITCH,
         this.previousPitch + (this.pitch - this.previousPitch) * alpha + this.previousRecoilPitch + (this.recoilPitch - this.previousRecoilPitch) * alpha,
       )),
       this.previousYaw + (this.yaw - this.previousYaw) * alpha + this.previousRecoilYaw + (this.recoilYaw - this.previousRecoilYaw) * alpha,
-      this.previousLean + (this.lean - this.previousLean) * alpha,
+      renderLean,
       'YXZ',
     );
   }
@@ -354,8 +374,9 @@ export class PlayerController {
 
   private updateLean(deltaSeconds: number, input: KeyboardInput): void {
     const leanInput = Number(input.isDown('KeyQ')) - Number(input.isDown('KeyE'));
-    const targetLean = leanInput * 0.14;
-    this.lean += (targetLean - this.lean) * Math.min(1, deltaSeconds * 10);
+    const targetLean = leanInput * MAX_LEAN;
+    const desired = this.lean + (targetLean - this.lean) * (1 - Math.exp(-10 * deltaSeconds));
+    this.lean = this.limitLean(desired, this.position, this.yaw, this.isCrouched ? CROUCHED_HEIGHT : STANDING_HEIGHT);
   }
 
   private syncCamera(): void {
@@ -364,7 +385,41 @@ export class PlayerController {
       this.position.y + (this.isCrouched ? CROUCHED_EYE_HEIGHT : STANDING_EYE_HEIGHT),
       this.position.z,
     );
+    this.offsetCamera(this.lean, this.yaw, this.isCrouched ? CROUCHED_EYE_HEIGHT : STANDING_EYE_HEIGHT);
     this.syncCameraRotation();
+  }
+
+  private offsetCamera(lean: number, yaw: number, eyeHeight: number): void {
+    this.camera.position.x -= Math.sin(lean) * eyeHeight * Math.cos(yaw);
+    this.camera.position.z += Math.sin(lean) * eyeHeight * Math.sin(yaw);
+    this.camera.position.y += eyeHeight * (Math.cos(lean) - 1);
+  }
+
+  private limitLean(angle: number, feet: Readonly<{ x: number; y: number; z: number }>, yaw: number, height: number): number {
+    if (angle === 0) return 0;
+    const clear = (candidate: number): boolean => {
+      const vertical = height * Math.cos(candidate);
+      for (let band = 0; band < 5; band += 1) {
+        const fraction = (band + 0.5) / 5;
+        const side = -Math.sin(candidate) * height * fraction;
+        if (!this.world.isBodyClear(feet.x + side * Math.cos(yaw), feet.z - side * Math.sin(yaw),
+          feet.y + vertical * band / 5, vertical / 5, band < 2 ? PLAYER_RADIUS : 0.20)) return false;
+      }
+      return true;
+    };
+    // Sweep from neutral so a narrow wall cannot be skipped by a fast turn or movement.
+    let safe = 0;
+    for (let step = 1; step <= 8; step += 1) {
+      const next = angle * step / 8;
+      if (clear(next)) { safe = next; continue; }
+      let blocked = next;
+      for (let iteration = 0; iteration < 7; iteration += 1) {
+        const midpoint = (safe + blocked) / 2;
+        if (clear(midpoint)) safe = midpoint; else blocked = midpoint;
+      }
+      return safe;
+    }
+    return safe;
   }
 
   private syncCameraRotation(): void {

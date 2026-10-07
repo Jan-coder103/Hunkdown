@@ -340,7 +340,7 @@ export class BotSkirmishSimulation {
 
   private canSee(observer: Combatant, target: Combatant): boolean {
     const origin = { x: observer.position.x, y: observer.position.y + observer.height * 0.56, z: observer.position.z };
-    const destination = { x: target.position.x, y: target.position.y + target.height * 0.56, z: target.position.z };
+    const destination = target.aimPoint();
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y, z: destination.z - origin.z };
     const distance = Math.hypot(direction.x, direction.y, direction.z);
     if (distance === 0) return true;
