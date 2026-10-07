@@ -1,6 +1,7 @@
 import {
   BufferGeometry,
   BoxGeometry,
+  CylinderGeometry,
   DoubleSide,
   Float32BufferAttribute,
   GridHelper,
@@ -9,6 +10,7 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   Scene,
+  TorusGeometry,
   Vector3,
   type Material,
   type Object3D,
@@ -17,8 +19,16 @@ import { MovementWorld, type RectangleObstacle, type RampSurface } from './movem
 
 const OBSTACLES: readonly RectangleObstacle[] = [
   { minX: -5.2, maxX: -3.2, minZ: -6.2, maxZ: -4.2, maxY: 1.5 },
-  { minX: -1.7, maxX: -0.3, minZ: -7.3, maxZ: -6.1, maxY: 0.65 },
+  { minX: 1.2, maxX: 2.6, minZ: -7.3, maxZ: -6.1, maxY: 0.65 },
   { minX: -4.1, maxX: 4.1, minZ: -12.3, maxZ: -11.75, maxY: 2.8 },
+  ...[-8, 0, 8].map((lane) => ({
+    id: `range-backstop-${lane}`,
+    minX: lane - 1.8,
+    maxX: lane + 1.8,
+    minZ: -15.8,
+    maxZ: -15.3,
+    maxY: 3.8,
+  })),
 ];
 
 const RAMPS: readonly RampSurface[] = [
@@ -85,7 +95,7 @@ function disposeObjectResources(object: Object3D): void {
   });
 }
 
-/** Creates the test floor, grid, ramp, and matching collision definitions. */
+/** Creates the shooting lanes, reactive range backstops, movement obstacles, and traversal ramp. */
 export function createMovementPlayground(scene: Scene) {
   const ownedObjects: Object3D[] = [];
   const addOwned = <T extends Object3D>(object: T): T => {
@@ -111,6 +121,51 @@ export function createMovementPlayground(scene: Scene) {
     material.opacity = 0.42;
   }
   addOwned(grid);
+
+  // Three clear firing lanes run from the firing line to the far backstops.
+  // Their floor markings stay low enough not to interfere with hitscan shots.
+  const laneCenters = [-8, 0, 8] as const;
+  for (let laneIndex = 0; laneIndex < laneCenters.length; laneIndex += 1) {
+    const lane = laneCenters[laneIndex];
+    if (lane === undefined) continue;
+    for (const edge of [-1.65, 1.65]) {
+      const stripe = new Mesh(
+        new BoxGeometry(0.075, 0.018, 25),
+        new MeshStandardMaterial({ color: laneIndex === 1 ? '#f0d895' : '#9db9a5', roughness: 1 }),
+      );
+      stripe.name = `shooting lane ${laneIndex + 1} boundary`;
+      stripe.position.set(lane + edge, 0.012, -2.5);
+      addOwned(stripe);
+    }
+    const backstop = new Mesh(
+      new BoxGeometry(3.6, 3.8, 0.5),
+      new MeshStandardMaterial({ color: laneIndex === 1 ? '#c77b55' : '#748d78', roughness: 0.9 }),
+    );
+    backstop.name = `shooting lane ${laneIndex + 1} backstop`;
+    backstop.position.set(lane, 1.9, -15.55);
+    backstop.castShadow = true;
+    backstop.receiveShadow = true;
+    addOwned(backstop);
+
+    // Small ground bars mark the 10 m, 15 m, and 20 m target lines.
+    for (const [markIndex, z] of [-1, -6, -11].entries()) {
+      const marker = new Mesh(
+        new BoxGeometry(2.8, 0.025, 0.12),
+        new MeshStandardMaterial({ color: markIndex === 0 ? '#e8c879' : '#d8e0cb', roughness: 1 }),
+      );
+      marker.name = `shooting lane ${laneIndex + 1} distance mark ${10 + markIndex * 5} m`;
+      marker.position.set(lane, 0.02, z + 1.1);
+      addOwned(marker);
+    }
+  }
+
+  const firingLine = new Mesh(
+    new BoxGeometry(25, 0.03, 0.22),
+    new MeshStandardMaterial({ color: '#d8a85e', roughness: 1 }),
+  );
+  firingLine.name = 'shooting range firing line';
+  firingLine.position.set(0, 0.025, 9);
+  addOwned(firingLine);
 
   for (const obstacle of OBSTACLES) {
     const width = obstacle.maxX - obstacle.minX;
@@ -139,6 +194,29 @@ export function createMovementPlayground(scene: Scene) {
   ramp.castShadow = true;
   ramp.receiveShadow = true;
   addOwned(ramp);
+
+  // Low-poly bullseyes sit behind each chicken, so aim practice has a clear
+  // visual anchor without replacing the game's actual hitboxes.
+  for (const lane of laneCenters) {
+    for (const z of [-1, -6, -11]) {
+      const plate = new Mesh(
+        new CylinderGeometry(0.76, 0.76, 0.12, 12),
+        new MeshStandardMaterial({ color: '#f5e7be', roughness: 0.78 }),
+      );
+      plate.name = `shooting target plate ${lane},${z}`;
+      plate.rotation.x = Math.PI / 2;
+      plate.position.set(lane, 1.05, z - 0.72);
+      addOwned(plate);
+      const ring = new Mesh(
+        new TorusGeometry(0.43, 0.055, 5, 12),
+        new MeshStandardMaterial({ color: '#cf7652', roughness: 0.75 }),
+      );
+      ring.name = `shooting target bullseye ${lane},${z}`;
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(lane, 1.05, z - 0.64);
+      addOwned(ring);
+    }
+  }
 
   let disposed = false;
   return {

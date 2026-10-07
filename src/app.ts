@@ -36,17 +36,18 @@ const TOTAL_MATCH_BOTS = BOTS_PER_TEAM * 2;
 export function mountApp(root: HTMLElement) {
   root.innerHTML = `
     <main class="engine-shell">
-      <div id="scene-viewport" class="scene-viewport" role="img" aria-label="First-person combat practice range">
+      <div id="scene-viewport" class="scene-viewport" role="img" aria-label="First-person shooting and movement testing range">
         <span class="crosshair" aria-hidden="true"></span>
         <span id="hit-marker" class="hit-marker" aria-hidden="true"></span>
       </div>
       <div id="combat-flash" class="combat-flash" aria-hidden="true"></div>
-      <section class="engine-hud" aria-label="Combat practice controls and status">
+      <section class="engine-hud" aria-label="Shooting range controls and status">
         <p class="eyebrow">OPERATION HONKDOWN · MATCH PREVIEW</p>
-        <h1 id="mode-heading">Combat practice</h1>
+        <h1 id="mode-heading">Shooting range</h1>
         <div class="state-row"><span class="state-dot" aria-hidden="true"></span><output id="engine-state">Starting</output></div>
         <p id="pointer-state" class="hint" aria-live="polite">Click the scene to capture the mouse.</p>
         <button id="mode-toggle" class="mode-toggle" type="button">Watch ${TOTAL_MATCH_BOTS}-bot skirmish</button>
+        <button id="reset-range-button" class="mode-toggle range-reset" type="button">Reset range</button>
         <button id="join-match-button" class="mode-toggle" type="button">Join ${TOTAL_MATCH_BOTS}-bot match</button>
         <output id="skirmish-readout" class="skirmish-readout" aria-live="polite" hidden></output>
         <output id="revive-readout" class="revive-readout" aria-live="polite" hidden></output>
@@ -83,7 +84,7 @@ export function mountApp(root: HTMLElement) {
             <section data-menu-panel="loadout" aria-labelledby="loadout-title">
               <p class="menu-kicker">READY ROOM</p><h3 id="loadout-title">Loadout</h3>
               <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Reliable, loud, and currently the whole armory.</span></div><b>PRIMARY</b></div>
-              <p class="menu-footnote">More weapons and class abilities arrive in later phases. Your current field rig includes the movement test jumps.</p>
+              <p class="menu-footnote">Try every target distance, practice movement and cover, then reset the range whenever you want.</p>
             </section>
             <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
               <p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
@@ -113,7 +114,7 @@ export function mountApp(root: HTMLElement) {
             </section>
           </div>
           <p id="profile-notice" class="profile-notice" role="status"></p>
-          <div class="menu-footer"><span>${TOTAL_MATCH_BOTS}-bird battle · ${BOTS_PER_TEAM} on each side</span><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div>
+          <div class="menu-footer"><span>${TOTAL_MATCH_BOTS}-bird battle · ${BOTS_PER_TEAM} on each side</span><div class="menu-actions"><button id="menu-range-button" type="button" class="range-button">Shooting range</button><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div></div>
         </div>
       </section>
       <section id="pause-overlay" class="pause-overlay" aria-labelledby="pause-title" hidden>
@@ -158,6 +159,7 @@ export function mountApp(root: HTMLElement) {
   const stateOutput = root.querySelector<HTMLOutputElement>('#engine-state');
   const pointerOutput = root.querySelector<HTMLOutputElement>('#pointer-state');
   const modeToggle = root.querySelector<HTMLButtonElement>('#mode-toggle');
+  const resetRangeButton = root.querySelector<HTMLButtonElement>('#reset-range-button');
   const joinMatchButton = root.querySelector<HTMLButtonElement>('#join-match-button');
   const skirmishReadout = root.querySelector<HTMLOutputElement>('#skirmish-readout');
   const reviveReadout = root.querySelector<HTMLOutputElement>('#revive-readout');
@@ -175,6 +177,7 @@ export function mountApp(root: HTMLElement) {
   const returnMenuButton = root.querySelector<HTMLButtonElement>('#return-menu-button');
   const mainMenu = root.querySelector<HTMLElement>('#main-menu');
   const menuJoinButton = root.querySelector<HTMLButtonElement>('#menu-join-button');
+  const menuRangeButton = root.querySelector<HTMLButtonElement>('#menu-range-button');
   const profileNotice = root.querySelector<HTMLElement>('#profile-notice');
   const profileLevel = root.querySelector<HTMLElement>('#profile-level');
   const profileCredits = root.querySelector<HTMLElement>('#profile-credits');
@@ -195,9 +198,9 @@ export function mountApp(root: HTMLElement) {
   const deathOverlay = root.querySelector<HTMLElement>('#death-overlay');
   const deathReadout = root.querySelector<HTMLElement>('#death-readout');
   if (
-    !viewport || !hud || !stateOutput || !pointerOutput || !modeToggle || !joinMatchButton || !skirmishReadout || !reviveReadout || !modeHeading || !classOutput || !weaponOutput || !combatReadout ||
+    !viewport || !hud || !stateOutput || !pointerOutput || !modeToggle || !resetRangeButton || !joinMatchButton || !skirmishReadout || !reviveReadout || !modeHeading || !classOutput || !weaponOutput || !combatReadout ||
     !diagnosticsOutput || !positionOutput || !hitMarker || !combatFlash || !pauseOverlay || !resumeButton || !pauseSettingsButton || !returnMenuButton ||
-    !mainMenu || !menuJoinButton || !profileNotice || !profileLevel || !profileCredits || !sensitivitySetting || !sensitivityValue ||
+    !mainMenu || !menuJoinButton || !menuRangeButton || !profileNotice || !profileLevel || !profileCredits || !sensitivitySetting || !sensitivityValue ||
     !masterVolumeSetting || !masterVolumeValue || !effectsVolumeSetting || !effectsVolumeValue ||
     !resultsOverlay || !resultsOutcome || !leaderboardContent || !leaderboardsScreen || !continueResultsButton || !rewardScreen || !rewardSummary || !resultsMenuButton || !deathOverlay || !deathReadout
   ) {
@@ -206,6 +209,7 @@ export function mountApp(root: HTMLElement) {
   const menuEl = mainMenu!;
   const pauseEl = pauseOverlay!;
   const menuJoinEl = menuJoinButton!;
+  const menuRangeEl = menuRangeButton!;
   const noticeEl = profileNotice!;
   const levelEl = profileLevel!;
   const creditsEl = profileCredits!;
@@ -244,7 +248,7 @@ export function mountApp(root: HTMLElement) {
   let currentMatchId: string | null = null;
   let resultsShown = false;
 
-  classOutput.textContent = `${MOVEMENT_PLAYGROUND_CLASS.name} · double jump and wall jump enabled`;
+  classOutput.textContent = 'Three lanes · 10 m, 15 m, and 20 m targets · movement course';
   const weaponDefinition = getWeaponDefinition('honk-47');
   let player: PlayerController | null = null;
   let playerCharacter: ChickenCharacterView | null = null;
@@ -306,6 +310,7 @@ export function mountApp(root: HTMLElement) {
   function openMainMenu(tab: 'loadout' | 'settings' | 'maps' | 'skills', fromPause = false): void {
     menuOpenedFromPause = fromPause;
     menuEl.hidden = false;
+    menuRangeEl.hidden = fromPause;
     pauseEl.hidden = true;
     resultsEl.hidden = true;
     root.dataset.menuOpen = 'true';
@@ -412,6 +417,10 @@ export function mountApp(root: HTMLElement) {
       aiming: pointerControls?.isAiming ?? false,
     }, camera.position, aimDirection, random, allowPlayerActions);
     if (isPlayerMatchMode) skirmishView?.match.recordPlayerCombat('player', result.shots, result.explosions);
+    else {
+      practiceRange?.recordShots(result.weaponEvents.filter((event) => event.type === 'shot').length, result.shots);
+      practiceRange?.recordExplosions(result.explosions);
+    }
     const destroyedObstacleIds = [
       ...result.shots.flatMap((shot) => shot.destroyedObstacleId ? [shot.destroyedObstacleId] : []),
       ...result.explosions.flatMap((explosion) => explosion.destroyedObstacleIds),
@@ -793,7 +802,9 @@ export function mountApp(root: HTMLElement) {
       } else if (combat) {
         const ammo = combat.weapon.snapshot;
         weaponOutput.textContent = `${weaponDefinition.displayName} · ${ammo.magazine} / ${ammo.reserve}${ammo.reloading ? ' · RELOADING' : ''}`;
-        combatReadout.textContent = `Grenades ${combat.grenades.count}${combat.grenades.equipped ? ' · THROW READY' : ''} · targets ${practiceRange?.combatants.filter((target) => target.status === 'alive').length ?? 0}/${practiceRange?.combatants.length ?? 0}`;
+        const rangeStats = practiceRange?.stats;
+        const accuracy = rangeStats ? Math.round(rangeStats.accuracy * 100) : 0;
+        combatReadout.textContent = `Targets ${practiceRange?.combatants.filter((target) => target.status === 'alive').length ?? 0}/${practiceRange?.combatants.length ?? 0} · ${rangeStats?.hits ?? 0}/${rangeStats?.shots ?? 0} hits (${accuracy}%) · ${Math.round(rangeStats?.damage ?? 0)} damage · ${rangeStats?.targetKills ?? 0} knockdowns · grenades ${combat.grenades.count}${combat.grenades.equipped ? ' · THROW READY' : ''}`;
       }
       hitMarker.classList.toggle('active', feedback.showHitFlash);
       combatFlash.classList.toggle('active', feedback.showHitFlash);
@@ -823,7 +834,7 @@ export function mountApp(root: HTMLElement) {
       camera.up.set(0, 1, 0);
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
-      modeToggle.textContent = 'Return to combat practice';
+      modeToggle.textContent = 'Return to shooting range';
       modeHeading.textContent = 'Midtown skirmish';
       viewport.setAttribute('aria-label', 'Bird’s-eye view of a live bot skirmish');
       hud.setAttribute('aria-label', 'Live bot skirmish status');
@@ -845,14 +856,59 @@ export function mountApp(root: HTMLElement) {
       grenadeView?.setVisible(true);
       player?.render(1);
       modeToggle.textContent = `Watch ${TOTAL_MATCH_BOTS}-bot skirmish`;
-      modeHeading.textContent = 'Combat practice';
-      viewport.setAttribute('aria-label', 'First-person combat practice range');
-      hud.setAttribute('aria-label', 'Combat practice controls and status');
+      modeHeading.textContent = 'Shooting range';
+      viewport.setAttribute('aria-label', 'First-person shooting and movement testing range');
+      hud.setAttribute('aria-label', 'Shooting range status and controls');
       pointerOutput.textContent = 'Click the scene to capture the mouse.';
-      classOutput.textContent = `${MOVEMENT_PLAYGROUND_CLASS.name} · double jump and wall jump enabled`;
+      classOutput.textContent = 'Three lanes · 10 m, 15 m, and 20 m targets · movement course';
       skirmishReadout.hidden = true;
       root.dataset.viewMode = 'practice';
     }
+  };
+
+  const handleResetRange = () => {
+    if (isPlayerMatchMode || isSkirmishMode) return;
+    practiceRange?.reset();
+    combat?.resetForRespawn();
+    weaponView?.resetForRespawn();
+    player?.setSpawn({ x: 0, y: 0, z: 9 });
+    player?.render(1);
+  };
+
+  const handleEnterRange = () => {
+    const view = sceneView;
+    const activePlayground = playground;
+    const activeRange = practiceRange;
+    if (!view || !activePlayground || !activeRange || menuOpenedFromPause || isPlayerMatchMode || isSkirmishMode) return;
+    pointerControls?.releaseLock();
+    activeRange.reset();
+    combat = new CombatSession(activePlayground.world, activeRange.combatants, weaponDefinition);
+    player = new PlayerController(view.camera, activePlayground.world, {
+      spawn: { x: 0, y: 0, z: 9 },
+      crouchMode: MOVEMENT_PLAYGROUND_CLASS.crouchMode,
+      capabilities: MOVEMENT_PLAYGROUND_CLASS.capabilities,
+      lookSensitivity: profile.lookSensitivity,
+    });
+    playerCharacter?.setPose({ dead: false, movementSpeed: 0, grounded: true, aiming: false });
+    if (playerCharacter) playerCharacter.object.visible = true;
+    weaponView?.resetForRespawn();
+    weaponView?.setVisible(true);
+    grenadeView?.setVisible(true);
+    view.camera.up.set(0, 1, 0);
+    player.render(1);
+    modeHeading.textContent = 'Shooting range';
+    viewport.setAttribute('aria-label', 'First-person shooting and movement testing range');
+    hud.setAttribute('aria-label', 'Shooting range status and controls');
+    classOutput.textContent = 'Three lanes · 10 m, 15 m, and 20 m targets · movement course';
+    modeToggle.hidden = false;
+    joinMatchButton.textContent = `Join ${TOTAL_MATCH_BOTS}-bot match`;
+    pointerOutput.textContent = 'Click the scene to capture the mouse.';
+    deathOverlay.hidden = true;
+    reviveReadout.hidden = true;
+    skirmishReadout.hidden = true;
+    root.dataset.viewMode = 'practice';
+    closeMainMenu();
+    if (runtime.resume()) pointerControls?.requestLock();
   };
 
   const handleJoinMatch = () => {
@@ -884,9 +940,9 @@ export function mountApp(root: HTMLElement) {
       grenadeView?.setVisible(true);
       camera.up.set(0, 1, 0);
       player.render(1);
-      modeHeading.textContent = 'Combat practice';
-      viewport.setAttribute('aria-label', 'First-person combat practice range');
-      hud.setAttribute('aria-label', 'Combat practice controls and status');
+      modeHeading.textContent = 'Shooting range';
+      viewport.setAttribute('aria-label', 'First-person shooting and movement testing range');
+      hud.setAttribute('aria-label', 'Shooting range controls and status');
       modeToggle.hidden = false;
       joinMatchButton.textContent = `Join ${TOTAL_MATCH_BOTS}-bot match`;
       pointerOutput.textContent = 'Click the scene to capture the mouse.';
@@ -952,6 +1008,7 @@ export function mountApp(root: HTMLElement) {
     pointerControls?.requestLock();
   };
   modeToggle.addEventListener('click', handleModeToggle);
+  resetRangeButton.addEventListener('click', handleResetRange);
   joinMatchButton.addEventListener('click', handleJoinMatch);
   root.dataset.viewMode = 'practice';
   root.dataset.menuOpen = 'true';
@@ -1029,6 +1086,7 @@ export function mountApp(root: HTMLElement) {
   for (const button of mapButtons) button.addEventListener('click', handleMapSelect);
   for (const button of skillButtons) button.addEventListener('click', handleSkillPurchase);
   menuJoinButton.addEventListener('click', handleMenuJoin);
+  menuRangeButton.addEventListener('click', handleEnterRange);
   pauseSettingsButton.addEventListener('click', handlePauseSettings);
   returnMenuButton.addEventListener('click', returnToMainMenu);
   resultsMenuButton.addEventListener('click', returnToMainMenu);
@@ -1052,6 +1110,7 @@ export function mountApp(root: HTMLElement) {
       resultsMenuButton.removeEventListener('click', returnToMainMenu);
       continueResultsButton.removeEventListener('click', handleContinueResults);
       menuJoinButton.removeEventListener('click', handleMenuJoin);
+      menuRangeButton.removeEventListener('click', handleEnterRange);
       sensitivitySetting.removeEventListener('input', handleSensitivity);
       masterVolumeInput.removeEventListener('input', handleMasterVolume);
       effectsVolumeInput.removeEventListener('input', handleEffectsVolume);
@@ -1062,6 +1121,7 @@ export function mountApp(root: HTMLElement) {
       for (const button of mapButtons) button.removeEventListener('click', handleMapSelect);
       for (const button of skillButtons) button.removeEventListener('click', handleSkillPurchase);
       modeToggle.removeEventListener('click', handleModeToggle);
+      resetRangeButton.removeEventListener('click', handleResetRange);
       joinMatchButton.removeEventListener('click', handleJoinMatch);
       runtime.dispose();
       audioManager.dispose();

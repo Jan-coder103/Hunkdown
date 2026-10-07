@@ -18,6 +18,8 @@ The source calls this capture the flag but describes a single central capture po
 
 The main menu has Loadout, Settings, Maps, and Skill tree tabs. The current loadout exposes the only implemented weapon, Honk-47; more weapons and class effects are future work. Midtown and Garden District are selectable seeded city presets. Look sensitivity is saved locally and applies immediately.
 
+The ready-room footer also has a direct Shooting range action. It opens the former movement test map as a training area with three firing lanes and nine chicken targets at 10 m, 15 m, and 20 m, plus movement obstacles, a ramp, and cover. Targets stand back up after 1.6 seconds; Reset range restores target positions, weapon/grenade supplies, and local hit statistics. The HUD shows shots, hits, accuracy, damage from bullets and grenades, knockdowns, and remaining targets. The range does not advance match rewards or tickets.
+
 The user selected a simple placeholder economy. Until human review changes it, each completed round awards 100 base XP, +25 XP per kill, +1 XP per 10 damage, and +20 XP per revive; credits add 50 per round, +10 per kill, and +25 per revive. Field Notes costs 250 credits and adds 25% XP; Scrounger costs 400 credits and adds 25% credits. Bonuses round down to whole points. These skills only affect progression and are not final balance decisions.
 
 Match results show top-five damage, kills, healing, and deaths leaderboards, followed by a separate rewards screen. Healing counts health restored by revives and is credited to the reviver. A versioned local profile records settings, selected map, XP, credits, skills, and the latest 100 rewarded match IDs so a result cannot pay twice.

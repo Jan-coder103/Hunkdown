@@ -7,13 +7,13 @@ Updated: 2026-10-07.
 - Phase 1: technically complete; human review pending.
 - Phase 2: technically complete; human review pending.
 - Phase 3: technically complete; human movement review pending.
-- Phase 4: technically complete; human review of shooting feel pending.
+- Phase 4: technically complete; the training range now has nine auto-resetting targets, three distances, and hit statistics; human review of shooting feel pending.
 - Phase 5: technically complete; human review pending.
 - Phase 6: technically complete; human review pending.
 - Phase 7: candidate revisions are technically complete; human visual review pending.
 - Phase 8: character implementation and technical checks are complete; human visual review pending.
 - Phase 9: technical implementation complete; human gameplay review pending.
-- Phase 10: match/menu/results/progression shell is implemented; death-screen loadout editing and human gameplay/reward review remain.
+- Phase 10: match/menu/results/progression shell is implemented, with direct ready-room access to the shooting range; death-screen loadout editing and human gameplay/reward review remain.
 - Phase 11: registered asset candidate pass and enterable-house facade set are technically complete; human visual review remains.
 - Phase 12: comedy physics and destruction are technically implemented; human comedy/comfort review remains.
 - Phase 13: 100-bot render optimization, the prior foreground profile, and cheaper off-screen AI scheduling are technically verified; human performance/gameplay review remains.
@@ -21,6 +21,12 @@ Updated: 2026-10-07.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## Shooting range access and training update — 2026-10-07
+
+The first-person scene behind the ready-room menu was the existing movement/combat prototype, but the menu's only action entered a 100-bot match. The ready room now has a separate Shooting range action. The former test map has three marked firing lanes, nine chicken targets at 10 m, 15 m, and 20 m, bullseyes, backstops, cover, and the movement ramp. Targets stand again after 1.6 seconds. Reset range restores targets, ammunition/grenades, player position, and local range stats. HUD stats show shots, hits, accuracy, bullet/grenade damage, knockdowns, and remaining targets; range play does not award match rewards.
+
+`npm run check` passed: 180 tests across 29 files, strict type checking, and production build. Browser smoke at `http://127.0.0.1:5188/` confirmed the ready-room action enters the range, the pause menu returns to the ready room, and the action can reopen it. The range HUD showed nine targets and 60 FPS at 663 × 658, with about 3.1 ms frame work and 453 draws. Browser warnings/errors were empty. The in-app browser did not acquire pointer lock, so manual movement and firing were not verified; behavior tests verify all nine targets are reachable by hitscan and exercise target reset/respawn and bullet/grenade stats. No human approval is claimed.
 
 ## Audio listener compatibility fix — 2026-10-07
 

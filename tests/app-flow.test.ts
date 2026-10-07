@@ -64,6 +64,33 @@ function createHarness() {
 afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; });
 
 describe('application match flow', () => {
+  it('opens the shooting range from the ready room and returns to it from pause', () => {
+    const { app, frame, element, windowTarget } = createHarness();
+    try {
+      element('menu-range-button').click();
+      for (let index = 0; index < 12; index += 1) frame();
+      expect(app.runtime.state).toBe('running');
+      expect(element('main-menu').hidden).toBe(true);
+      expect(element('mode-heading').textContent).toBe('Shooting range');
+      expect(element('scene-viewport').attributes.get('aria-label')).toContain('testing range');
+      expect(element('reset-range-button').hidden).toBe(false);
+
+      windowTarget.dispatchEvent(makeKeyEvent('keydown', 'Escape'));
+      frame();
+      windowTarget.dispatchEvent(makeKeyEvent('keyup', 'Escape'));
+      expect(element('pause-overlay').hidden).toBe(false);
+      element('return-menu-button').click();
+      expect(element('main-menu').hidden).toBe(false);
+      expect(element('menu-range-button').hidden).toBe(false);
+
+      element('menu-range-button').click();
+      frame();
+      expect(app.runtime.state).toBe('running');
+      expect(element('main-menu').hidden).toBe(true);
+      expect(element('mode-heading').textContent).toBe('Shooting range');
+    } finally { app.dispose(); }
+  });
+
   it.each(['alive', 'dead'] as const)('finishes, pays once, and starts the next round when the player is %s', (status) => {
     const { app, frame, element, windowTarget, stored } = createHarness();
     try {

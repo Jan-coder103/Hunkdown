@@ -111,7 +111,7 @@ describe('chicken character presentations', () => {
     const target = range.combatants[0];
     const character = range.characters[0];
     if (!target || !character?.thirdPersonRig) throw new Error('Expected a third-person range target');
-    expect(character.object.name).toBe('practice chicken target 1');
+    expect(character.object.name).toContain('practice chicken target 1');
 
     target.applyDamage(20);
     range.update(1 / 60);

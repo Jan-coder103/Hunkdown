@@ -122,6 +122,10 @@ button, kbd { font: inherit; }
 .mode-toggle + .mode-toggle { margin-left: .4rem; background: #b5663d; border-color: #d69a72; }
 .mode-toggle + .mode-toggle:hover { background: #974f32; }
 .mode-toggle[hidden] { display: none; }
+.mode-toggle.range-reset { margin-left: .4rem; background: #e8eddf; border-color: #a5b49c; color: #3b5849; }
+.mode-toggle.range-reset:hover { background: #dbe4d2; }
+#app[data-view-mode="match"] #reset-range-button,
+#app[data-view-mode="skirmish"] #reset-range-button { display: none; }
 .skirmish-readout { display: block; margin-top: .65rem; color: #506960; font-size: .7rem; line-height: 1.45; }
 .skirmish-readout[hidden] { display: none; }
 .revive-readout { display: block; margin-top: .6rem; color: #8a4d32; font-size: .72rem; font-weight: 750; line-height: 1.4; }
@@ -229,6 +233,11 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .skill-card button:disabled { border-color: #d4dbd0; background: #e7ebe2; color: #7f8a7e; cursor: default; }
 .profile-notice { min-height: 1.15rem; margin: 0 0 .55rem; color: #8c5c32; font-size: .72rem; }
 .menu-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: .9rem; border-top: 1px solid #d9dfd2; color: #718078; font-size: .73rem; }
+.menu-actions { display: flex; align-items: center; gap: .55rem; }
+.range-button { padding: .76rem .95rem; border: 1px solid #a5b49c; border-radius: .72rem; background: #e8eddf; color: #3b5849; font-weight: 800; cursor: pointer; }
+.range-button:hover { background: #dbe4d2; }
+.range-button:focus-visible { outline: 3px solid #e29e47; outline-offset: 3px; }
+.range-button[hidden] { display: none; }
 .join-button { padding: .8rem 1.05rem; border: 0; border-radius: .72rem; background: #b5663d; color: white; font-weight: 850; cursor: pointer; }
 .join-button:hover { background: #974f32; }
 .join-button:focus-visible { outline: 3px solid #e29e47; outline-offset: 3px; }
@@ -260,6 +269,8 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
   .menu-tabs button { padding: .55rem .25rem; font-size: .7rem; }
   .menu-panels { min-height: 14rem; }
   .menu-footer { align-items: flex-end; }
+  .menu-actions { flex-direction: column-reverse; align-items: stretch; }
+  .menu-actions button { white-space: nowrap; }
   .leaderboard-grid { grid-template-columns: 1fr; }
 }
 
