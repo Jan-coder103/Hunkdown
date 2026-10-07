@@ -113,15 +113,27 @@ export class AudioManager {
   updateListener(position: AudioPosition, forward: AudioPosition): void {
     const listener = this.context?.listener;
     if (!listener || this.context?.state !== 'running') return;
-    setAudioParam(listener.positionX, position.x);
-    setAudioParam(listener.positionY, position.y);
-    setAudioParam(listener.positionZ, position.z);
-    setAudioParam(listener.forwardX, forward.x);
-    setAudioParam(listener.forwardY, forward.y);
-    setAudioParam(listener.forwardZ, forward.z);
-    setAudioParam(listener.upX, 0);
-    setAudioParam(listener.upY, 1);
-    setAudioParam(listener.upZ, 0);
+    // Firefox exposes the legacy listener methods without these AudioParams.
+    if (listener.positionX && listener.positionY && listener.positionZ) {
+      setAudioParam(listener.positionX, position.x);
+      setAudioParam(listener.positionY, position.y);
+      setAudioParam(listener.positionZ, position.z);
+    } else {
+      listener.setPosition(position.x, position.y, position.z);
+    }
+    if (
+      listener.forwardX && listener.forwardY && listener.forwardZ
+      && listener.upX && listener.upY && listener.upZ
+    ) {
+      setAudioParam(listener.forwardX, forward.x);
+      setAudioParam(listener.forwardY, forward.y);
+      setAudioParam(listener.forwardZ, forward.z);
+      setAudioParam(listener.upX, 0);
+      setAudioParam(listener.upY, 1);
+      setAudioParam(listener.upZ, 0);
+    } else {
+      listener.setOrientation(forward.x, forward.y, forward.z, 0, 1, 0);
+    }
   }
 
   /** Returns true when a bounded voice slot was reserved; missing files resolve as silence. */

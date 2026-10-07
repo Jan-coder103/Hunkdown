@@ -87,6 +87,44 @@ async function letAudioTasksSettle(): Promise<void> {
 }
 
 describe('AudioManager', () => {
+  it('updates legacy listeners without AudioParams across successive render frames', async () => {
+    const { manager, context } = makeAudioHarness();
+    const listener = { setPosition: vi.fn(), setOrientation: vi.fn() };
+    context.listener = listener as unknown as AudioListener;
+    manager.updateListener({ x: 1, y: 2, z: 3 }, { x: 0, y: 0, z: -1 });
+    expect(listener.setPosition).not.toHaveBeenCalled();
+    await manager.unlock();
+    manager.updateListener({ x: 1, y: 2, z: 3 }, { x: 0, y: 0, z: -1 });
+    expect(listener.setPosition).toHaveBeenLastCalledWith(1, 2, 3);
+    expect(listener.setOrientation).toHaveBeenLastCalledWith(0, 0, -1, 0, 1, 0);
+    manager.updateListener({ x: 4, y: 5, z: 6 }, { x: 1, y: 0, z: 0 });
+    expect(listener.setPosition).toHaveBeenLastCalledWith(4, 5, 6);
+    expect(listener.setOrientation).toHaveBeenLastCalledWith(1, 0, 0, 0, 1, 0);
+    manager.dispose();
+    manager.updateListener({ x: 7, y: 8, z: 9 }, { x: 0, y: 0, z: 1 });
+    expect(listener.setPosition).toHaveBeenCalledTimes(2);
+    expect(listener.setOrientation).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefers modern listener AudioParams when legacy methods are also available', async () => {
+    const { manager, context } = makeAudioHarness();
+    const setPosition = vi.fn();
+    const setOrientation = vi.fn();
+    Object.assign(context.listener, { setPosition, setOrientation });
+    await manager.unlock();
+    manager.updateListener({ x: 1, y: 2, z: 3 }, { x: 0.6, y: 0, z: -0.8 });
+    expect([
+      context.listener.positionX.value, context.listener.positionY.value, context.listener.positionZ.value,
+    ]).toEqual([1, 2, 3]);
+    expect([
+      context.listener.forwardX.value, context.listener.forwardY.value, context.listener.forwardZ.value,
+      context.listener.upX.value, context.listener.upY.value, context.listener.upZ.value,
+    ]).toEqual([0.6, 0, -0.8, 0, 1, 0]);
+    expect(setPosition).not.toHaveBeenCalled();
+    expect(setOrientation).not.toHaveBeenCalled();
+    manager.dispose();
+  });
+
   it('preserves an event position during loading and disconnects ended voice nodes', async () => {
     const { manager, context } = makeAudioHarness();
     await manager.unlock();

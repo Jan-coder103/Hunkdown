@@ -22,6 +22,12 @@ Updated: 2026-10-07.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Audio listener compatibility fix — 2026-10-07
+
+Fixed the reported render-loop TypeError when an AudioListener lacks modern AudioParam properties (the Firefox listener API). Position and orientation now independently detect complete parameter groups and fall back to `setPosition` / `setOrientation`. Modern listeners retain parameter updates. Regression coverage verifies legacy updates across successive frames, inactive/disposed guards, and preference for modern properties.
+
+`npm run check` passed: 173 tests across 28 files, strict type checking, and production build. The existing 530.95 kB shared asset/Three.js chunk warning remains. A live Firefox playtest was not performed; audible review remains blocked on user-provided clips. No human verification is claimed.
+
 ## All implemented phases review — 2026-10-07
 
 Reviewed the implemented portions of phases 1–15 against the source brief, plan, specifications, tracker, and earlier review handoffs. Inspected the engine/input/movement, weapon/lifecycle/grenade logic, typed assets and tools, map/navigation/AI, match and UI/progression integration, destruction/LOD/resource ownership, and audio infrastructure. The baseline passed all 154 tests; this review adds 13 behavior cases.
