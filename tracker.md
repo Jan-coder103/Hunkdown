@@ -26,7 +26,7 @@ Updated: 2026-10-08.
 
 Added automatic GitHub Actions deployment on pushes to main, with dependency installation, tests, type checking, and a dedicated `/Hunkdown/` production build. Normal local dev/build keep `/`. Tool navigation and audio loading use Vite's deployment base. Repository Pages source switched from branch publishing to Actions.
 
-Verification: `npm run check` passed (195 tests across 31 files, type checking, production build); `npm run build:pages` passed. New behavior coverage verifies actual browser audio requests under both local and Pages base paths. Existing 561.71 kB shared chunk warning remains. Live deployment verification pending; no human gameplay approval claimed.
+Verification: `npm run check` passed (195 tests across 31 files, type checking, production build); `npm run build:pages` passed. New behavior coverage verifies actual browser audio requests under both local and Pages base paths. Existing 561.71 kB shared chunk warning remains. First Actions deployment succeeded; hosted ready room and shooting range rendered at https://jan-coder103.github.io/Hunkdown/ with no browser console warnings/errors; no human gameplay approval claimed.
 
 ## Physical corner-peeking lean — 2026-10-07
 
