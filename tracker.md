@@ -1,6 +1,6 @@
 # Current progress
 
-Updated: 2026-10-07.
+Updated: 2026-10-08.
 
 ## Summary
 
@@ -21,6 +21,12 @@ Updated: 2026-10-07.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## GitHub Pages deployment — 2026-10-08
+
+Added automatic GitHub Actions deployment on pushes to main, with dependency installation, tests, type checking, and a dedicated `/Hunkdown/` production build. Normal local dev/build keep `/`. Tool navigation and audio loading use Vite's deployment base. Repository Pages source switched from branch publishing to Actions.
+
+Verification: `npm run check` passed (195 tests across 31 files, type checking, production build); `npm run build:pages` passed. New behavior coverage verifies actual browser audio requests under both local and Pages base paths. Existing 561.71 kB shared chunk warning remains. Live deployment verification pending; no human gameplay approval claimed.
 
 ## Physical corner-peeking lean — 2026-10-07
 

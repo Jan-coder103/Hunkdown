@@ -28,3 +28,9 @@ npm run preview
 Click the scene to capture the mouse. Use WASD to move, Space to jump, Shift to sprint, C to crouch/slide, Q/E to lean, right mouse to aim, left mouse to fire, R to reload, and G to equip grenades. Hold F within 2.5 m of a current friendly corpse for four seconds to revive. Escape pauses the game; its menu includes settings and an asset-viewer link. The shooting range is available directly from the ready room, and the bot spectator preview can be entered from the range.
 
 This build still needs human review of controls, visuals, balance, and comedy. Enterable-house production visuals/LODs, cheaper off-screen simulation, and death-screen loadout editing remain unfinished. Audio infrastructure exists, but the build is silent until user-provided clips are mapped in `public/audio/manifest.json`. The giant bird ability is planned. See `plan.md` for acceptance criteria and `tracker.md` for verification evidence and outstanding work.
+
+## GitHub Pages
+
+The playable site is https://jan-coder103.github.io/Hunkdown/. Pushes to `main` automatically run tests, type checking, and a Pages build, then deploy `dist/` through `.github/workflows/pages.yml`. Repository Settings → Pages must use GitHub Actions as its source.
+
+`npm run dev` and `npm run build` keep the normal local `/` base. `npm run build:pages` builds with `/Hunkdown/`; preview it with `npm run preview -- --base=/Hunkdown/` and open `/Hunkdown/`. Tool links and audio use Vite's base URL. Browser saves stay on each browser/origin; export map drafts separately when moving PCs.

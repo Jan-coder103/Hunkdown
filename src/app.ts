@@ -126,7 +126,7 @@ export function mountApp(root: HTMLElement) {
           <p>The world stops while you are away.</p>
           <button id="resume-button" type="button">Resume</button>
           <button id="pause-settings-button" type="button" class="secondary-action">Settings</button>
-          <a class="pause-link" href="/asset-viewer.html" target="_blank" rel="noreferrer">Open asset viewer ↗</a>
+          <a class="pause-link" href="${import.meta.env.BASE_URL}asset-viewer.html" target="_blank" rel="noreferrer">Open asset viewer ↗</a>
           <button id="return-menu-button" type="button" class="secondary-action">Return to main menu</button>
           <p class="hint">You can also press <kbd>Esc</kbd>.</p>
         </div>

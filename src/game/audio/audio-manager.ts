@@ -259,11 +259,11 @@ export function createBrowserAudioPlatform(): AudioPlatform {
       return new AudioContext({ latencyHint: 'interactive' });
     },
     loadManifest: async () => {
-      const response = await fetch('/audio/manifest.json');
+      const response = await fetch(`${import.meta.env.BASE_URL}audio/manifest.json`);
       return response.ok ? response.json() as Promise<unknown> : null;
     },
     fetchClip: async (relativePath) => {
-      const response = await fetch(`/audio/${relativePath}`);
+      const response = await fetch(`${import.meta.env.BASE_URL}audio/${relativePath}`);
       return response.ok ? response.arrayBuffer() : null;
     },
   };

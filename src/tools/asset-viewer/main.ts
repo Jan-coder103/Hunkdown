@@ -145,7 +145,7 @@ function buildViewerShell(container: HTMLElement): ViewerElements {
   container.innerHTML = `
     <header class="viewer-header">
       <div class="viewer-brand">
-        <a class="back-link" href="/" aria-label="Back to combat range">← Combat range</a>
+        <a class="back-link" href="${import.meta.env.BASE_URL}" aria-label="Back to combat range">← Combat range</a>
         <div>
           <p class="eyebrow">Operation Honkdown · Content tools</p>
           <h1>Asset viewer</h1>

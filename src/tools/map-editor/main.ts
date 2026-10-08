@@ -428,7 +428,7 @@ function buildEditorShell(container: HTMLElement): EditorElements {
   container.innerHTML = `
     <header class="map-header">
       <div class="map-brand">
-        <a class="map-back" href="/" aria-label="Back to combat range">← Combat range</a>
+        <a class="map-back" href="${import.meta.env.BASE_URL}" aria-label="Back to combat range">← Combat range</a>
         <div><p class="map-eyebrow">Operation Honkdown · World tools</p><h1>City map editor</h1></div>
       </div>
       <p class="map-tagline">Paint a street grid, open doors and high ground. The seeded preview fills the city around your routes.</p>
