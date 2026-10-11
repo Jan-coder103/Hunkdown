@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Face and beak profile refinement — 2026-10-11
+
+Focused only on the face and beak following the user's side-view feedback. Recessed/thinned eye whites, pupils and glints, and seated cheek accents closer to the torso. Replaced separate rounded beak/mouth blobs with closed tapered upper/lower bill surfaces and a shallow inset smile; broad roots embed into the face and narrow tips form a connected profile. Both LODs share the bill geometry. Body, comb, wings, tail, feet, bounds and gameplay collision remain unchanged.
+
+Verification: `npm run check` passed (206 tests / 32 files, typecheck, build). Extended spatial tests check shallow overlapping eye layers, cheek seating and embedded tapered bill roots. Existing bounds, animation, disposal and one-mesh far budget passed. Inspected front/side and both tiers in the in-app viewer at localhost:5191 with no warning/error logs. Existing bundle warning remains (562.77 kB). Human approval and sustained performance profiling remain open.
+
 ## Chicken gear removal — 2026-10-11
 
 Removed the rear backpack, goggles, vest, pouches and shoulder straps, plus the colored belly team patch, at the user's request. Tail feathers are preserved. Both close/far now show a bare golden torso; far uses one merged mesh/draw instead of two. Removed the unused third-person teamMark rig contract; first-person bands/cuffs remain. Third-person birds no longer have colored team patches, as explicitly requested.

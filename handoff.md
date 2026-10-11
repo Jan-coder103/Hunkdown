@@ -1,7 +1,7 @@
 # Latest handoff
 
-On 2026-10-11 removed the chicken's rear backpack/goggles/vest/pouches/straps and colored belly patch at the user's explicit request. Tail feathers remain. Both LODs have bare golden torsos; far now uses one merged mesh. Removed the unused third-person teamMark rig property. First-person wing bands/cuffs remain; third-person colored team recognition patches are intentionally gone.
+On 2026-10-11 refined only the chicken face/beak after the user's side-view feedback. Eyes/pupils/glints are shallower and seated into the face; cheek accents are thinner/recessed. Upper/lower bill and smile now use custom closed tapered ring geometry with embedded wide roots and narrow forward tips, shared by both LODs. Far merge discards unused UV attributes to accommodate custom geometry. Body, comb, wings, tail, feet, bounds and gameplay collision are unchanged.
 
-Verification: `npm run check` passed (206 tests / 32 files, typecheck, build). Updated asset coverage for removed attachments, preserved tail and one-mesh far budget. Inspected front/rear in the in-app viewer at http://127.0.0.1:5191/asset-viewer.html with no warnings/errors; viewer left on rear close view. Existing bundle warning 562.14 kB. Human approval and sustained performance profiling remain open.
+Verification: `npm run check` passed (206 tests / 32 files, typecheck, build). Extended spatial tests cover eye depth/overlap and bill taper/root placement. Existing bounds, animations, disposal and one-mesh far budget passed. Front/side and both tiers inspected at http://127.0.0.1:5191/asset-viewer.html with no warnings/errors. Viewer left on zoomed close side view; screenshot /tmp/honkdown-chicken-face-profile.png. Existing bundle warning 562.77 kB. Human approval and sustained performance profiling remain open.
 
-Next: user visual review. Existing death-screen loadout editing and user-provided audio remain outstanding.
+Next: user face review. Existing death-screen loadout editing and user-provided audio remain outstanding.

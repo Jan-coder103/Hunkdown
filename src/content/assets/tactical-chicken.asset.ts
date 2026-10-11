@@ -106,15 +106,22 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   root.add(head);
   // Face remains on its animation pivot; the continuous torso supplies the head silhouette.
   for (const side of [-1, 1]) {
-    spheroid('white eye', [0.117, 0.137, 0.067], [side * 0.176, 0.065, 0.305], eyeGlintMaterial, head, 10);
-    spheroid('dark eye', [0.073, 0.086, 0.038], [side * 0.176 + 0.012, 0.064, 0.369], eyeMaterial, head, 9);
-    spheroid('eye glint', [0.025, 0.028, 0.012], [side * 0.176 - 0.009, 0.102, 0.401], eyeGlintMaterial, head, 6);
-    spheroid('rosy cheek', [0.072, 0.04, 0.018], [side * 0.26, -0.07, 0.325], combMaterial, head);
+    spheroid('white eye', [0.117, 0.137, 0.055], [side * 0.176, 0.065, 0.265], eyeGlintMaterial, head, 10);
+    spheroid('dark eye', [0.073, 0.086, 0.016], [side * 0.176 + 0.008, 0.064, 0.314], eyeMaterial, head, 9);
+    spheroid('eye glint', [0.022, 0.024, 0.008], [side * 0.176 - 0.013, 0.102, 0.327], eyeGlintMaterial, head, 6);
+    spheroid('rosy cheek', [0.061, 0.035, 0.009], [side * 0.26, -0.07, 0.252], combMaterial, head);
 
   }
-  spheroid('smiling mouth', [0.15, 0.075, 0.065], [0, -0.115, 0.415], eyeMaterial, head);
-  spheroid('orange beak', [0.17, 0.055, 0.13], [0, -0.045, 0.4], beakMaterial, head, 8);
-  spheroid('lower beak', [0.13, 0.04, 0.1], [0, -0.18, 0.405], beakMaterial, head);
+  for (const [name, geometry, finish] of [
+    ['smiling mouth', createBeakSection('mouth'), eyeMaterial],
+    ['orange beak', createBeakSection('upper'), beakMaterial],
+    ['lower beak', createBeakSection('lower'), beakMaterial],
+  ] as const) {
+    const mesh = new Mesh(geometry, finish);
+    mesh.name = name;
+    mesh.castShadow = true;
+    head.add(mesh);
+  }
   const comb = new Mesh(createComb(), combMaterial);
   comb.name = 'red comb';
   comb.position.set(0, 0.27, -0.13);
@@ -143,6 +150,8 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
       geometry = original.toNonIndexed();
       original.dispose();
     }
+    // Far materials use vertex colors only; discard unused UVs for custom bill compatibility.
+    geometry.deleteAttribute('uv');
     geometry.scale(...scale);
     geometry.rotateX(rotation[0]);
     geometry.rotateY(rotation[1]);
@@ -157,9 +166,9 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   };
 
   addPart(createPearBody(8), '#f5c765', [0, 0, 0]);
-  addPart(new SphereGeometry(1, 6, 4), '#49302a', [0, 1.235, 0.475], [0.15, 0.075, 0.065]);
-  addPart(new SphereGeometry(1, 6, 4), '#e9ad54', [0, 1.305, 0.46], [0.17, 0.055, 0.13]);
-  addPart(new SphereGeometry(1, 5, 3), '#e9ad54', [0, 1.17, 0.465], [0.13, 0.04, 0.1]);
+  addPart(createBeakSection('mouth'), '#49302a', [0, 1.35, 0.06]);
+  addPart(createBeakSection('upper'), '#e9ad54', [0, 1.35, 0.06]);
+  addPart(createBeakSection('lower'), '#e9ad54', [0, 1.35, 0.06]);
   addPart(createComb(), '#f06b50', [0, 1.62, -0.07]);
   for (const side of [-1, 1]) {
     addPart(new SphereGeometry(1, 5, 4), '#eab654', [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
@@ -167,10 +176,10 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     for (const toe of [-1, 0, 1]) {
       addPart(new SphereGeometry(1, 4, 3), '#df9c48', [side * 0.17 + toe * 0.065, 0.055, 0.105], [0.035, 0.035, 0.14], [0, toe * 0.48, 0]);
     }
-    addPart(new SphereGeometry(1, 5, 4), '#fff7df', [side * 0.176, 1.415, 0.365], [0.117, 0.137, 0.067]);
-    addPart(new SphereGeometry(1, 5, 4), '#49302a', [side * 0.176 + 0.012, 1.414, 0.429], [0.073, 0.086, 0.038]);
-    addPart(new SphereGeometry(1, 4, 3), '#fff7df', [side * 0.176 - 0.009, 1.452, 0.461], [0.025, 0.028, 0.012]);
-    addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.26, 1.28, 0.385], [0.072, 0.04, 0.018]);
+    addPart(new SphereGeometry(1, 5, 4), '#fff7df', [side * 0.176, 1.415, 0.325], [0.117, 0.137, 0.055]);
+    addPart(new SphereGeometry(1, 5, 4), '#49302a', [side * 0.176 + 0.008, 1.414, 0.374], [0.073, 0.086, 0.016]);
+    addPart(new SphereGeometry(1, 4, 3), '#fff7df', [side * 0.176 - 0.013, 1.452, 0.387], [0.022, 0.024, 0.008]);
+    addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.26, 1.28, 0.312], [0.061, 0.035, 0.009]);
   }
   for (const side of [-1, 0, 1]) {
     addPart(new SphereGeometry(1, 4, 3), '#eab654', [side * 0.14, 1.1, -0.44], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
@@ -304,6 +313,40 @@ export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): Chic
   const leftWing = makeWing('first-person left chicken wing', -1, [-0.4, -0.62, -0.72]);
   const rightWing = makeWing('first-person right chicken wing', 1, [0.5, -0.69, -0.66]);
   return { root, leftWing, rightWing, featherMaterial: feather, ownedMaterials: [feather, cuff, trim, eye] };
+}
+
+/** Tapered closed bill surfaces: broad roots embed into the face, tips form a smile. */
+function createBeakSection(part: 'upper' | 'lower' | 'mouth'): BufferGeometry {
+  const rings = part === 'upper'
+    ? [[0.29, -0.045, 0.165, 0.075], [0.4, -0.035, 0.14, 0.05], [0.51, -0.065, 0.025, 0.012]]
+    : part === 'lower'
+      ? [[0.29, -0.16, 0.14, 0.045], [0.4, -0.165, 0.115, 0.035], [0.485, -0.135, 0.025, 0.012]]
+      : [[0.285, -0.105, 0.14, 0.045], [0.385, -0.105, 0.115, 0.037], [0.475, -0.105, 0.026, 0.012]];
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const sides = 8;
+  for (const [z, y, width, height] of rings) {
+    for (let side = 0; side < sides; side += 1) {
+      const angle = side * Math.PI * 2 / sides;
+      vertices.push(Math.cos(angle) * width!, y! + Math.sin(angle) * height!, z!);
+    }
+  }
+  for (let ring = 0; ring < rings.length - 1; ring += 1) {
+    for (let side = 0; side < sides; side += 1) {
+      const a = ring * sides + side, b = ring * sides + (side + 1) % sides;
+      indices.push(a, b, a + sides, b, b + sides, a + sides);
+    }
+  }
+  for (let side = 1; side < sides - 1; side += 1) {
+    indices.push(0, side + 1, side);
+    const end = (rings.length - 1) * sides;
+    indices.push(end, end + side, end + side + 1);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /** Broad belly tapering directly into the crown, without a neck or overlapping shells. */

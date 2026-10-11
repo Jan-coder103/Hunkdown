@@ -120,6 +120,24 @@ describe('generated asset pipeline', () => {
     expect(white.getSize(new Vector3()).x).toBeGreaterThan(pupil.getSize(new Vector3()).x * 1.4);
     expect(pupil.max.z).toBeGreaterThan(white.max.z);
     expect(beak.max.z).toBeGreaterThan(pupil.max.z);
+    // Eye layers should read as shallow insets in profile, rather than stacked balls.
+    expect(white.getSize(new Vector3()).z).toBeLessThan(0.115);
+    expect(pupil.getSize(new Vector3()).z).toBeLessThan(0.035);
+    expect(pupil.min.z).toBeLessThan(white.max.z);
+    expect(box('rosy cheek').min.z).toBeLessThan(0.31);
+    // Each bill surface has a broad embedded root and a narrow forward tip.
+    for (const name of ['orange beak', 'lower beak', 'smiling mouth']) {
+      const positions = (close.getObjectByName(name) as Mesh).geometry.getAttribute('position');
+      let rootWidth = 0, tipWidth = 0;
+      for (let i = 0; i < positions.count; i += 1) {
+        const z = positions.getZ(i);
+        if (z < 0.31) rootWidth = Math.max(rootWidth, Math.abs(positions.getX(i)));
+        if (z > 0.46) tipWidth = Math.max(tipWidth, Math.abs(positions.getX(i)));
+      }
+      expect(rootWidth).toBeGreaterThan(tipWidth * 4);
+      expect(box(name).min.z).toBeLessThan(0.36);
+    }
+
     expect(box('red comb').max.y).toBeGreaterThan(box('feathered body').max.y);
     expect(box('red comb').getSize(new Vector3()).z).toBeGreaterThan(0.4);
     const torso = close.getObjectByName('feathered body') as Mesh;
