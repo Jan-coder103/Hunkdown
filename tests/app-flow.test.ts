@@ -111,7 +111,7 @@ describe('application match flow', () => {
       for (let i = 0; i < 30; i++) frame();
       expect(element('hud-weapon-name').textContent).toBe('TACTICAL KNIFE');
       expect(element('hud-ammo-note').textContent).toContain('25%');
-      expect(element('match-strip').textContent).toContain('BLUE 1');
+      expect(element('match-strip').textContent).toMatch(/(?:GREEN|RED|BLUE) 1/);
     } finally { app.dispose(); }
   });
 

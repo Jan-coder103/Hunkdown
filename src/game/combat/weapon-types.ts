@@ -30,6 +30,15 @@ export type WeaponModelRig = Readonly<{
   /** Local optical axis, parallel to model -Z. Used to center the camera through the optic. */
   sight?: import('three').Object3D;
   reticle?: import('three').Object3D;
+  /** Authored attachment points; positions use each anchor's parent coordinate space. */
+  grips?: Readonly<{
+    primary: import('three').Object3D;
+    support: import('three').Object3D;
+    /** Child of the magazine, so the support hand carries it through reload. */
+    magazine?: import('three').Object3D;
+  }>;
+  /** Model-local magazine extraction displacement. */
+  reloadTravel?: readonly [number, number, number];
 }>;
 
 export type WeaponRegistry = ReadonlyMap<string, WeaponDefinition>;

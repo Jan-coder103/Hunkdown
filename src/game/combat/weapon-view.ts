@@ -32,6 +32,9 @@ export class WeaponView {
   private flashRemaining = 0;
   private reloadRemaining = 0;
   private reloadDuration = 0;
+  private readonly hands: { primary: Mesh; support: Mesh } | null = null;
+  private readonly supportPosition = new Vector3();
+  private readonly magazineGripPosition = new Vector3();
   private disposed = false;
 
   constructor(private readonly camera: Camera, private readonly rig: WeaponModelRig, private readonly reloadSeconds: number) {
@@ -42,6 +45,17 @@ export class WeaponView {
     const sightPosition = this.rig.sight?.position.clone() ?? new Vector3(0, 0.235, 0);
     this.aimPosition = sightPosition.multiply(this.rig.root.scale).negate();
     this.aimPosition.z -= 0.65;
+    if (rig.grips) {
+      const geometry = new SphereGeometry(0.075, 10, 8);
+      const material = new MeshStandardMaterial({ color: '#f4c64f', roughness: 0.85, flatShading: true });
+      const primary = new Mesh(geometry, material);
+      const support = new Mesh(geometry, material);
+      primary.name = 'primary sphere hand';
+      support.name = 'support sphere hand';
+      this.hands = { primary, support };
+      rig.root.add(primary, support);
+      this.updateHands(0);
+    }
     this.camera.add(this.rig.root);
   }
 
@@ -74,6 +88,7 @@ export class WeaponView {
     this.rig.magazine.position.copy(this.baseMagazinePosition);
     this.rig.root.position.copy(this.basePosition);
     this.rig.root.rotation.copy(this.baseRotation);
+    this.updateHands(0);
   }
 
   setVisible(visible: boolean): void {
@@ -93,17 +108,19 @@ export class WeaponView {
 
     let reloadDip = 0;
     let reloadRoll = 0;
+    let handBlend = 0;
     if (this.reloadRemaining > 0) {
       this.reloadRemaining = Math.max(0, this.reloadRemaining - deltaSeconds);
       const progress = 1 - this.reloadRemaining / this.reloadDuration;
-      const drop = smoothstep(Math.min(1, progress / 0.22));
+      const drop = smoothstep((progress - 0.12) / 0.2);
       const insert = smoothstep(Math.min(1, Math.max(0, (progress - 0.56) / 0.22)));
-      const magazineOffset = 0.22 * (drop - insert);
-      const magazineShift = 0.055 * (drop - insert);
+      const travel = this.rig.reloadTravel ?? [0.055, -0.22, 0.03];
+      const extraction = drop - insert;
+      handBlend = smoothstep(progress / 0.12) * (1 - smoothstep((progress - 0.82) / 0.16));
       this.rig.magazine.position.set(
-        this.baseMagazinePosition.x + magazineShift,
-        this.baseMagazinePosition.y - magazineOffset,
-        this.baseMagazinePosition.z + 0.03 * (drop - insert),
+        this.baseMagazinePosition.x + travel[0] * extraction,
+        this.baseMagazinePosition.y + travel[1] * extraction,
+        this.baseMagazinePosition.z + travel[2] * extraction,
       );
       reloadDip = 0.025 * Math.sin(Math.PI * progress);
       reloadRoll = 0.12 * Math.sin(Math.PI * progress);
@@ -117,6 +134,23 @@ export class WeaponView {
     this.rig.root.quaternion.copy(this.hipQuaternion).slerp(this.aimQuaternion, this.aimBlend);
     this.rig.root.rotation.x += 0.045 * this.recoil;
     this.rig.root.rotation.z += reloadRoll;
+    this.updateHands(handBlend);
+  }
+
+  private updateHands(magazineBlend: number): void {
+    const grips = this.rig.grips;
+    if (!this.hands || !grips) return;
+    const localPosition = (anchor: Object3D, target: Vector3) => {
+      anchor.getWorldPosition(target);
+      this.rig.root.worldToLocal(target);
+    };
+    localPosition(grips.primary, this.hands.primary.position);
+    localPosition(grips.support, this.supportPosition);
+    this.hands.support.position.copy(this.supportPosition);
+    if (grips.magazine && magazineBlend > 0) {
+      localPosition(grips.magazine, this.magazineGripPosition);
+      this.hands.support.position.lerp(this.magazineGripPosition, magazineBlend);
+    }
   }
 
   dispose(): void {

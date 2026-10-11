@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Weapon sphere hands — 2026-10-11
+
+Replaced visible independent first-person wing sleeves with two small yellow sphere hands owned by each weapon view. Rifle grips sit at the pistol grip and handguard; knife has a handle grip and free support hand. Typed primary/support anchors support future weapon models and nested transforms. A magazine-child grip keeps the support hand attached during extraction and insertion, with smooth reach/return beats and weapon-authored extraction travel. Aim, recoil, visibility and respawn follow the shared weapon rig; shared hand resources dispose with it.
+
+Verification: `npm run check` passed (217 tests / 34 files, typecheck, production build); `git diff --check` passed. New tests exercise rifle/knife attachment through camera movement, aim/recoil, magazine reach/carry/return, respawn and nested anchors. Corrected an existing app-flow test's fixed BLUE expectation to accept the round's random enemy palette. Existing bundle warning remains (562.62 kB). Browser visual review and hands-on reload/knife review were not performed; human approval remains pending.
+
 ## Round chicken colors — 2026-10-11
 
 User approved the simplified chicken visually ("Perfect"). Integrated its existing shared game model with whole-feather team palettes: friendly/player yellow, opposing team randomly green, red or blue once when each playable or spectator round is constructed. Color selection uses a separate random source, leaving seeded maps/simulation unchanged. Close/far, corpse creation/pooling and respawn use the round's fixed palette. Safe zones, tracers, friendly radar dots and HUD color names match. First-person feathers remain yellow. The asset viewer keeps the approved yellow model by default.

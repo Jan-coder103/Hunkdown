@@ -544,6 +544,8 @@ export function mountApp(root: HTMLElement) {
       combat = new CombatSession(playground.world, practiceRange.combatants, weaponDefinition);
       weaponView = new WeaponView(view.camera, createWeaponModel(weaponDefinition.id), weaponDefinition.reloadSeconds);
       playerCharacter = new ChickenCharacterView(view.camera, 'player', 'first-person');
+      // WeaponView owns the two attached hands; suppress the old independent wing sleeves.
+      playerCharacter.firstPersonRig!.root.visible = false;
       knifeView = new WeaponView(view.camera, createMeleeWeaponModel('tactical-knife'), 0.5);
       knifeView.setVisible(false);
       grenadeView = new GrenadeView(view.scene);

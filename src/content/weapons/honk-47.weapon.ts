@@ -195,7 +195,16 @@ function buildHonk47(close: boolean): WeaponModelRig {
   muzzleFlash.position.set(0, 0, -1.18);
   muzzleFlash.visible = false;
   root.add(muzzleFlash);
-  return { root, muzzleFlash, magazine, sight, reticle };
+  const primary = new Group();
+  primary.position.set(0.035, -0.23, 0.14);
+  const support = new Group();
+  support.position.set(-0.035, -0.075, -0.44);
+  const magazineGrip = new Group();
+  magazineGrip.position.set(-0.065, -0.22, -0.07);
+  root.add(primary, support);
+  magazine.add(magazineGrip);
+  return { root, muzzleFlash, magazine, sight, reticle,
+    grips: { primary, support, magazine: magazineGrip }, reloadTravel: [-0.12, -0.22, 0.03] };
 }
 
 const weaponModule: WeaponModule = { weaponDefinition, createWeaponModel };

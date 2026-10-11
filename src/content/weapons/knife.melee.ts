@@ -27,5 +27,10 @@ export function createWeaponModel(): WeaponModelRig {
   }
   const muzzleFlash = new Group();
   root.add(grip, guard, blade, muzzleFlash);
-  return { root, magazine: grip, muzzleFlash };
+  const primary = new Group();
+  primary.position.set(0.025, -0.025, 0.025);
+  const support = new Group();
+  support.position.set(-0.36, -0.08, -0.12);
+  root.add(primary, support);
+  return { root, magazine: grip, muzzleFlash, grips: { primary, support } };
 }
