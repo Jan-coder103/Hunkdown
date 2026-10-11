@@ -13,6 +13,7 @@ import {
   type ChickenDetail,
   type ChickenModelRig,
   type ChickenTeam,
+  type ChickenColor,
 } from '../../content/assets/tactical-chicken.asset';
 
 export type ChickenCharacterRepresentation = 'first-person' | 'third-person';
@@ -50,12 +51,13 @@ export class ChickenCharacterView {
     team: ChickenTeam,
     representation: ChickenCharacterRepresentation,
     initialDetail: ChickenDetail = 'close',
+    private readonly color: ChickenColor = 'yellow',
   ) {
     this.team = team;
     this.representation = representation;
     this.object.name = `${representation} chicken character — ${team}`;
     if (representation === 'first-person') {
-      this.firstPersonRig = createFirstPersonChickenArms(team);
+      this.firstPersonRig = createFirstPersonChickenArms(team, color);
       this.object.add(this.firstPersonRig.root);
     } else {
       this.firstPersonRig = null;
@@ -122,7 +124,7 @@ export class ChickenCharacterView {
   private createThirdPersonRig(detail: ChickenDetail): ChickenModelRig {
     const existing = this.thirdPersonRigs.get(detail);
     if (existing) return existing;
-    const rig = createTacticalChickenModel(this.team, detail);
+    const rig = createTacticalChickenModel(this.team, detail, this.color);
     rig.root.visible = false;
     this.object.add(rig.root);
     this.thirdPersonRigs.set(detail, rig);

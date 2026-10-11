@@ -1,3 +1,4 @@
+import { CHICKEN_COLORS } from './content/assets/tactical-chicken.asset';
 import { createMeleeWeaponModel } from './content/weapons/registry';
 import { EngineRuntime } from './engine/engine-runtime';
 import { Vector3 } from 'three';
@@ -593,10 +594,10 @@ export function mountApp(root: HTMLElement) {
           root.querySelector<HTMLElement>('#health-display')!.textContent = `✚ ${Math.round(actor?.health ?? 100)}${actor && countdown?.isInSafeArea(actor.team, actor.position) ? ' · SAFE ZONE' : ''}`;
           const tickets = countdown?.tickets;
           const capture = countdown?.captureStatus;
-          root.querySelector<HTMLElement>('#match-strip')!.textContent = countdown ? `BLUE ${tickets?.friendly}  ·  ${capture?.control.toUpperCase()} ${Math.round(Math.max(capture?.friendlyProgress ?? 0, capture?.enemyProgress ?? 0) * 100)}%  ·  ORANGE ${tickets?.enemy}` : 'SHOOTING RANGE';
+          root.querySelector<HTMLElement>('#match-strip')!.textContent = countdown ? `YELLOW ${tickets?.friendly}  ·  ${capture?.control.toUpperCase()} ${Math.round(Math.max(capture?.friendlyProgress ?? 0, capture?.enemyProgress ?? 0) * 100)}%  ·  ${skirmishView?.teamColors.enemy.toUpperCase()} ${tickets?.enemy}` : 'SHOOTING RANGE';
           const radar = root.querySelector<HTMLElement>('#radar-map')!;
           const extent = skirmishView ? Math.max(skirmishView.map.source.width, skirmishView.map.source.height) * skirmishView.map.source.cellSize : 50;
-          radar.innerHTML = '<circle r="48" fill="#173831"/><path d="M-48 0H48M0-48V48" stroke="#42665c" stroke-width="1"/>' + (skirmishView?.simulation.combatants.filter(c => c.status === 'alive' && c.team === 'friendly').map(c => `<circle cx="${c.position.x / extent * 90}" cy="${c.position.z / extent * 90}" r="${c.id === 'player' ? 3 : 1.5}" fill="${c.id === 'player' ? '#fff5ba' : '#66d5be'}"/>`).join('') ?? '<circle r="3" fill="#fff5ba"/>');
+          radar.innerHTML = '<circle r="48" fill="#173831"/><path d="M-48 0H48M0-48V48" stroke="#42665c" stroke-width="1"/>' + (skirmishView?.simulation.combatants.filter(c => c.status === 'alive' && c.team === 'friendly').map(c => `<circle cx="${c.position.x / extent * 90}" cy="${c.position.z / extent * 90}" r="${c.id === 'player' ? 3 : 1.5}" fill="${c.id === 'player' ? '#fff5ba' : CHICKEN_COLORS.yellow.feather}"/>`).join('') ?? '<circle r="3" fill="#fff5ba"/>');
           root.dataset.playerDead = String(actor?.status === 'dead');
           view.camera.getWorldDirection(audioForward);
           audioManager.updateListener(view.camera.position, audioForward);

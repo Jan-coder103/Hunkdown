@@ -18,6 +18,13 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createAssetRoot, type AssetDefinition } from './asset-types';
 
 export type ChickenTeam = 'player' | 'friendly' | 'enemy';
+export type ChickenColor = 'yellow' | 'green' | 'red' | 'blue';
+export const CHICKEN_COLORS = Object.freeze({
+  yellow: { feather: '#f5c765', wing: '#eab654' },
+  green: { feather: '#83c96b', wing: '#69ad55' },
+  red: { feather: '#e57f70', wing: '#c96255' },
+  blue: { feather: '#75b9e5', wing: '#5597c9' },
+});
 export type ChickenDetail = 'close' | 'far';
 
 export type ChickenModelRig = Readonly<{
@@ -47,12 +54,12 @@ const TEAM_MARKINGS: Readonly<Record<ChickenTeam, string>> = Object.freeze({
 });
 
 /** Builds the low-poly third-person chicken used by the viewer and combatants. */
-export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detail: ChickenDetail = 'close'): ChickenModelRig {
-  if (detail === 'far') return createFarTacticalChickenModel(team);
+export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detail: ChickenDetail = 'close', color: ChickenColor = 'yellow'): ChickenModelRig {
+  if (detail === 'far') return createFarTacticalChickenModel(team, color);
   const close = detail === 'close';
   const root = createAssetRoot(`Tactical chicken — ${team} — ${detail} LOD`);
-  const feather = material('#f5c765', 0.9);
-  const wingFeather = material('#eab654', 0.92);
+  const feather = material(CHICKEN_COLORS[color].feather, 0.9);
+  const wingFeather = material(CHICKEN_COLORS[color].wing, 0.92);
   const vest = material('#586b60', 0.9);
   const vestDark = material('#394b44', 0.92);
   const orange = material('#df9c48', 0.82);
@@ -129,7 +136,7 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
 }
 
 /** One vertex-colored silhouette keeps the far tier at one draw call. */
-function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
+function createFarTacticalChickenModel(team: ChickenTeam, color: ChickenColor): ChickenModelRig {
   const root = createAssetRoot(`Tactical chicken — ${team} — far LOD`);
   const parts: BufferGeometry[] = [];
   const addPart = (
@@ -159,11 +166,11 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     parts.push(geometry);
   };
 
-  addPart(createPearBody(8), '#f5c765', [0, 0, 0]);
+  addPart(createPearBody(8), CHICKEN_COLORS[color].feather, [0, 0, 0]);
   addPart(createSimpleBeak(), '#e9ad54', [0, 1.35, 0.06]);
   addPart(createComb(), '#f06b50', [0, 1.62, -0.07]);
   for (const side of [-1, 1]) {
-    addPart(new SphereGeometry(1, 5, 4), '#eab654', [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
+    addPart(new SphereGeometry(1, 5, 4), CHICKEN_COLORS[color].wing, [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
     addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [side * 0.17, 0.28, 0.015]);
     for (const toe of [-1, 0, 1]) {
       addPart(new SphereGeometry(1, 4, 3), '#df9c48', [side * 0.17 + toe * 0.065, 0.055, 0.105], [0.035, 0.035, 0.14], [0, toe * 0.48, 0]);
@@ -174,7 +181,7 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.26, 1.28, 0.312], [0.061, 0.035, 0.009]);
   }
   for (const side of [-1, 0, 1]) {
-    addPart(new SphereGeometry(1, 4, 3), '#eab654', [side * 0.14, 1.1, -0.44], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
+    addPart(new SphereGeometry(1, 4, 3), CHICKEN_COLORS[color].wing, [side * 0.14, 1.1, -0.44], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
   }
 
   const geometry = mergeGeometries(parts, false);
@@ -261,9 +268,9 @@ function createLeg(name: string, side: -1 | 1, orange: MeshStandardMaterial, _bo
 }
 
 /** Camera-mounted wing sleeves give the first-person view a matching chicken silhouette. */
-export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): ChickenArmsRig {
+export function createFirstPersonChickenArms(team: ChickenTeam = 'player', color: ChickenColor = 'yellow'): ChickenArmsRig {
   const root = createAssetRoot(`First-person chicken arms — ${team}`);
-  const feather = material('#f5c765', 0.91);
+  const feather = material(CHICKEN_COLORS[color].feather, 0.91);
   const cuff = material('#586b60', 0.9);
   const trim = material(TEAM_MARKINGS[team], 0.76);
   const eye = material('#df9c48', 0.82);

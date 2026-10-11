@@ -1,3 +1,5 @@
+import { CHICKEN_COLORS } from '../../content/assets/tactical-chicken.asset';
+import { chooseRoundTeamColors, type RoundTeamColors } from '../match/team-colors';
 import {
   BoxGeometry,
   BufferGeometry,
@@ -57,6 +59,7 @@ export type BotSkirmishViewOptions = Readonly<{
   countdownSeconds?: number;
   simulation?: BotSimulationOptions;
   rules?: Partial<BotSkirmishMatchRules>;
+  colorRandom?: () => number;
 }>;
 
 export type BotRenderDiagnostics = Readonly<{
@@ -88,6 +91,7 @@ export class BotSkirmishView {
   readonly simulation: BotSkirmishSimulation;
   readonly match: BotSkirmishMatch;
   readonly map: GeneratedMap;
+  readonly teamColors: RoundTeamColors;
   private readonly root = new Group();
   private readonly characters = new Map<string, ChickenCharacterView>();
   private sleepTime = 0;
@@ -132,6 +136,7 @@ export class BotSkirmishView {
     options: BotSkirmishViewOptions = {},
   ) {
     this.map = map;
+    this.teamColors = chooseRoundTeamColors(options.colorRandom);
     const seed = options.seed ?? map.source.seed;
     this.debrisRandom = createSeededRandom((seed ^ 0xd3b215) >>> 0);
     this.weaponRange = getWeaponDefinition(options.simulation?.weaponId ?? 'honk-47').range;
@@ -145,13 +150,13 @@ export class BotSkirmishView {
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
-    for (const team of ['friendly', 'enemy']) {
+    for (const team of ['friendly', 'enemy'] as const) {
       const area = this.match.safeArea(team);
-      const floor = new Mesh(this.ownGeometry(new PlaneGeometry(area.maxX - area.minX, area.maxZ - area.minZ)), this.ownMaterial(new MeshBasicMaterial({ color: team === 'friendly' ? '#58cfc0' : '#ef967a', transparent: true, opacity: 0.16, depthWrite: false })));
+      const floor = new Mesh(this.ownGeometry(new PlaneGeometry(area.maxX - area.minX, area.maxZ - area.minZ)), this.ownMaterial(new MeshBasicMaterial({ color: CHICKEN_COLORS[this.teamColors[team]].feather, transparent: true, opacity: 0.16, depthWrite: false })));
       floor.rotation.x = -Math.PI / 2;
       floor.position.set((area.minX + area.maxX) / 2, 0.06, 0);
       floor.name = `${team} safe spawn area`;
-      const boundary = new Line(this.ownGeometry(new BufferGeometry().setFromPoints([new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.minZ), new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.maxZ)])), this.ownMaterial(new LineBasicMaterial({ color: team === 'friendly' ? '#58cfc0' : '#ef967a' })));
+      const boundary = new Line(this.ownGeometry(new BufferGeometry().setFromPoints([new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.minZ), new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.maxZ)])), this.ownMaterial(new LineBasicMaterial({ color: CHICKEN_COLORS[this.teamColors[team]].feather })));
       this.root.add(floor, boundary);
     }
     this.buildDebrisPool();
@@ -567,7 +572,7 @@ export class BotSkirmishView {
   private addCharacters(): void {
     this.simulation.forEachBotState((bot) => {
       const team = bot.team as BotSide;
-      const character = new ChickenCharacterView(this.scene, team, 'third-person', 'far');
+      const character = new ChickenCharacterView(this.scene, team, 'third-person', 'far', this.teamColors[team]);
       character.object.name = `skirmish ${team} bot ${bot.id}`;
       character.object.position.copy(bot.position);
       character.object.visible = bot.status === 'alive';
@@ -650,7 +655,7 @@ export class BotSkirmishView {
         if (!view) {
           const allocated = this.corpseViews.size + this.pooledCorpseViews.friendly.length + this.pooledCorpseViews.enemy.length;
           if (allocated >= MAX_CORPSE_VIEWS) return;
-          view = new ChickenCharacterView(this.scene, corpse.team, 'third-person', 'far');
+          view = new ChickenCharacterView(this.scene, corpse.team, 'third-person', 'far', this.teamColors[corpse.team as BotSide]);
         } else {
           view.setPose({ dead: false });
         }
@@ -698,7 +703,7 @@ export class BotSkirmishView {
     const distance = shot.result.distance ?? this.weaponRange;
     const end = start.clone().addScaledVector(shot.result.direction, distance);
     const geometry = new BufferGeometry().setFromPoints([start, end]);
-    const teamColor = shooter.team === 'friendly' ? '#5ee0c7' : '#ff9168';
+    const teamColor = CHICKEN_COLORS[this.teamColors[shooter.team as BotSide]].feather;
     const material = new LineBasicMaterial({ color: teamColor, transparent: true, opacity: 0.86, depthWrite: false });
     const line = new Line(geometry, material);
     line.name = `${shooter.team} bot shot tracer`;

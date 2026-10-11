@@ -4,6 +4,10 @@
 
 Operation Honkdown: massive battles, total bird-brained chaos. Tactical, geared chickens fight across bright pastel urban streets. Low-poly silhouettes, frantic honking, flapping wings, high recoil, and dramatic ragdolls make the game funny without compromising readable shooting. All player-facing language is English.
 
+## Chicken team appearance
+
+The approved chicken uses a simple solid low-poly beak and bare feathered torso. Each round the friendly/player team is yellow; the opposing team's feathers are randomly green, red or blue. The chosen color stays fixed through respawns and corpse presentation, and matches safe-zone markings, tracers and HUD team names. Map generation and simulation seeds are independent of this visual color choice.
+
 ## Match flow
 
 Main menu → select map/loadout → join → map loads and player spawns at the team start → 20-second countdown → bots on both teams use varied routes toward the central objective → combat until capture or ticket exhaustion → damage/kills/healing/deaths leaderboards → XP and money → main menu.

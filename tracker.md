@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Round chicken colors — 2026-10-11
+
+User approved the simplified chicken visually ("Perfect"). Integrated its existing shared game model with whole-feather team palettes: friendly/player yellow, opposing team randomly green, red or blue once when each playable or spectator round is constructed. Color selection uses a separate random source, leaving seeded maps/simulation unchanged. Close/far, corpse creation/pooling and respawn use the round's fixed palette. Safe zones, tracers, friendly radar dots and HUD color names match. First-person feathers remain yellow. The asset viewer keeps the approved yellow model by default.
+
+Verification: `npm run check` passed (213 tests / 33 files, typecheck, build). New coverage checks all three selections, one roll per round with identical map seeds, actual bot/zone colors, and color preservation across LOD/damage/first-person presentation. Browser smoke at localhost:5191 launched a 100-bot Midtown round showing YELLOW versus RED and the revised yellow chickens, with no warning/error logs. Gameplay playtesting and sustained performance rerun remain open. Existing bundle warning 562.40 kB.
+
 ## Simple solid beak — 2026-10-11
 
 At the user's request replaced the multi-piece smiling bill with one compact solid six-triangle wedge in both LODs. Removed the mouth cavity and lower bill; all other chicken features are unchanged. Updated asset coverage for the single closed beak, absence of mouth/lower bill and embedded tapered root.
