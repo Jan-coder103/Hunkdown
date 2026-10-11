@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Chicken gear removal — 2026-10-11
+
+Removed the rear backpack, goggles, vest, pouches and shoulder straps, plus the colored belly team patch, at the user's request. Tail feathers are preserved. Both close/far now show a bare golden torso; far uses one merged mesh/draw instead of two. Removed the unused third-person teamMark rig contract; first-person bands/cuffs remain. Third-person birds no longer have colored team patches, as explicitly requested.
+
+Verification: `npm run check` passed (206 tests / 32 files, typecheck, build). Asset tests verify removed attachments, preserved tail and single-mesh far budget; existing bounds/animation/disposal tests passed. Inspected front and rear in the in-app viewer at localhost:5191; no warning/error logs. Existing bundle warning remains (562.14 kB). No new human approval or sustained performance profile claimed.
+
 ## Reference silhouette refinement — 2026-10-11
 
 Refined the shared chicken toward the latest supplied image: one continuous faceted pear-shaped torso/crown, a thick scalloped red crest, forward expressive eyes and cheek accents, and an open smile between upper/lower beak surfaces. Moved the vest/pouches/straps behind the golden chest, reduced wing cuffs and raised the tail fan. Team patch and animation pivots remain available; gameplay collision is unchanged. Close/far share the profile and crest; asset bounds include the taller comb. Far still uses two meshes and fewer than 1,300 triangles.

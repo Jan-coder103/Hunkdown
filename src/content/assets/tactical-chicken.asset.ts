@@ -28,7 +28,6 @@ export type ChickenModelRig = Readonly<{
   rightWing: Group;
   leftLeg: Group;
   rightLeg: Group;
-  teamMark: Mesh;
   featherMaterial: MeshStandardMaterial;
   ownedMaterials: readonly Material[];
 }>;
@@ -61,12 +60,11 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   const beakMaterial = material('#e9ad54', 0.78);
   const eyeMaterial = material('#49302a', 0.38);
   const eyeGlintMaterial = material('#fff7df', 0.34);
-  const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
   eyeMaterial.flatShading = false;
   eyeGlintMaterial.flatShading = false;
   const ownedMaterials = [
     feather, wingFeather, vest, vestDark, orange,
-    combMaterial, beakMaterial, eyeMaterial, eyeGlintMaterial, teamMaterial,
+    combMaterial, beakMaterial, eyeMaterial, eyeGlintMaterial,
   ];
   const spheroid = (
     name: string,
@@ -85,25 +83,9 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
     target.add(mesh);
     return mesh;
   };
-  const block = (
-    name: string,
-    size: readonly [number, number, number],
-    at: readonly [number, number, number],
-    finish: MeshStandardMaterial,
-    target = root,
-  ): Mesh => {
-    const mesh = new Mesh(new BoxGeometry(...size), finish);
-    mesh.name = name;
-    mesh.position.set(...at);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    target.add(mesh);
-    return mesh;
-  };
-
   // Overlapping egg volumes avoid a narrow neck and leave the face/comb uncovered.
   const body = new Group();
-  body.name = 'chicken body and tactical vest';
+  body.name = 'chicken body';
   body.position.set(0, 0.88, 0);
   root.add(body);
   const torso = new Mesh(createPearBody(12), feather);
@@ -112,14 +94,6 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   torso.castShadow = true;
   torso.receiveShadow = true;
   body.add(torso);
-  spheroid('tactical vest', [0.32, 0.19, 0.16], [0, -0.12, -0.31], vest, body);
-  block('left utility pouch', [0.17, 0.14, 0.07], [-0.25, -0.19, -0.35], vestDark, body);
-  block('right utility pouch', [0.17, 0.14, 0.07], [0.25, -0.19, -0.35], vestDark, body);
-  block('chest team marker', [0.18, 0.105, 0.035], [0, -0.08, 0.455], teamMaterial, body);
-  block('field pack', [0.3, 0.32, 0.16], [0, -0.02, -0.36], vestDark, body);
-  for (const side of [-1, 1]) {
-    block('shoulder strap', [0.055, 0.3, 0.05], [side * 0.32, 0.03, -0.25], vestDark, body).rotation.z = side * 0.24;
-  }
   for (const side of [-1, 0, 1]) {
     const tail = spheroid('tail feather', [0.12, 0.28, 0.1], [side * 0.14, 0.22, -0.44], wingFeather, body);
     tail.rotation.x = -0.6;
@@ -146,20 +120,14 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   comb.position.set(0, 0.27, -0.13);
   comb.castShadow = true;
   head.add(comb);
-  // Raised goggles move to the pack; the expressive eyes remain unobstructed.
-  block('goggle frame', [0.27, 0.08, 0.04], [0, 0.09, -0.45], vestDark, body);
-  const lens = material('#8dbdb4', 0.28, 0.14);
-  ownedMaterials.push(lens);
-  block('goggle lens', [0.21, 0.04, 0.02], [0, 0.09, -0.48], lens, body);
-
   const leftWing = createWing('left chicken wing', -1, wingFeather, vest, close, root);
   const rightWing = createWing('right chicken wing', 1, wingFeather, vest, close, root);
   const leftLeg = createLeg('left leg', -1, orange, vestDark, root, close);
   const rightLeg = createLeg('right leg', 1, orange, vestDark, root, close);
-  return { root, body, head, leftWing, rightWing, leftLeg, rightLeg, teamMark: root.getObjectByName('chest team marker') as Mesh, featherMaterial: feather, ownedMaterials };
+  return { root, body, head, leftWing, rightWing, leftLeg, rightLeg, featherMaterial: feather, ownedMaterials };
 }
 
-/** One vertex-colored silhouette plus a team patch keeps the far tier at two draw calls. */
+/** One vertex-colored silhouette keeps the far tier at one draw call. */
 function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   const root = createAssetRoot(`Tactical chicken — ${team} — far LOD`);
   const parts: BufferGeometry[] = [];
@@ -189,7 +157,6 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   };
 
   addPart(createPearBody(8), '#f5c765', [0, 0, 0]);
-  addPart(new SphereGeometry(1, 6, 4), '#586b60', [0, 0.76, -0.31], [0.32, 0.19, 0.16]);
   addPart(new SphereGeometry(1, 6, 4), '#49302a', [0, 1.235, 0.475], [0.15, 0.075, 0.065]);
   addPart(new SphereGeometry(1, 6, 4), '#e9ad54', [0, 1.305, 0.46], [0.17, 0.055, 0.13]);
   addPart(new SphereGeometry(1, 5, 3), '#e9ad54', [0, 1.17, 0.465], [0.13, 0.04, 0.1]);
@@ -221,12 +188,6 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   silhouette.receiveShadow = false;
   root.add(silhouette);
 
-  const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
-  const teamMark = new Mesh(new BoxGeometry(0.18, 0.1, 0.04), teamMaterial);
-  teamMark.name = 'chest team marker';
-  teamMark.position.set(0, 0.8, 0.455);
-  root.add(teamMark);
-
   const body = new Group();
   const head = new Group();
   const leftWing = new Group();
@@ -241,9 +202,8 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     rightWing,
     leftLeg,
     rightLeg,
-    teamMark,
     featherMaterial,
-    ownedMaterials: [featherMaterial, teamMaterial],
+    ownedMaterials: [featherMaterial],
   };
 }
 

@@ -83,7 +83,7 @@ describe('generated asset pipeline', () => {
     expect(ASSET_DEFINITIONS.some((asset) => asset.id.includes('placeholder') || asset.displayName.toLowerCase().includes('placeholder'))).toBe(false);
   });
 
-  it('builds a recognizable tactical chicken with team markings and reduced far detail', () => {
+  it('builds a recognizable chicken without rear gear or belly patches and with reduced far detail', () => {
     const close = createTacticalChickenModel('enemy', 'close');
     const far = createTacticalChickenModel('friendly', 'far');
     const closeNames = new Set<string>();
@@ -92,18 +92,12 @@ describe('generated asset pipeline', () => {
     let farMeshes = 0;
     close.root.traverse((object) => { if (object instanceof Mesh) closeMeshes += 1; });
     far.root.traverse((object) => { if (object instanceof Mesh) farMeshes += 1; });
-    const enemyMark = close.teamMark.material;
-    const friendlyMark = far.teamMark.material;
-    if (!(enemyMark instanceof MeshStandardMaterial) || !(friendlyMark instanceof MeshStandardMaterial)) {
-      throw new Error('Team markings should use standard materials');
-    }
-
     expect(closeNames).toContain('orange beak');
     expect(closeNames).toContain('red comb');
-    expect(closeNames).toContain('tactical vest');
-    expect(closeNames).toContain('goggle lens');
-    expect(enemyMark.color.getHexString()).toBe('d96d64');
-    expect(friendlyMark.color.getHexString()).toBe('55b8a0');
+    for (const name of ['tactical vest', 'field pack', 'goggle lens', 'goggle frame', 'shoulder strap', 'left utility pouch', 'right utility pouch', 'chest team marker']) {
+      expect(closeNames).not.toContain(name);
+    }
+    expect(closeNames).toContain('tail feather');
     expect(closeMeshes).toBeGreaterThan(farMeshes);
 
     for (const rig of [close, far]) {
@@ -127,8 +121,6 @@ describe('generated asset pipeline', () => {
     expect(pupil.max.z).toBeGreaterThan(white.max.z);
     expect(beak.max.z).toBeGreaterThan(pupil.max.z);
     expect(box('red comb').max.y).toBeGreaterThan(box('feathered body').max.y);
-    expect(box('tactical vest').max.y).toBeLessThan(white.min.y);
-    expect(box('tactical vest').max.z).toBeLessThan(0);
     expect(box('red comb').getSize(new Vector3()).z).toBeGreaterThan(0.4);
     const torso = close.getObjectByName('feathered body') as Mesh;
     const vertices = torso.geometry.getAttribute('position');
@@ -154,7 +146,7 @@ describe('generated asset pipeline', () => {
       farMeshes += 1;
       farTriangles += (part.geometry.index?.count ?? part.geometry.getAttribute('position').count) / 3;
     });
-    expect(farMeshes).toBe(2);
+    expect(farMeshes).toBe(1);
     expect(farTriangles).toBeLessThan(1300);
     asset.dispose();
   });
