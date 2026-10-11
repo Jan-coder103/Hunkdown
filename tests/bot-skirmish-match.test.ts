@@ -60,7 +60,7 @@ describe('bot skirmish match start', () => {
     expect(match.scoreSnapshots.map((score) => score.id)).toEqual(['enemy-001', 'player']);
   });
 
-  it('holds bots at their spawns during countdown, then advances the battle', () => {
+  it('wanders within safe spawn zones during countdown, then advances the battle', () => {
     const map = generateMap(createEmptyMap({ width: 4, height: 3, seed: 44, cellSize: 4 }));
     const match = new BotSkirmishMatch(
       map,
@@ -72,12 +72,14 @@ describe('bot skirmish match start', () => {
     const waitingStep = match.step(19.9);
     expect(match.matchState).toBe('countdown');
     expect(waitingStep.shots).toHaveLength(0);
-    expect(match.simulation.snapshots.map((bot) => bot.position)).toEqual(initial.map((bot) => bot.position));
+    expect(match.simulation.snapshots.every(bot => match.isInSafeArea(bot.team, bot.position))).toBe(true);
+    expect(match.simulation.snapshots.some((bot, index) => bot.position.x !== initial[index]!.position.x || bot.position.z !== initial[index]!.position.z)).toBe(true);
     expect(match.countdown.secondsRemaining).toBeCloseTo(0.1);
 
     match.step(0.1);
     expect(match.matchState).toBe('active');
-    expect(match.simulation.snapshots.map((bot) => bot.position)).toEqual(initial.map((bot) => bot.position));
+    expect(match.simulation.snapshots.every(bot => match.isInSafeArea(bot.team, bot.position))).toBe(true);
+    expect(match.simulation.snapshots.some((bot, index) => bot.position.x !== initial[index]!.position.x || bot.position.z !== initial[index]!.position.z)).toBe(true);
     for (let step = 0; step < 60; step += 1) match.step(1 / 60);
     expect(match.simulation.snapshots.some((bot, index) => {
       const spawn = initial[index];

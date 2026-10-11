@@ -197,6 +197,35 @@ describe('application match flow', () => {
     } finally { app.dispose(); }
   });
 
+  it('shows grenade inventory and a filling restock ring that pauses with the game', () => {
+    const { app, frame, element, windowTarget, documentTarget } = createHarness();
+    try {
+      element('menu-range-button').click(); frame(); frame();
+      documentTarget.pointerLockElement = harness.canvas as never;
+      documentTarget.dispatchEvent(new Event('pointerlockchange'));
+      windowTarget.dispatchEvent(makeKeyEvent('keydown', 'KeyG'));
+      documentTarget.dispatchEvent(Object.assign(new Event('mousedown'), { button: 0 }));
+      frame(); frame();
+      documentTarget.dispatchEvent(Object.assign(new Event('mouseup'), { button: 0 }));
+      windowTarget.dispatchEvent(makeKeyEvent('keyup', 'KeyG'));
+      expect(element('grenade-count').textContent).toBe('1 / 2');
+      expect(element('grenade-restock-countdown').textContent).toBe('30');
+      for (let i = 0; i < 750; i++) frame();
+      const progress = Number(element('grenade-restock-ring').attributes.get('stroke-dasharray')!.split(' ')[0]);
+      expect(progress).toBeGreaterThan(49);
+      expect(progress).toBeLessThan(51);
+      const countdown = element('grenade-restock-countdown').textContent;
+      app.runtime.pause();
+      for (let i = 0; i < 100; i++) frame();
+      expect(element('grenade-restock-countdown').textContent).toBe(countdown);
+      app.runtime.resume();
+      for (let i = 0; i < 760; i++) frame();
+      expect(element('grenade-count').textContent).toBe('2 / 2');
+      expect(element('grenade-restock-countdown').textContent).toBe('✓');
+      expect(element('grenade-restock-ring').attributes.get('stroke-dasharray')).toBe('100 100');
+    } finally { app.dispose(); }
+  });
+
   it('opens the shooting range from the ready room and returns to it from pause', () => {
     const { app, frame, element, windowTarget } = createHarness();
     try {

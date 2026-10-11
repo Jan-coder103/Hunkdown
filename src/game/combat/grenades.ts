@@ -4,6 +4,7 @@ import { areOpponents, Combatant } from './combatant';
 
 export const GRENADE_RULES = Object.freeze({
   startingCount: 2,
+  restockSeconds: 30,
   fuseSeconds: 2.2,
   blastRadius: 4.2,
   maximumDamage: 90,
@@ -31,15 +32,22 @@ export class GrenadeSystem {
   readonly projectiles: Vector3[] = [];
   private readonly active: Projectile[] = [];
   private remaining: number = GRENADE_RULES.startingCount;
+  private restockElapsed = 0;
   equipped = false;
 
   get count(): number {
     return this.remaining;
   }
 
+  get restockSecondsRemaining(): number | null {
+    return this.remaining >= GRENADE_RULES.startingCount ? null : GRENADE_RULES.restockSeconds - this.restockElapsed;
+  }
+  get restockProgress(): number { return this.remaining >= GRENADE_RULES.startingCount ? 1 : this.restockElapsed / GRENADE_RULES.restockSeconds; }
+
   /** Refill carried grenades without removing projectiles already in the world. */
   resetForRespawn(): void {
     this.remaining = GRENADE_RULES.startingCount;
+    this.restockElapsed = 0;
     this.equipped = false;
   }
 
@@ -105,9 +113,17 @@ export class GrenadeSystem {
 
   update(deltaSeconds: number, world: MovementWorld, combatants: readonly Combatant[], shooterTeam: Combatant['team']): readonly GrenadeExplosion[] {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return [];
+    if (this.remaining < GRENADE_RULES.startingCount) {
+      this.restockElapsed += deltaSeconds;
+      while (this.restockElapsed >= GRENADE_RULES.restockSeconds - 1e-9 && this.remaining < GRENADE_RULES.startingCount) {
+        this.remaining += 1;
+        this.restockElapsed = Math.max(0, this.restockElapsed - GRENADE_RULES.restockSeconds);
+      }
+      if (this.remaining === GRENADE_RULES.startingCount) this.restockElapsed = 0;
+    }
     const explosions: GrenadeExplosion[] = [];
     let remainingTime = deltaSeconds;
-    while (remainingTime > 0) {
+    while (remainingTime > 0 && this.active.length > 0) {
       const stepSeconds = Math.min(1 / 60, remainingTime);
       this.updateProjectiles(stepSeconds, world, combatants, shooterTeam, explosions);
       remainingTime -= stepSeconds;

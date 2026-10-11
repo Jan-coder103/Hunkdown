@@ -58,6 +58,54 @@ describe('requested shooter features', () => {
     input.dispose();
   });
 
+  it('halves safe-zone area, spawns 100 bots inside, and wanders slowly without combat or escape', () => {
+    const generated = map();
+    const match = new BotSkirmishMatch(generated, { friendlyCount: 50, enemyCount: 50 });
+    const area = match.safeArea('friendly');
+    const formerWidth = (Math.floor((generated.source.width - 1) * 0.36) + 1) * generated.source.cellSize;
+    expect(area.maxX - area.minX).toBe(formerWidth / 2);
+    const before = match.simulation.snapshots;
+    for (const actor of match.simulation.combatants) expect(match.isInSafeArea(actor.team, actor.position)).toBe(true);
+    expect(match.step(1).shots).toHaveLength(0);
+    expect(match.simulation.snapshots.some((bot, i) => Math.hypot(bot.position.x - before[i]!.position.x, bot.position.z - before[i]!.position.z) > 0.1)).toBe(true);
+    for (const [i, bot] of match.simulation.snapshots.entries()) {
+      expect(Math.hypot(bot.position.x - before[i]!.position.x, bot.position.z - before[i]!.position.z)).toBeLessThanOrEqual(0.751);
+    }
+    match.step(18);
+    for (const actor of match.simulation.combatants) {
+      expect(match.isInSafeArea(actor.team, actor.position)).toBe(true);
+      expect(actor.health).toBe(100);
+      actor.damageProtected = () => false;
+      actor.applyDamage(100);
+      expect(match.simulation.respawnBot(actor.id)).toBe(true);
+      expect(match.isInSafeArea(actor.team, actor.position)).toBe(true);
+    }
+  });
+
+  it('restocks one grenade every 30 seconds up to two without banking time while full', () => {
+    const grenades = new GrenadeSystem();
+    grenades.update(60, world(), [], 'friendly');
+    grenades.toggleEquipped(); grenades.throw(origin, direction);
+    expect(grenades.restockSecondsRemaining).toBeCloseTo(30);
+    grenades.update(15, world(), [], 'friendly');
+    expect(grenades.restockProgress).toBeCloseTo(0.5);
+    grenades.throw(origin, direction);
+    expect(grenades.count).toBe(0);
+    grenades.update(14.99, world(), [], 'friendly');
+    expect(grenades.count).toBe(0);
+    grenades.update(0.01, world(), [], 'friendly');
+    expect(grenades.count).toBe(1);
+    expect(grenades.restockSecondsRemaining).toBeCloseTo(30);
+    grenades.update(30, world(), [], 'friendly');
+    expect(grenades.count).toBe(2);
+    expect(grenades.restockSecondsRemaining).toBeNull();
+    grenades.toggleEquipped(); grenades.throw(origin, direction);
+    grenades.update(10, world(), [], 'friendly');
+    grenades.resetForRespawn();
+    expect(grenades.restockSecondsRemaining).toBeNull();
+    expect(grenades.count).toBe(2);
+  });
+
   it('protects both team spawn areas and permits damage as soon as an actor leaves', () => {
     const match = new BotSkirmishMatch(map(), { friendlyCount: 1, enemyCount: 1 });
     for (const actor of match.simulation.combatants) {

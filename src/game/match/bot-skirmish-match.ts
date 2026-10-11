@@ -1,3 +1,4 @@
+import { teamSafeArea } from './safe-area';
 import type { GeneratedMap } from '../world/map-generator';
 import { BotSkirmishSimulation, createBotSkirmish, type BotRosterOptions, type BotSide, type BotSimulationOptions, type BotSimulationStep } from '../bots/bot-simulation';
 import { CapturePoint, type CapturePointSnapshot } from './capture-point';
@@ -94,11 +95,7 @@ export class BotSkirmishMatch {
   safeArea(team: string): Readonly<{ minX: number; maxX: number; minZ: number; maxZ: number }> {
     const cached = this.safeAreas.get(team);
     if (cached) return cached;
-    const { width, height, cellSize } = this.simulation.map.source;
-    const edge = width * cellSize / 2;
-    const boundary = ((Math.floor((width - 1) * 0.36) + 1) - width / 2) * cellSize;
-    const area = Object.freeze({ minX: team === 'enemy' ? -boundary : -edge, maxX: team === 'enemy' ? edge : boundary,
-      minZ: -height * cellSize / 2, maxZ: height * cellSize / 2 });
+    const area = teamSafeArea(this.simulation.map, team);
     this.safeAreas.set(team, area);
     return area;
   }
@@ -268,6 +265,7 @@ export class BotSkirmishMatch {
     let activeDelta = deltaSeconds;
     if (this.state === 'countdown') {
       const countdownBefore = this.countdown.secondsRemaining;
+      if (Number.isFinite(deltaSeconds) && deltaSeconds > 0) this.simulation.walkDuringCountdown(Math.min(deltaSeconds, countdownBefore));
       this.countdown.update(deltaSeconds);
       if (!this.countdown.isComplete) return EMPTY_STEP;
       this.state = 'active';

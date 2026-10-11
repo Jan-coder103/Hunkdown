@@ -1,3 +1,4 @@
+import { teamSafeArea, containsSafeArea } from '../match/safe-area';
 import { createSeededRandom, type RandomSource } from '../../engine/seeded-random';
 import { getWeaponDefinition } from '../../content/weapons/registry';
 import { resolveHitscan, type HitscanResult } from '../combat/hitscan';
@@ -15,6 +16,7 @@ export type BotSpawn = Readonly<{
   id: string;
   team: BotSide;
   cell: GridPoint;
+  position?: Readonly<{ x: number; y: number; z: number }>;
 }>;
 
 export type BotRosterOptions = Readonly<{
@@ -101,15 +103,22 @@ export function createMapBotRoster(map: GeneratedMap, options: BotRosterOptions)
   const objective = navigation.nearestCell({ x: 0, z: 0 });
   if (!objective) throw new Error('Cannot create a bot roster for a map with no navigable cells');
   const connected = navigation.reachableCells(objective);
-  const friendlyBoundary = Math.floor((map.source.width - 1) * 0.36);
-  const enemyBoundary = Math.ceil((map.source.width - 1) * 0.64);
-  const friendlyCells = connected.filter((cell) => cell.x <= friendlyBoundary);
-  const enemyCells = connected.filter((cell) => cell.x >= enemyBoundary);
+  const friendlyArea = teamSafeArea(map, 'friendly');
+  const enemyArea = teamSafeArea(map, 'enemy');
+  const friendlyCells = connected.filter(cell => containsSafeArea(friendlyArea, worldPosition(map.source, cell)));
+  const enemyCells = connected.filter(cell => containsSafeArea(enemyArea, worldPosition(map.source, cell)));
   const roster: BotSpawn[] = [];
 
-  appendSide('friendly', options.friendlyCount, friendlyCells.length > 0 ? friendlyCells : connected, seed, roster);
-  appendSide('enemy', options.enemyCount, enemyCells.length > 0 ? enemyCells : connected, seed ^ 0x9e3779b9, roster);
-  return Object.freeze(roster);
+  appendSide('friendly', options.friendlyCount, friendlyCells, seed, roster);
+  appendSide('enemy', options.enemyCount, enemyCells, seed ^ 0x9e3779b9, roster);
+  return Object.freeze(roster.map(spawn => {
+    const position = navigation.worldPosition(spawn.cell)!;
+    const area = spawn.team === 'friendly' ? friendlyArea : enemyArea;
+    return Object.freeze({ ...spawn, position: Object.freeze({
+      x: Math.max(area.minX + 0.38, Math.min(area.maxX - 0.38, position.x)), y: position.y,
+      z: Math.max(area.minZ + 0.38, Math.min(area.maxZ - 0.38, position.z)),
+    }) });
+  }));
 }
 
 /** A data-only two-team skirmish runner. Match timers, tickets, and respawns are deliberately separate. */
@@ -152,7 +161,7 @@ export class BotSkirmishSimulation {
       if (ids.has(spawn.id)) throw new Error(`Duplicate bot id: ${spawn.id}`);
       ids.add(spawn.id);
       if (spawn.team !== 'friendly' && spawn.team !== 'enemy') throw new Error(`Bot ${spawn.id} must belong to a battle team`);
-      const position = this.navigation.worldPosition(spawn.cell);
+      const position = spawn.position ?? this.navigation.worldPosition(spawn.cell);
       if (!position) throw new Error(`Bot ${spawn.id} spawn cell (${spawn.cell.x}, ${spawn.cell.y}) is not navigable`);
       const combatant = new Combatant(spawn.id, spawn.team, position);
       const botSeed = seedFromString(`${seed}:${spawn.id}`);
@@ -227,7 +236,7 @@ export class BotSkirmishSimulation {
   reviveBot(id: string, healthFraction = 0.5): boolean {
     const actor = this.actors.find((candidate) => candidate.combatant.id === id);
     if (actor) {
-      const spawn = this.navigation.worldPosition(actor.spawn.cell);
+      const spawn = actor.spawn.position ?? this.navigation.worldPosition(actor.spawn.cell);
       if (!spawn || !actor.combatant.revive(healthFraction)) return false;
       actor.combatant.position.set(spawn.x, spawn.y, spawn.z);
       this.resetActorAfterLifecycle(actor);
@@ -244,7 +253,7 @@ export class BotSkirmishSimulation {
   respawnBot(id: string): boolean {
     const actor = this.actors.find((candidate) => candidate.combatant.id === id);
     if (actor) {
-      const spawn = this.navigation.worldPosition(actor.spawn.cell);
+      const spawn = actor.spawn.position ?? this.navigation.worldPosition(actor.spawn.cell);
       if (!spawn || !actor.combatant.respawn(spawn)) return false;
       actor.weapon.resetForRespawn();
       this.resetActorAfterLifecycle(actor);
@@ -253,6 +262,36 @@ export class BotSkirmishSimulation {
     const player = this.playerCombatant;
     const home = player?.id === id ? this.playerSpawn : null;
     return !!player && !!home && player.respawn(home);
+  }
+
+  private warmupTime = 0;
+  /** Slow deterministic wandering, with collision and no combat or lifecycle advancement. */
+  walkDuringCountdown(deltaSeconds: number): void {
+    if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
+    const areas = { friendly: teamSafeArea(this.map, 'friendly'), enemy: teamSafeArea(this.map, 'enemy') };
+    let remaining = deltaSeconds;
+    while (remaining > 1e-9) {
+      const dt = Math.min(1 / 30, remaining);
+      this.warmupTime += dt;
+      this.actors.forEach((actor, index) => {
+        const bot = actor.combatant;
+        if (bot.status !== 'alive') return;
+        const home = actor.spawn.position ?? this.navigation.worldPosition(actor.spawn.cell)!;
+        const phase = this.warmupTime * 0.28 + index * 2.4;
+        const targetX = home.x + Math.cos(phase) * 1.1;
+        const targetZ = home.z + Math.sin(phase) * 1.1;
+        const dx = targetX - bot.position.x, dz = targetZ - bot.position.z;
+        const distance = Math.hypot(dx, dz);
+        if (distance < 0.01) return;
+        const travel = Math.min(distance, 0.75 * dt);
+        const moved = this.world.moveHorizontal(bot.position.x, bot.position.z, dx / distance * travel, dz / distance * travel, bot.position.y, bot.height, bot.radius);
+        const area = areas[actor.spawn.team];
+        bot.position.x = Math.max(area.minX + bot.radius, Math.min(area.maxX - bot.radius, moved.x));
+        bot.position.z = Math.max(area.minZ + bot.radius, Math.min(area.maxZ - bot.radius, moved.z));
+        bot.position.y = this.groundHeightAt(bot.position.x, bot.position.z);
+      });
+      remaining -= dt;
+    }
   }
 
   step(deltaSeconds: number): BotSimulationStep {

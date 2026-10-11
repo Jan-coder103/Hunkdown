@@ -22,6 +22,15 @@ Updated: 2026-10-11.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
 
+## Smaller safe zones, countdown wandering and grenade restock — 2026-10-11
+
+- Halved each safe region's area by halving its width and preserving depth. Shared geometry selects connected spawn cells and places all bots fully within the smaller boundaries, including respawns/revives. Bots whose selected cell lies on the boundary receive an inward body-radius offset.
+- Countdown bots wander slowly around seeded spawn anchors at up to 0.75 m/s, with collision and safe-zone confinement; no shooting or active-match lifecycle advancement occurs during warmup.
+- Added a procedural SVG rifle symbol beside weapon/ammunition, plus a separate grenade count above ammo. A filling SVG circle shows seconds until the next restock and a full/ready check when stocked.
+- Grenades replenish sequentially every 30 simulation seconds while below the two-grenade capacity. Throwing the second grenade preserves progress, full inventory does not bank timer credit, pause stops the clock, death does not stop it, and respawn refills/resets as before.
+
+Verification: `npm run check` passed, 205 tests across 32 files, strict type checking and production build. New tests cover half-area geometry, 100-bot initial spawn and respawn confinement, slow warmup movement without damage/fire, one-at-a-time replenishment/cap/reset/no banked credit, and actual mounted-app grenade inventory/ring/countdown/pause/completion. Updated the prior countdown regression to expect wandering. Browser smoke at localhost:5190 in the Codex in-app browser (1280 × 720) confirmed live smaller-zone match and rifle/grenade HUD without warning/error logs. No human gameplay approval or sustained performance rerun claimed; replenishment timing was driven by automated integration rather than a manual 30-second throw/restock playtest. Existing 561.74 kB shared bundle warning remains.
+
 ## Requested shooter gameplay and presentation — 2026-10-11
 
 Implemented all six requested changes:

@@ -323,3 +323,14 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .interaction-hint { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); font-size: 12px; text-align: center; max-width: 380px; }
 .range-summary { position: absolute; top: 190px; left: 20px; max-width: 140px; font-size: 11px; line-height: 1.5; color: #f3f5de; }
 .range-summary[hidden] { display: none; }
+
+.rifle-symbol { width: 62px; height: 22px; color: #cce5d8; float: left; margin-bottom: 4px; }
+.grenade-display { position: absolute; bottom: 150px; right: 28px; display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-radius: 10px; background: #183b35cc; font-size: 18px; font-weight: 800; }
+.grenade-symbol { display: inline-block; color: #c0d587; border-top: 5px solid #c0d587; border-radius: 6px 6px 50% 50%; font-size: 24px; line-height: 18px; }
+.grenade-display svg { width: 44px; height: 44px; }
+.grenade-display circle { fill: none; stroke-width: 3; }
+.restock-track { stroke: #567066; }
+#grenade-restock-ring { stroke: #e8cf7a; transform: rotate(-90deg); transform-origin: center; transition: stroke-dasharray .1s linear; }
+.grenade-display text { fill: #fff3c7; font-size: 13px; font-weight: 800; text-shadow: none; }
+@media(max-width:760px) { .grenade-display { right: 12px; bottom: 145px; } }
+#ammo-display { clear: both; white-space: nowrap; }

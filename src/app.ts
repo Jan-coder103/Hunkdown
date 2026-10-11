@@ -48,7 +48,8 @@ export function mountApp(root: HTMLElement) {
         <div class="radar"><svg id="radar-map" viewBox="-50 -50 100 100" aria-label="Squad radar"></svg><span>SQUAD RADAR · N ↑</span></div>
         <output id="match-strip" class="match-strip"></output>
         <output id="health-display" class="health-display"></output>
-        <div class="ammo-display"><span id="hud-weapon-name" class="hud-weapon-name"></span><output id="ammo-display"></output><small id="hud-ammo-note"></small></div>
+        <div class="grenade-display"><span class="grenade-symbol" aria-hidden="true">●</span><output id="grenade-count"></output><svg viewBox="0 0 44 44" aria-label="Grenade restock timer"><circle class="restock-track" cx="22" cy="22" r="18"/><circle id="grenade-restock-ring" cx="22" cy="22" r="18" pathLength="100"/><text id="grenade-restock-countdown" x="22" y="26" text-anchor="middle"></text></svg></div>
+        <div class="ammo-display"><svg class="rifle-symbol" viewBox="0 0 100 30" aria-label="Rifle"><path fill="currentColor" d="M2 12h19l5-5h42v5h25v-3h5v10H68v3H48l-4 7H34l3-12H22L9 25H2zm43 5 8 1 5 11H47z"/></svg><span id="hud-weapon-name" class="hud-weapon-name"></span><output id="ammo-display"></output><small id="hud-ammo-note"></small></div>
         <output id="interaction-hint" class="interaction-hint"></output>
         <output id="range-summary" class="range-summary"></output>
       </section>
@@ -575,11 +576,16 @@ export function mountApp(root: HTMLElement) {
           const countdown = skirmishView?.match;
           roundCountdown.hidden = !menuEl.hidden || resultsShown || !countdown || countdown.matchState !== 'countdown';
           if (!roundCountdown.hidden && countdown) roundCountdown.textContent = `Round starts in ${Math.ceil(countdown.countdown.secondsRemaining)}`;
+          const grenades = combat?.grenades;
+          root.querySelector<HTMLElement>('#grenade-count')!.textContent = `${grenades?.count ?? 0} / 2`;
+          const restock = grenades?.restockSecondsRemaining;
+          root.querySelector<HTMLElement>('#grenade-restock-countdown')!.textContent = restock == null ? '✓' : String(Math.ceil(restock));
+          root.querySelector<SVGElement>('#grenade-restock-ring')!.setAttribute('stroke-dasharray', `${(grenades?.restockProgress ?? 1) * 100} 100`);
           const ammo = combat?.weapon.snapshot;
           const knife = combat?.heldWeapon === 'knife';
           root.querySelector<HTMLElement>('#hud-weapon-name')!.textContent = combat?.switchRemaining ? 'SWITCHING…' : combat?.grenades.equipped ? 'FRAG GRENADE' : knife ? 'TACTICAL KNIFE' : 'HONK-47';
           root.querySelector<HTMLElement>('#ammo-display')!.textContent = combat?.grenades.equipped ? String(combat.grenades.count) : knife ? '▱' : `${ammo?.magazine ?? 0} / ${ammo?.reserve ?? 0}`;
-          root.querySelector<HTMLElement>('#hud-ammo-note')!.textContent = ammo?.reloading ? 'RELOADING' : knife ? '25% movement boost · WHEEL switch' : `G · ${combat?.grenades.count ?? 0} grenades   WHEEL · knife`;
+          root.querySelector<HTMLElement>('#hud-ammo-note')!.textContent = ammo?.reloading ? 'RELOADING' : knife ? '25% movement boost · WHEEL switch' : 'WHEEL · knife   R · reload';
           root.querySelector<HTMLElement>('#interaction-hint')!.textContent = reviveReadout.hidden ? (!pointerControls?.isLocked ? 'Click to capture mouse · ESC pause' : '') : reviveReadout.textContent;
           const rangeSummary = root.querySelector<HTMLElement>('#range-summary')!;
           rangeSummary.hidden = isPlayerMatchMode || isSkirmishMode;
