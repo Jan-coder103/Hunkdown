@@ -126,8 +126,19 @@ describe('generated asset pipeline', () => {
     expect(white.getSize(new Vector3()).x).toBeGreaterThan(pupil.getSize(new Vector3()).x * 1.4);
     expect(pupil.max.z).toBeGreaterThan(white.max.z);
     expect(beak.max.z).toBeGreaterThan(pupil.max.z);
-    expect(box('red comb').max.y).toBeGreaterThan(box('feathered head').max.y);
+    expect(box('red comb').max.y).toBeGreaterThan(box('feathered body').max.y);
     expect(box('tactical vest').max.y).toBeLessThan(white.min.y);
+    expect(box('tactical vest').max.z).toBeLessThan(0);
+    expect(box('red comb').getSize(new Vector3()).z).toBeGreaterThan(0.4);
+    const torso = close.getObjectByName('feathered body') as Mesh;
+    const vertices = torso.geometry.getAttribute('position');
+    const widths = { belly: 0, crown: 0 };
+    for (let i = 0; i < vertices.count; i += 1) {
+      const height = vertices.getY(i);
+      if (height > 0.7 && height < 1) widths.belly = Math.max(widths.belly, Math.abs(vertices.getX(i)));
+      if (height > 1.5) widths.crown = Math.max(widths.crown, Math.abs(vertices.getX(i)));
+    }
+    expect(widths.belly).toBeGreaterThan(widths.crown * 1.7);
     const toes: Mesh[] = [];
     close.traverse((part) => { if (part instanceof Mesh && part.name === 'foot toe') toes.push(part); });
     expect(toes).toHaveLength(6);

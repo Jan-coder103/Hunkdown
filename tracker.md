@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Reference silhouette refinement — 2026-10-11
+
+Refined the shared chicken toward the latest supplied image: one continuous faceted pear-shaped torso/crown, a thick scalloped red crest, forward expressive eyes and cheek accents, and an open smile between upper/lower beak surfaces. Moved the vest/pouches/straps behind the golden chest, reduced wing cuffs and raised the tail fan. Team patch and animation pivots remain available; gameplay collision is unchanged. Close/far share the profile and crest; asset bounds include the taller comb. Far still uses two meshes and fewer than 1,300 triangles.
+
+Verification: `npm run check` passed (206 tests / 32 files, type checking, production build). Extended spatial coverage for belly/crown proportions, crest depth and unobstructed chest; existing bounds, team, animation, disposal and budget checks passed. Inspected both tiers in the Codex in-app viewer at localhost:5191; warning/error logs were empty. Existing bundle warning remains (563.03 kB). Human visual approval, hands-on animation review and sustained 100-bot profiling remain open.
+
 ## Cartoon chicken revision — 2026-10-11
 
 Updated the shared TypeScript chicken asset from the user's two visual references: overlapping golden egg-shaped body/head, oversized white eyes with brown pupils and glints, exposed red comb, smiling beak/wattles, cheek accents, tail feathers and six splayed toes. Reduced the vest/pack, moved raised goggles to the pack, retained team markings and animation pivots, and matched first-person feather color. Both LODs follow the new silhouette; far remains a single vertex-colored mesh plus team patch (two draws, under 1,300 triangles). Gameplay hit volumes are unchanged; asset bounds include the new tail.

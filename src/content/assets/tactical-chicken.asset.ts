@@ -2,9 +2,12 @@ import {
   BoxGeometry,
   BufferGeometry,
   Color,
-  ConeGeometry,
   CylinderGeometry,
   Float32BufferAttribute,
+  ExtrudeGeometry,
+  LatheGeometry,
+  Shape,
+  Vector2,
   Group,
   Mesh,
   MeshStandardMaterial,
@@ -103,17 +106,22 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   body.name = 'chicken body and tactical vest';
   body.position.set(0, 0.88, 0);
   root.add(body);
-  spheroid('feathered body', [0.5, 0.63, 0.43], [0, 0, 0], feather, body, 10);
-  spheroid('tactical vest', [0.43, 0.22, 0.38], [0, -0.15, 0.015], vest, body);
-  block('left utility pouch', [0.17, 0.14, 0.07], [-0.2, -0.19, 0.36], vestDark, body);
-  block('right utility pouch', [0.17, 0.14, 0.07], [0.2, -0.19, 0.36], vestDark, body);
-  block('chest team marker', [0.18, 0.105, 0.035], [0, -0.08, 0.395], teamMaterial, body);
+  const torso = new Mesh(createPearBody(12), feather);
+  torso.name = 'feathered body';
+  torso.position.y = -0.88;
+  torso.castShadow = true;
+  torso.receiveShadow = true;
+  body.add(torso);
+  spheroid('tactical vest', [0.32, 0.19, 0.16], [0, -0.12, -0.31], vest, body);
+  block('left utility pouch', [0.17, 0.14, 0.07], [-0.25, -0.19, -0.35], vestDark, body);
+  block('right utility pouch', [0.17, 0.14, 0.07], [0.25, -0.19, -0.35], vestDark, body);
+  block('chest team marker', [0.18, 0.105, 0.035], [0, -0.08, 0.455], teamMaterial, body);
   block('field pack', [0.3, 0.32, 0.16], [0, -0.02, -0.36], vestDark, body);
   for (const side of [-1, 1]) {
-    block('shoulder strap', [0.07, 0.36, 0.06], [side * 0.28, 0.03, 0.3], vestDark, body).rotation.z = side * 0.24;
+    block('shoulder strap', [0.055, 0.3, 0.05], [side * 0.32, 0.03, -0.25], vestDark, body).rotation.z = side * 0.24;
   }
   for (const side of [-1, 0, 1]) {
-    const tail = spheroid('tail feather', [0.12, 0.28, 0.1], [side * 0.14, 0.1, -0.41], wingFeather, body);
+    const tail = spheroid('tail feather', [0.12, 0.28, 0.1], [side * 0.14, 0.22, -0.44], wingFeather, body);
     tail.rotation.x = -0.6;
     tail.rotation.z = side * -0.35;
   }
@@ -122,27 +130,22 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   head.name = 'chicken head';
   head.position.set(0, 1.35, 0.06);
   root.add(head);
-  spheroid('feathered head', [0.37, 0.36, 0.33], [0, 0, 0], feather, head, 10);
+  // Face remains on its animation pivot; the continuous torso supplies the head silhouette.
   for (const side of [-1, 1]) {
-    spheroid('white eye', [0.117, 0.137, 0.067], [side * 0.176, 0.065, 0.282], eyeGlintMaterial, head, 10);
-    spheroid('dark eye', [0.073, 0.086, 0.038], [side * 0.176, 0.064, 0.341], eyeMaterial, head, 9);
-    spheroid('eye glint', [0.025, 0.028, 0.012], [side * 0.176 - 0.023, 0.102, 0.373], eyeGlintMaterial, head, 6);
-    spheroid('rosy cheek', [0.072, 0.04, 0.018], [side * 0.26, -0.105, 0.26], combMaterial, head);
-    spheroid('wattle', [0.065, 0.105, 0.055], [side * 0.049, -0.235, 0.295], combMaterial, head);
+    spheroid('white eye', [0.117, 0.137, 0.067], [side * 0.176, 0.065, 0.305], eyeGlintMaterial, head, 10);
+    spheroid('dark eye', [0.073, 0.086, 0.038], [side * 0.176 + 0.012, 0.064, 0.369], eyeMaterial, head, 9);
+    spheroid('eye glint', [0.025, 0.028, 0.012], [side * 0.176 - 0.009, 0.102, 0.401], eyeGlintMaterial, head, 6);
+    spheroid('rosy cheek', [0.072, 0.04, 0.018], [side * 0.26, -0.07, 0.325], combMaterial, head);
+
   }
-  spheroid('smiling mouth', [0.14, 0.067, 0.06], [0, -0.115, 0.335], eyeMaterial, head);
-  const beak = new Mesh(new ConeGeometry(0.155, 0.24, 4), beakMaterial);
-  beak.name = 'orange beak';
-  beak.rotation.x = Math.PI / 2;
-  beak.rotation.z = Math.PI / 4;
-  beak.scale.z = 0.6;
-  beak.position.set(0, -0.065, 0.385);
-  beak.castShadow = true;
-  head.add(beak);
-  spheroid('lower beak', [0.12, 0.035, 0.095], [0, -0.166, 0.36], beakMaterial, head);
-  for (const [index, z] of [-0.16, -0.04, 0.08].entries()) {
-    spheroid('red comb', [0.08, 0.15 + index * 0.012, 0.095], [0, 0.35, z], combMaterial, head, 7);
-  }
+  spheroid('smiling mouth', [0.15, 0.075, 0.065], [0, -0.115, 0.415], eyeMaterial, head);
+  spheroid('orange beak', [0.17, 0.055, 0.13], [0, -0.045, 0.4], beakMaterial, head, 8);
+  spheroid('lower beak', [0.13, 0.04, 0.1], [0, -0.18, 0.405], beakMaterial, head);
+  const comb = new Mesh(createComb(), combMaterial);
+  comb.name = 'red comb';
+  comb.position.set(0, 0.27, -0.13);
+  comb.castShadow = true;
+  head.add(comb);
   // Raised goggles move to the pack; the expressive eyes remain unobstructed.
   block('goggle frame', [0.27, 0.08, 0.04], [0, 0.09, -0.45], vestDark, body);
   const lens = material('#8dbdb4', 0.28, 0.14);
@@ -167,6 +170,11 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     scale: readonly [number, number, number] = [1, 1, 1],
     rotation: readonly [number, number, number] = [0, 0, 0],
   ): void => {
+    if (geometry.index) {
+      const original = geometry;
+      geometry = original.toNonIndexed();
+      original.dispose();
+    }
     geometry.scale(...scale);
     geometry.rotateX(rotation[0]);
     geometry.rotateY(rotation[1]);
@@ -180,27 +188,25 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     parts.push(geometry);
   };
 
-  addPart(new SphereGeometry(1, 7, 5), '#f5c765', [0, 0.88, 0], [0.5, 0.63, 0.43]);
-  addPart(new SphereGeometry(1, 6, 4), '#586b60', [0, 0.73, 0.015], [0.43, 0.22, 0.38]);
-  addPart(new SphereGeometry(1, 7, 5), '#f5c765', [0, 1.35, 0.06], [0.37, 0.36, 0.33]);
-  addPart(new ConeGeometry(0.155, 0.24, 4), '#e9ad54', [0, 1.285, 0.445], [1, 1, 0.6], [Math.PI / 2, 0, Math.PI / 4]);
-  addPart(new SphereGeometry(1, 5, 3), '#49302a', [0, 1.235, 0.395], [0.14, 0.067, 0.06]);
-  for (const [index, z] of [-0.16, -0.04, 0.08].entries()) {
-    addPart(new SphereGeometry(1, 5, 4), '#f06b50', [0, 1.7, z + 0.06], [0.08, 0.15 + index * 0.012, 0.095]);
-  }
+  addPart(createPearBody(8), '#f5c765', [0, 0, 0]);
+  addPart(new SphereGeometry(1, 6, 4), '#586b60', [0, 0.76, -0.31], [0.32, 0.19, 0.16]);
+  addPart(new SphereGeometry(1, 6, 4), '#49302a', [0, 1.235, 0.475], [0.15, 0.075, 0.065]);
+  addPart(new SphereGeometry(1, 6, 4), '#e9ad54', [0, 1.305, 0.46], [0.17, 0.055, 0.13]);
+  addPart(new SphereGeometry(1, 5, 3), '#e9ad54', [0, 1.17, 0.465], [0.13, 0.04, 0.1]);
+  addPart(createComb(), '#f06b50', [0, 1.62, -0.07]);
   for (const side of [-1, 1]) {
     addPart(new SphereGeometry(1, 5, 4), '#eab654', [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
     addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [side * 0.17, 0.28, 0.015]);
     for (const toe of [-1, 0, 1]) {
       addPart(new SphereGeometry(1, 4, 3), '#df9c48', [side * 0.17 + toe * 0.065, 0.055, 0.105], [0.035, 0.035, 0.14], [0, toe * 0.48, 0]);
     }
-    addPart(new SphereGeometry(1, 5, 4), '#fff7df', [side * 0.176, 1.415, 0.342], [0.117, 0.137, 0.067]);
-    addPart(new SphereGeometry(1, 5, 4), '#49302a', [side * 0.176, 1.414, 0.401], [0.073, 0.086, 0.038]);
-    addPart(new SphereGeometry(1, 4, 3), '#fff7df', [side * 0.176 - 0.023, 1.452, 0.433], [0.025, 0.028, 0.012]);
-    addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.049, 1.115, 0.355], [0.065, 0.105, 0.055]);
+    addPart(new SphereGeometry(1, 5, 4), '#fff7df', [side * 0.176, 1.415, 0.365], [0.117, 0.137, 0.067]);
+    addPart(new SphereGeometry(1, 5, 4), '#49302a', [side * 0.176 + 0.012, 1.414, 0.429], [0.073, 0.086, 0.038]);
+    addPart(new SphereGeometry(1, 4, 3), '#fff7df', [side * 0.176 - 0.009, 1.452, 0.461], [0.025, 0.028, 0.012]);
+    addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.26, 1.28, 0.385], [0.072, 0.04, 0.018]);
   }
   for (const side of [-1, 0, 1]) {
-    addPart(new SphereGeometry(1, 4, 3), '#eab654', [side * 0.14, 0.98, -0.41], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
+    addPart(new SphereGeometry(1, 4, 3), '#eab654', [side * 0.14, 1.1, -0.44], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
   }
 
   const geometry = mergeGeometries(parts, false);
@@ -218,7 +224,7 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
   const teamMark = new Mesh(new BoxGeometry(0.18, 0.1, 0.04), teamMaterial);
   teamMark.name = 'chest team marker';
-  teamMark.position.set(0, 0.8, 0.395);
+  teamMark.position.set(0, 0.8, 0.455);
   root.add(teamMark);
 
   const body = new Group();
@@ -252,7 +258,7 @@ function createWing(name: string, side: -1 | 1, feathers: MeshStandardMaterial, 
   primary.position.set(side * 0.11, -0.08, 0.01);
   primary.castShadow = true;
   wing.add(primary);
-  const cuff = new Mesh(new CylinderGeometry(0.125, 0.15, 0.14, close ? 7 : 5), sleeve);
+  const cuff = new Mesh(new CylinderGeometry(0.085, 0.09, 0.07, close ? 7 : 5), sleeve);
   cuff.name = 'tactical wing cuff';
   cuff.rotation.z = Math.PI / 2;
   cuff.position.set(side * 0.2, -0.22, 0.015);
@@ -340,6 +346,33 @@ export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): Chic
   return { root, leftWing, rightWing, featherMaterial: feather, ownedMaterials: [feather, cuff, trim, eye] };
 }
 
+/** Broad belly tapering directly into the crown, without a neck or overlapping shells. */
+function createPearBody(segments: number): BufferGeometry {
+  const profile = [
+    [0, 0.34], [0.26, 0.36], [0.43, 0.5], [0.52, 0.72],
+    [0.53, 0.94], [0.47, 1.17], [0.39, 1.4], [0.28, 1.61], [0, 1.7],
+  ];
+  const geometry = new LatheGeometry(profile.map(([radius, height]) => new Vector2(radius!, height!)), segments);
+  geometry.scale(1, 1, 0.88);
+  return geometry;
+}
+
+/** Thick scalloped crest in the bird's sagittal plane, visible from both sides. */
+function createComb(): BufferGeometry {
+  const shape = new Shape();
+  shape.moveTo(-0.2, 0);
+  for (const [z, y] of [
+    [-0.25, 0.09], [-0.24, 0.16], [-0.17, 0.17], [-0.19, 0.26],
+    [-0.15, 0.31], [-0.07, 0.31], [-0.04, 0.25], [-0.03, 0.35],
+    [0.03, 0.38], [0.11, 0.38], [0.17, 0.32], [0.19, 0.2], [0.16, 0],
+  ]) shape.lineTo(z!, y!);
+  shape.closePath();
+  const geometry = new ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: 0.025, bevelThickness: 0.025 });
+  geometry.translate(0, 0, -0.06);
+  geometry.rotateY(Math.PI / 2);
+  return geometry;
+}
+
 function material(color: string, roughness: number, metalness = 0): MeshStandardMaterial {
   return new MeshStandardMaterial({ color, roughness, metalness, flatShading: true });
 }
@@ -348,7 +381,7 @@ export const tacticalChickenAsset: AssetDefinition = Object.freeze({
   id: 'tactical-chicken',
   displayName: 'Tactical chicken',
   category: 'bird',
-  bounds: { min: [-0.72, 0, -0.68] as const, max: [0.72, 1.9, 0.62] as const },
+  bounds: { min: [-0.72, 0, -0.68] as const, max: [0.72, 2.05, 0.62] as const },
   collision: [
     { id: 'body', center: [0, 0.8, 0] as const, size: [0.88, 1.08, 0.78] as const },
     { id: 'head', center: [0, 1.49, 0.08] as const, size: [0.72, 0.76, 0.9] as const },
