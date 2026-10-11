@@ -120,13 +120,16 @@ describe('generated asset pipeline', () => {
     expect(white.getSize(new Vector3()).x).toBeGreaterThan(pupil.getSize(new Vector3()).x * 1.4);
     expect(pupil.max.z).toBeGreaterThan(white.max.z);
     expect(beak.max.z).toBeGreaterThan(pupil.max.z);
+    expect(close.getObjectByName('smiling mouth')).toBeUndefined();
+    expect(close.getObjectByName('lower beak')).toBeUndefined();
+    expect((close.getObjectByName('orange beak') as Mesh).geometry.index!.count / 3).toBe(6);
     // Eye layers should read as shallow insets in profile, rather than stacked balls.
     expect(white.getSize(new Vector3()).z).toBeLessThan(0.115);
     expect(pupil.getSize(new Vector3()).z).toBeLessThan(0.035);
     expect(pupil.min.z).toBeLessThan(white.max.z);
     expect(box('rosy cheek').min.z).toBeLessThan(0.31);
-    // Each bill surface has a broad embedded root and a narrow forward tip.
-    for (const name of ['orange beak', 'lower beak', 'smiling mouth']) {
+    // The solid bill has a broad embedded root and a narrow forward tip.
+    for (const name of ['orange beak']) {
       const positions = (close.getObjectByName(name) as Mesh).geometry.getAttribute('position');
       let rootWidth = 0, tipWidth = 0;
       for (let i = 0; i < positions.count; i += 1) {

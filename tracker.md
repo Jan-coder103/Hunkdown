@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Simple solid beak — 2026-10-11
+
+At the user's request replaced the multi-piece smiling bill with one compact solid six-triangle wedge in both LODs. Removed the mouth cavity and lower bill; all other chicken features are unchanged. Updated asset coverage for the single closed beak, absence of mouth/lower bill and embedded tapered root.
+
+Verification: `npm run check` passed (206 tests / 32 files, typecheck, build). Front and side inspected in the in-app asset viewer at localhost:5191. Human visual approval remains open; no performance rerun.
+
 ## Face and beak profile refinement — 2026-10-11
 
 Focused only on the face and beak following the user's side-view feedback. Recessed/thinned eye whites, pupils and glints, and seated cheek accents closer to the torso. Replaced separate rounded beak/mouth blobs with closed tapered upper/lower bill surfaces and a shallow inset smile; broad roots embed into the face and narrow tips form a connected profile. Both LODs share the bill geometry. Body, comb, wings, tail, feet, bounds and gameplay collision remain unchanged.

@@ -112,16 +112,10 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
     spheroid('rosy cheek', [0.061, 0.035, 0.009], [side * 0.26, -0.07, 0.252], combMaterial, head);
 
   }
-  for (const [name, geometry, finish] of [
-    ['smiling mouth', createBeakSection('mouth'), eyeMaterial],
-    ['orange beak', createBeakSection('upper'), beakMaterial],
-    ['lower beak', createBeakSection('lower'), beakMaterial],
-  ] as const) {
-    const mesh = new Mesh(geometry, finish);
-    mesh.name = name;
-    mesh.castShadow = true;
-    head.add(mesh);
-  }
+  const beak = new Mesh(createSimpleBeak(), beakMaterial);
+  beak.name = 'orange beak';
+  beak.castShadow = true;
+  head.add(beak);
   const comb = new Mesh(createComb(), combMaterial);
   comb.name = 'red comb';
   comb.position.set(0, 0.27, -0.13);
@@ -166,9 +160,7 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   };
 
   addPart(createPearBody(8), '#f5c765', [0, 0, 0]);
-  addPart(createBeakSection('mouth'), '#49302a', [0, 1.35, 0.06]);
-  addPart(createBeakSection('upper'), '#e9ad54', [0, 1.35, 0.06]);
-  addPart(createBeakSection('lower'), '#e9ad54', [0, 1.35, 0.06]);
+  addPart(createSimpleBeak(), '#e9ad54', [0, 1.35, 0.06]);
   addPart(createComb(), '#f06b50', [0, 1.62, -0.07]);
   for (const side of [-1, 1]) {
     addPart(new SphereGeometry(1, 5, 4), '#eab654', [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
@@ -315,36 +307,17 @@ export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): Chic
   return { root, leftWing, rightWing, featherMaterial: feather, ownedMaterials: [feather, cuff, trim, eye] };
 }
 
-/** Tapered closed bill surfaces: broad roots embed into the face, tips form a smile. */
-function createBeakSection(part: 'upper' | 'lower' | 'mouth'): BufferGeometry {
-  const rings = part === 'upper'
-    ? [[0.29, -0.045, 0.165, 0.075], [0.4, -0.035, 0.14, 0.05], [0.51, -0.065, 0.025, 0.012]]
-    : part === 'lower'
-      ? [[0.29, -0.16, 0.14, 0.045], [0.4, -0.165, 0.115, 0.035], [0.485, -0.135, 0.025, 0.012]]
-      : [[0.285, -0.105, 0.14, 0.045], [0.385, -0.105, 0.115, 0.037], [0.475, -0.105, 0.026, 0.012]];
-  const vertices: number[] = [];
-  const indices: number[] = [];
-  const sides = 8;
-  for (const [z, y, width, height] of rings) {
-    for (let side = 0; side < sides; side += 1) {
-      const angle = side * Math.PI * 2 / sides;
-      vertices.push(Math.cos(angle) * width!, y! + Math.sin(angle) * height!, z!);
-    }
-  }
-  for (let ring = 0; ring < rings.length - 1; ring += 1) {
-    for (let side = 0; side < sides; side += 1) {
-      const a = ring * sides + side, b = ring * sides + (side + 1) % sides;
-      indices.push(a, b, a + sides, b, b + sides, a + sides);
-    }
-  }
-  for (let side = 1; side < sides - 1; side += 1) {
-    indices.push(0, side + 1, side);
-    const end = (rings.length - 1) * sides;
-    indices.push(end, end + side, end + side + 1);
-  }
+/** A single six-triangle wedge with a broad root embedded in the face. */
+function createSimpleBeak(): BufferGeometry {
   const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
-  geometry.setIndex(indices);
+  geometry.setAttribute('position', new Float32BufferAttribute([
+    -0.13, -0.025, 0.29,
+    0.13, -0.025, 0.29,
+    0.13, -0.125, 0.29,
+    -0.13, -0.125, 0.29,
+    0, -0.085, 0.47,
+  ], 3));
+  geometry.setIndex([0, 4, 1, 1, 4, 2, 2, 4, 3, 3, 4, 0, 0, 2, 3, 0, 1, 2]);
   geometry.computeVertexNormals();
   return geometry;
 }
