@@ -4,7 +4,7 @@ Massive battles. Total bird-brained chaos. A bright low-poly tactical chicken FP
 
 The main page opens the ready room, where you can enter the shooting range or choose Midtown or Garden District and join a match with 50 friendly and 50 enemy bots. The range has nine reusable targets at 10 m, 15 m, and 20 m, three firing lanes, cover and movement practice, hit statistics, and a reset control. The implemented match loop includes the countdown, central capture point, tickets, player death/respawn, teammate revives, leaderboards, and local XP/credit rewards. Combat includes the code-generated Honk-47, reloads, grenades, recoil, and destructible street props and house panels.
 
-The asset viewer at `/asset-viewer.html` previews the generated content, bounds, collision metadata, and close/far detail tiers. The grid map editor at `/map-editor.html` supports seeded city previews and JSON save/load. Read `agent.md` first when working with a coding agent; the original concept is in `idea_notes.md`.
+The asset viewer at `/asset-viewer.html` previews the generated content, bounds, collision metadata, and close/far detail tiers. The grid map editor at `/map-editor.html` supports seeded city previews and JSON save/load. Move exported JSON files into `maps/`, reload the game, then select the authored map name in the Maps tab and join a round. Deployed builds require rebuilding/redeploying; see `maps/README.md` for validation and folder details. Read `agent.md` first when working with a coding agent; the original concept is in `idea_notes.md`.
 
 ## Local development
 

@@ -44,7 +44,7 @@ vi.mock('../src/game/bots/bot-skirmish-view', async (importOriginal) => {
 
 import { mountApp } from '../src/app';
 
-function createHarness() {
+function createHarness(selectedMap?: string) {
   const root = new AppElement();
   const scheduler = new ManualFrameScheduler();
   const windowTarget = new FakeEventTarget();
@@ -54,6 +54,7 @@ function createHarness() {
     createElement: () => new AppElement(),
   });
   const stored = new Map<string, string>();
+  if (selectedMap) stored.set('operation-honkdown-profile', JSON.stringify({ version: 2, xp: 500, credits: 123, selectedMap, lookSensitivity: 0.002, masterVolume: 0.8, effectsVolume: 0.8, skills: [], rewardedMatchIds: [] }));
   vi.stubGlobal('document', documentTarget);
   vi.stubGlobal('window', Object.assign(windowTarget, {
     requestAnimationFrame: scheduler.request.bind(scheduler), cancelAnimationFrame: scheduler.cancel.bind(scheduler),
@@ -72,6 +73,32 @@ function createHarness() {
 afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; });
 
 describe('application match flow', () => {
+  it('recovers removed custom selection without clearing progression', () => {
+    const { app, stored, element } = createHarness('custom:removed-map');
+    try {
+      const profile = JSON.parse(stored.get('operation-honkdown-profile')!);
+      expect(profile.selectedMap).toBe('midtown');
+      expect(profile.xp).toBe(500);
+      expect(profile.credits).toBe(123);
+      expect(element('profile-notice').textContent).toContain('unavailable');
+    } finally { app.dispose(); }
+  });
+
+  it('selects a folder map and launches its authored layout', () => {
+    const { app, root, element, frame, stored } = createHarness();
+    try {
+      const button = root.querySelectorAll('[data-map-option]').find(button => button.dataset.mapOption === 'custom:city-draft')!;
+      expect(button).toBeDefined();
+      button.click();
+      expect(button.attributes.get('aria-pressed')).toBe('true');
+      element('menu-join-button').click(); frame(); frame();
+      expect(harness.battles[0]!.map.source.id).toBe('city-draft');
+      expect(harness.battles[0]!.map.source.width).toBe(16);
+      expect(harness.battles[0]!.simulation.world.groundHeightAt(harness.battles[0]!.simulation.playerCombatant!.position.x, harness.battles[0]!.simulation.playerCombatant!.position.z)).toBe(harness.battles[0]!.simulation.playerCombatant!.position.y);
+      expect([...stored.values()].some(value => value.includes('custom:city-draft'))).toBe(true);
+    } finally { app.dispose(); }
+  });
+
   it('shows the live countdown, pauses its timer, and hides it when combat starts', () => {
     harness.countdownSeconds = 1;
     const { app, frame, element } = createHarness();

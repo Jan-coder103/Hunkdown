@@ -3,7 +3,7 @@ export const PROFILE_VERSION = 2;
 export const MAX_RECORDED_MATCHES = 100;
 export const DEFAULT_AUDIO_VOLUME = 0.8;
 
-export type MapPresetId = 'midtown' | 'garden-district';
+export type MapPresetId = 'midtown' | 'garden-district' | `custom:${string}`;
 export type SkillId = 'field-notes' | 'scrounger';
 
 export type MatchPerformance = Readonly<{
@@ -231,7 +231,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isMapPresetId(value: unknown): value is MapPresetId {
-  return value === 'midtown' || value === 'garden-district';
+  return value === 'midtown' || value === 'garden-district'
+    || (typeof value === 'string' && /^custom:[a-z0-9][a-z0-9-]{0,63}$/.test(value));
 }
 
 function isSkillId(value: unknown): value is SkillId {

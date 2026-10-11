@@ -1,3 +1,5 @@
+import { MAP_CATALOG, mapOptionMarkup } from './game/world/map-catalog';
+import { createMapBotRoster } from './game/bots/bot-simulation';
 import { CHICKEN_COLORS } from './content/assets/tactical-chicken.asset';
 import { createMeleeWeaponModel } from './content/weapons/registry';
 import { EngineRuntime } from './engine/engine-runtime';
@@ -13,7 +15,7 @@ import { AudioManager } from './game/audio/audio-manager';
 import { createCombatPracticeRange } from './game/combat/combat-practice-range';
 import { CombatSession } from './game/combat/combat-session';
 import { GrenadeView, WeaponView } from './game/combat/weapon-view';
-import { generateMap, worldPosition } from './game/world/map-generator';
+import { generateMap } from './game/world/map-generator';
 import { BotSkirmishView } from './game/bots/bot-skirmish-view';
 import type { BotSimulationStep } from './game/bots/bot-simulation';
 import { createSkirmishShowcaseMap } from './game/bots/skirmish-showcase';
@@ -109,7 +111,10 @@ export function mountApp(root: HTMLElement) {
             </section>
             <section data-menu-panel="maps" aria-labelledby="maps-title" hidden>
               <p class="menu-kicker">CHOOSE THE BATTLEGROUND</p><h3 id="maps-title">Map selection</h3>
+              <p>Export editor JSON into the project’s maps/ folder, then reload. Production sites need a rebuild.</p>
+              <p>${MAP_CATALOG.errors.map(error => error.replaceAll('&', '&amp;').replaceAll('<', '&lt;')).join('<br>')}</p>
               <div class="map-options">
+                ${MAP_CATALOG.maps.filter(map => map.id.startsWith('custom:')).map(mapOptionMarkup).join('')}
                 <button type="button" data-map-option="midtown" aria-pressed="true"><span class="map-art map-art-midtown" aria-hidden="true"></span><strong>Midtown</strong><small>Compact city blocks · seeded layout</small></button>
                 <button type="button" data-map-option="garden-district" aria-pressed="false"><span class="map-art map-art-garden" aria-hidden="true"></span><strong>Garden District</strong><small>Open side lanes · seeded layout</small></button>
               </div>
@@ -302,6 +307,11 @@ export function mountApp(root: HTMLElement) {
   const tabButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-menu-tab]')];
   const tabPanels = [...root.querySelectorAll<HTMLElement>('[data-menu-panel]')];
   const mapButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-map-option]')];
+  if (!MAP_CATALOG.maps.some(map => map.id === profile.selectedMap)) {
+    profile = updateProfileSettings(profile, { selectedMap: 'midtown' });
+    saveProfile(profileStorage, profile);
+    noticeEl.textContent = 'Selected map is unavailable; Midtown selected instead.';
+  }
   const skillButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-buy-skill]')];
 
   const persistProfile = () => {
@@ -1047,14 +1057,9 @@ export function mountApp(root: HTMLElement) {
     currentMatchId = matchIdentifier();
     resultsShown = false;
     resultsOverlay.hidden = true;
-    const generated = generateMap(createSkirmishShowcaseMap(undefined, profile.selectedMap));
-    const spawnCell = generated.navigationNodes
-      .filter((cell) => cell.x === 0)
-      .sort((a, b) => Math.abs(a.y - (generated.source.height - 1) / 2) - Math.abs(b.y - (generated.source.height - 1) / 2))[0]
-      ?? generated.navigationNodes[0];
-    if (!spawnCell) return;
-    const mapSpawn = worldPosition(generated.source, spawnCell);
-    const playerSpawn = { x: mapSpawn.x, y: 0, z: mapSpawn.z + generated.source.cellSize * 0.18 };
+    const selectedMap = MAP_CATALOG.maps.find(map => map.id === profile.selectedMap) ?? MAP_CATALOG.maps[0]!;
+    const generated = generateMap(selectedMap.document);
+    const playerSpawn = createMapBotRoster(generated, { friendlyCount: 1, enemyCount: 1 })[0]!.position!;
     skirmishView = new BotSkirmishView(view.scene, generated, {
       friendlyCount: BOTS_PER_TEAM,
       enemyCount: BOTS_PER_TEAM,
@@ -1152,9 +1157,10 @@ export function mountApp(root: HTMLElement) {
   const handleMapSelect = (event: Event) => {
     const button = (event.currentTarget as HTMLButtonElement);
     const mapId = button.dataset.mapOption;
-    if (mapId !== 'midtown' && mapId !== 'garden-district') return;
-    profile = updateProfileSettings(profile, { selectedMap: mapId });
-    persistNewProfile(profile, `${mapId === 'midtown' ? 'Midtown' : 'Garden District'} selected for the next round.`);
+    if (!MAP_CATALOG.maps.some(map => map.id === mapId)) return;
+    if (mapId !== 'midtown' && mapId !== 'garden-district' && !mapId?.startsWith('custom:')) return;
+    profile = updateProfileSettings(profile, { selectedMap: mapId as GameProfile['selectedMap'] });
+    persistNewProfile(profile, `${MAP_CATALOG.maps.find(map => map.id === mapId)!.document.name} selected for the next round.`);
   };
   const handleSkillPurchase = (event: Event) => {
     const skillId = (event.currentTarget as HTMLButtonElement).dataset.buySkill as SkillId | undefined;

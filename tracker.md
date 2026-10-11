@@ -2,6 +2,15 @@
 
 Updated: 2026-10-11.
 
+## Folder maps — 2026-10-11
+
+- Added root `maps/` JSON discovery with authored names in the Maps tab; joining uses the selected document with the existing 100-bot match loop. Moved the user-exported Test City into `maps/city-draft.honkmap.json`.
+- Validate files independently, reject duplicate IDs and maps without objective-connected spawn cells for both teams, and display errors in the Maps tab. Names are escaped. Custom selection persists in the browser profile; missing maps fall back to Midtown without clearing progression.
+- Player spawn now uses the same objective-connected team-safe roster placement as bots, including ground elevation, instead of choosing an arbitrary left-edge navigation node.
+- Documented export/download placement, reload/restart behavior, and rebuilding deployed sites in `maps/README.md` and the project README.
+- `npm run check` passed: 222 tests in 35 files, typecheck and production build. Existing shared bundle warning remains (562.61 kB). Tests cover discovery, malformed/unplayable/duplicate maps, escaped names, profile persistence, missing-map recovery, and mounted-app custom-map launch.
+- Browser smoke at `http://127.0.0.1:5192/`: Test City appeared as a 16×16 custom map, selection updated, and Join round opened the live Test City match with countdown, 200 tickets per side, safe-zone HUD, and weapon inventory. Console warnings/errors were empty. Hands-on movement/combat and user approval remain unchecked.
+
 ## Weapon sphere hands — 2026-10-11
 
 Replaced visible independent first-person wing sleeves with two small yellow sphere hands owned by each weapon view. Rifle grips sit at the pistol grip and handguard; knife has a handle grip and free support hand. Typed primary/support anchors support future weapon models and nested transforms. A magazine-child grip keeps the support hand attached during extraction and insertion, with smooth reach/return beats and weapon-authored extraction travel. Aim, recoil, visibility and respawn follow the shared weapon rig; shared hand resources dispose with it.
