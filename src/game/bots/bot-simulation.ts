@@ -339,6 +339,7 @@ export class BotSkirmishSimulation {
   }
 
   private canSee(observer: Combatant, target: Combatant): boolean {
+    if (target.damageProtected()) return false;
     const origin = { x: observer.position.x, y: observer.position.y + observer.height * 0.56, z: observer.position.z };
     const destination = target.aimPoint();
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y, z: destination.z - origin.z };

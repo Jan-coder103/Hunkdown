@@ -35,6 +35,7 @@ export class Combatant {
       y: this.position.y + this.poseHeight * fraction,
       z: this.position.z + this.leanOffset.z * fraction };
   }
+  damageProtected: () => boolean = () => false;
   health: number;
   status: CombatantStatus = 'alive';
   private deaths = 0;
@@ -61,7 +62,7 @@ export class Combatant {
   }
 
   applyDamage(amount: number, knockbackDirection?: Readonly<{ x: number; y: number; z: number }>, knockback = 0): DamageOutcome {
-    if (this.status !== 'alive' || !Number.isFinite(amount) || amount <= 0) {
+    if (this.damageProtected() || this.status !== 'alive' || !Number.isFinite(amount) || amount <= 0) {
       return { applied: 0, health: this.health, killed: false };
     }
     const applied = Math.min(amount, this.health);

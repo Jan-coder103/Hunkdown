@@ -1,4 +1,9 @@
 import {
+  Group,
+  BoxGeometry,
+  CylinderGeometry,
+  TorusGeometry,
+  MeshBasicMaterial,
   BufferGeometry,
   Camera,
   Quaternion,
@@ -132,8 +137,46 @@ export class GrenadeView {
   private readonly trajectoryGeometry = new BufferGeometry();
   private readonly trajectoryMaterial = new LineBasicMaterial({ color: '#e9bc68', transparent: true, opacity: 0.82 });
   private readonly trajectory = new Line(this.trajectoryGeometry, this.trajectoryMaterial);
-  private readonly projectileMeshes: Mesh[] = [];
+  private readonly projectileMeshes: Group[] = [];
+  private readonly blasts: { root: Group; age: number }[] = [];
   private disposed = false;
+
+  showExplosion(position: Vector3): void {
+    if (this.disposed) return;
+    const root = new Group();
+    root.name = 'cartoon grenade explosion';
+    root.position.copy(position);
+    for (let i = 0; i < 12; i++) {
+      const puff = new Mesh(new SphereGeometry(0.45, 7, 5), new MeshBasicMaterial({ color: i < 5 ? '#ffe681' : i < 9 ? '#ff974a' : '#a39f9e', transparent: true, depthWrite: false }));
+      const angle = i * 2.4;
+      puff.position.set(Math.cos(angle) * 0.55, 0.4 + (i % 3) * 0.35, Math.sin(angle) * 0.55);
+      root.add(puff);
+    }
+    this.scene.add(root);
+    this.blasts.push({ root, age: 0 });
+    if (this.blasts.length > 12) {
+      const oldest = this.blasts.shift()!;
+      this.scene.remove(oldest.root);
+      disposeObjectResources(oldest.root);
+    }
+  }
+
+  updateEffects(deltaSeconds: number): void {
+    if (this.disposed || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
+    for (const grenade of this.projectileMeshes) { grenade.rotation.x += deltaSeconds * 5; grenade.rotation.z += deltaSeconds * 2; }
+    for (let i = this.blasts.length - 1; i >= 0; i--) {
+      const blast = this.blasts[i]!;
+      blast.age += deltaSeconds;
+      blast.root.scale.setScalar(0.3 + blast.age * 3.5);
+      blast.root.position.y += deltaSeconds * 0.6;
+      for (const puff of blast.root.children) ((puff as Mesh).material as MeshBasicMaterial).opacity = Math.max(0, 1 - blast.age / 0.85);
+      if (blast.age >= 0.85) {
+        this.scene.remove(blast.root);
+        disposeObjectResources(blast.root);
+        this.blasts.splice(i, 1);
+      }
+    }
+  }
 
   constructor(private readonly scene: import('three').Scene) {
     this.trajectory.name = 'grenade trajectory';
@@ -160,10 +203,16 @@ export class GrenadeView {
   updateProjectiles(positions: readonly import('three').Vector3[]): void {
     if (this.disposed) return;
     while (this.projectileMeshes.length < positions.length) {
-      const grenade = new Mesh(
-        new SphereGeometry(0.14, 8, 6),
-        new MeshStandardMaterial({ color: '#69785a', roughness: 0.82 }),
-      );
+      const grenade = new Group();
+      const body = new Mesh(new SphereGeometry(0.14, 10, 7), new MeshStandardMaterial({ color: '#668458', roughness: 0.82, flatShading: true }));
+      body.scale.y = 1.25;
+      const collar = new Mesh(new CylinderGeometry(0.065, 0.075, 0.07, 8), new MeshStandardMaterial({ color: '#d7b750' }));
+      collar.position.y = 0.17;
+      const lever = new Mesh(new BoxGeometry(0.04, 0.055, 0.23), new MeshStandardMaterial({ color: '#38484b', metalness: 0.6 }));
+      lever.position.set(0.05, 0.21, 0.025);
+      const pin = new Mesh(new TorusGeometry(0.05, 0.009, 4, 10), lever.material);
+      pin.position.set(-0.055, 0.21, 0);
+      grenade.add(body, collar, lever, pin);
       grenade.name = 'thrown grenade';
       this.projectileMeshes.push(grenade);
       this.scene.add(grenade);
@@ -172,8 +221,7 @@ export class GrenadeView {
       const grenade = this.projectileMeshes.pop();
       if (!grenade) continue;
       this.scene.remove(grenade);
-      grenade.geometry.dispose();
-      disposeMaterial(grenade.material);
+      disposeObjectResources(grenade);
     }
     for (let i = 0; i < positions.length; i += 1) {
       const position = positions[i];
@@ -185,13 +233,14 @@ export class GrenadeView {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    for (const blast of this.blasts) { this.scene.remove(blast.root); disposeObjectResources(blast.root); }
+    this.blasts.length = 0;
     this.scene.remove(this.trajectory);
     this.trajectoryGeometry.dispose();
     this.trajectoryMaterial.dispose();
     for (const grenade of this.projectileMeshes) {
       this.scene.remove(grenade);
-      grenade.geometry.dispose();
-      disposeMaterial(grenade.material);
+      disposeObjectResources(grenade);
     }
     this.projectileMeshes.length = 0;
   }

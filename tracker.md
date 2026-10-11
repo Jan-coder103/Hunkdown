@@ -1,6 +1,6 @@
 # Current progress
 
-Updated: 2026-10-08.
+Updated: 2026-10-11.
 
 ## Summary
 
@@ -21,6 +21,18 @@ Updated: 2026-10-08.
 - Phase 15: base-game quality review is underway; one full bot match completed through rewards, with hands-on controls and human approval pending.
 - User verification: none yet.
 - Skipped features: none. Future additions remain outside base scope as stated in the plan.
+
+## Requested shooter gameplay and presentation — 2026-10-11
+
+Implemented all six requested changes:
+- Rising/fading Z and ZZZ billboard letters above match corpses, tied to corpse creation/removal and render culling; resources are released on cleanup.
+- Larger, responsive top-center countdown.
+- Tinted team spawn-side safe zones using the existing roster spawn regions. Own-team actors inside are protected against bullets, melee, and grenade damage. The player can move/jump during countdown, with feet constrained inside the zone until combat starts. Bots hold countdown spawns and ignore protected opponents after the start, preventing pointless spawn targeting.
+- Compact circular squad radar, ticket/objective control and progress strip, health/safe-zone indicator, bottom-right weapon and magazine/reserve display, reload/grenade status, revive prompt and range stats. Reset range and spectator/join tools moved to Escape; the former large gameplay HUD is hidden.
+- Startup-discovered typed tactical knife with visible procedural blade/grip. Wheel toggles rifle/knife with a 0.5-second equip lock and reload cancellation; knife gives 25% movement boost, stabs for 55 damage at 2 m with a 0.6-second cooldown, and resets to rifle on respawn. Dead-player wheel retains map zoom.
+- Faceted grenade model with collar, safety lever, pin ring and spin. Existing real detonations now emit bounded expanding/fading cartoon fire/smoke puffs; the existing nearby distance-falloff camera shake is retained and verified. Projectiles still detonate while the player is dead.
+
+Verification: final `npm run check` passed, 202 tests across 32 files, strict type checking and production build. New coverage exercises actual bullet/grenade safe-zone damage, movement during countdown, wheel/equip delay, melee damage/range, movement boost, sleep rise/fade/cleanup, explosion creation/fade/cleanup, and near/far shake. Existing lifecycle tests explicitly inject unprotected damage so they retain their lifecycle focus. Browser checks at `http://127.0.0.1:5190/` in Codex's in-app browser (663 × 658) confirmed live HUD/countdown and wheel switching; a temporary real-renderer preview inspected the procedural knife, grenade, sleep letters and animated explosion (removed afterward). Browser warning/error logs were empty. Full hands-on pointer-lock firing, melee, explosion shake comfort and safe-zone feel remain for human playtest; sustained 100-bot performance was not rerun. Shared bundle warning remains at 561.74 kB. No human approval claimed.
 
 ## GitHub Pages deployment — 2026-10-08
 

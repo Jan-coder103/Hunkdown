@@ -90,6 +90,24 @@ export class BotSkirmishMatch {
   readonly capture: CapturePoint;
   readonly captureRadius: number;
   readonly rules: ResolvedBotSkirmishMatchRules;
+  private readonly safeAreas = new Map<string, Readonly<{ minX: number; maxX: number; minZ: number; maxZ: number }>>();
+  safeArea(team: string): Readonly<{ minX: number; maxX: number; minZ: number; maxZ: number }> {
+    const cached = this.safeAreas.get(team);
+    if (cached) return cached;
+    const { width, height, cellSize } = this.simulation.map.source;
+    const edge = width * cellSize / 2;
+    const boundary = ((Math.floor((width - 1) * 0.36) + 1) - width / 2) * cellSize;
+    const area = Object.freeze({ minX: team === 'enemy' ? -boundary : -edge, maxX: team === 'enemy' ? edge : boundary,
+      minZ: -height * cellSize / 2, maxZ: height * cellSize / 2 });
+    this.safeAreas.set(team, area);
+    return area;
+  }
+
+  isInSafeArea(team: string, position: Readonly<{ x: number; z: number }>): boolean {
+    const area = this.safeArea(team);
+    return position.x >= area.minX && position.x <= area.maxX && position.z >= area.minZ && position.z <= area.maxZ;
+  }
+
   private state: BotSkirmishMatchState = 'countdown';
   private outcomeState: MatchOutcome | null = null;
   private friendlyTickets: number;
@@ -116,6 +134,7 @@ export class BotSkirmishMatch {
     this.friendlyTickets = this.rules.initialTickets;
     this.enemyTickets = this.rules.initialTickets;
     for (const actor of this.simulation.combatants) {
+      actor.damageProtected = () => this.isInSafeArea(actor.team, actor.position);
       this.scores.set(actor.id, { damage: 0, kills: 0, healing: 0, deaths: 0, revives: 0 });
     }
   }

@@ -16,7 +16,7 @@ The source calls this capture the flag but describes a single central capture po
 
 ## Phase 10 menu and placeholder progression
 
-The main menu has Loadout, Settings, Maps, and Skill tree tabs. The current loadout exposes the only implemented weapon, Honk-47; more weapons and class effects are future work. Midtown and Garden District are selectable seeded city presets. Look sensitivity is saved locally and applies immediately.
+The main menu has Loadout, Settings, Maps, and Skill tree tabs. The current loadout includes the Honk-47 primary and a tactical knife; more weapons and class effects are future work. Midtown and Garden District are selectable seeded city presets. Look sensitivity is saved locally and applies immediately.
 
 The ready-room footer also has a direct Shooting range action. It opens the former movement test map as a training area with three firing lanes and nine chicken targets at 10 m, 15 m, and 20 m, plus movement obstacles, a ramp, and cover. Targets stand back up after 1.6 seconds; Reset range restores target positions, weapon/grenade supplies, and local hit statistics. The HUD shows shots, hits, accuracy, damage from bullets and grenades, knockdowns, and remaining targets. The range does not advance match rewards or tickets.
 
@@ -24,7 +24,13 @@ The user selected a simple placeholder economy. Until human review changes it, e
 
 Match results show top-five damage, kills, healing, and deaths leaderboards, followed by a separate rewards screen. Healing counts health restored by revives and is credited to the reviver. A versioned local profile records settings, selected map, XP, credits, skills, and the latest 100 rewarded match IDs so a result cannot pay twice.
 
-The round countdown appears at the top center. Wounded players see a light red edge vignette that grows with missing health and clears at full health or death. While dead, a compact bottom panel leaves the live map unblurred; mouse wheel zooms in/out, with camera height bounded between 25 m and 180 m and reset to 90 m for each death.
+The round countdown appears prominently at the top center. Each team's spawn side is marked with a tinted floor and boundary line. Team members are protected from damage while their feet are inside their own zone, including after respawn. Before the round starts the player can move and jump inside the zone but cannot cross its boundary; attacks are disabled until the countdown completes. Bots hold their starts during countdown and ignore protected targets once combat starts.
+
+The compact shooter HUD has a circular north-up squad radar at top left, tickets and objective control/progress at top center, health and safe-zone status at bottom left, and weapon, magazine/reserve ammunition, reload status and grenade inventory at bottom right. Revive instructions appear near the bottom center. Shooting-range statistics remain compact; Reset range is in the Escape menu.
+
+The knife gives a 25% walking/sprinting/crouching movement boost while equipped. Wheel switching in either direction takes 0.5 seconds, blocks attacks during the transition, cancels a rifle reload and puts away grenades. Left mouse stabs for 55 damage within 2 m, with a 0.6-second attack cooldown; it does not consume rifle ammo. Respawn restores the rifle. Grenade visuals use a faceted olive body, collar, lever and pin ring, followed by an expanding/fading cartoon fire-and-smoke puff burst. Nearby explosions shake the living player's camera within 12.6 m, with distance falloff. Corpses have repeating rising/fading Z and ZZZ letters until removed.
+
+ Wounded players see a light red edge vignette that grows with missing health and clears at full health or death. While dead, a compact bottom panel leaves the live map unblurred; mouse wheel zooms in/out, with camera height bounded between 25 m and 180 m and reset to 90 m for each death.
 
 Results open even when the player is dead. Escape keeps the ready room and completed-round screens paused. The live death view exists, but changing loadout from that screen remains unimplemented; Honk-47 is currently the only available primary.
 
@@ -34,10 +40,11 @@ Results open even when the player is dead. Escape keeps the ready room and compl
 | --- | --- |
 | WASD | Move |
 | Mouse | Look |
+| Mouse wheel while alive | Switch rifle/knife; 0.5-second equip delay |
 | Mouse wheel while dead | Zoom the live bird’s-eye map |
 | Space | Jump |
 | Right mouse, held | Aim/zoom; mouse sensitivity reduced by 20% |
-| Left mouse | Shoot; throw when grenade equipped |
+| Left mouse | Shoot, stab with knife, or throw when grenade equipped |
 | Shift, held | Sprint |
 | C, held | Crouch; pressing while sprinting slides |
 | R | Reload |

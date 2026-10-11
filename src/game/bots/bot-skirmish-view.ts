@@ -90,6 +90,8 @@ export class BotSkirmishView {
   readonly map: GeneratedMap;
   private readonly root = new Group();
   private readonly characters = new Map<string, ChickenCharacterView>();
+  private sleepTime = 0;
+  private readonly sleepEffects = new Map<string, Group>();
   private readonly corpseViews = new Map<string, ChickenCharacterView>();
   private readonly pooledCorpseViews: Record<BotSide, ChickenCharacterView[]> = { friendly: [], enemy: [] };
   private readonly combatantById = new Map<string, Combatant>();
@@ -143,6 +145,15 @@ export class BotSkirmishView {
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
+    for (const team of ['friendly', 'enemy']) {
+      const area = this.match.safeArea(team);
+      const floor = new Mesh(this.ownGeometry(new PlaneGeometry(area.maxX - area.minX, area.maxZ - area.minZ)), this.ownMaterial(new MeshBasicMaterial({ color: team === 'friendly' ? '#58cfc0' : '#ef967a', transparent: true, opacity: 0.16, depthWrite: false })));
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set((area.minX + area.maxX) / 2, 0.06, 0);
+      floor.name = `${team} safe spawn area`;
+      const boundary = new Line(this.ownGeometry(new BufferGeometry().setFromPoints([new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.minZ), new Vector3(team === 'friendly' ? area.maxX : area.minX, 0.08, area.maxZ)])), this.ownMaterial(new LineBasicMaterial({ color: team === 'friendly' ? '#58cfc0' : '#ef967a' })));
+      this.root.add(floor, boundary);
+    }
     this.buildDebrisPool();
     this.addCharacters();
   }
@@ -184,6 +195,7 @@ export class BotSkirmishView {
   updatePresentation(camera: Camera): void {
     if (this.disposed) return;
     camera.updateMatrixWorld();
+    for (const effect of this.sleepEffects.values()) effect.quaternion.copy(camera.quaternion);
     this.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.viewProjection);
     camera.getWorldPosition(this.cameraPosition);
@@ -223,6 +235,8 @@ export class BotSkirmishView {
       this.visibilitySphere.radius = 1.5;
       const visible = distance <= MAX_CHARACTER_DRAW_DISTANCE && this.frustum.intersectsSphere(this.visibilitySphere);
       corpse.object.visible = visible;
+      const sleep = this.sleepEffects.get(id);
+      if (sleep) sleep.visible = visible;
       if (!visible) continue;
       const detail = corpse.detail === 'far'
         ? (distance < CLOSE_LOD_RETURN_DISTANCE ? 'close' : 'far')
@@ -603,6 +617,22 @@ export class BotSkirmishView {
   }
 
   private syncCorpses(deltaSeconds: number): void {
+    this.sleepTime += deltaSeconds;
+    const currentCorpses = new Set<string>();
+    this.match.forEachCorpse(c => currentCorpses.add(c.id));
+    for (const [id, effect] of this.sleepEffects) {
+      if (currentCorpses.has(id)) continue;
+      this.root.remove(effect);
+      effect.traverse(child => {
+        if (!(child instanceof Line)) return;
+        child.geometry.dispose();
+        this.ownedGeometries.delete(child.geometry);
+        const material = child.material as LineBasicMaterial;
+        material.dispose();
+        this.ownedMaterials.delete(material);
+      });
+      this.sleepEffects.delete(id);
+    }
     this.corpseIds.clear();
     this.match.forEachCorpse((corpse) => this.corpseIds.add(corpse.id));
     for (const [id, view] of this.corpseViews) {
@@ -631,6 +661,32 @@ export class BotSkirmishView {
         view.setPose({ grounded: true, dead: true, deathImpulse: corpse.deathImpulse });
         this.corpseViews.set(corpse.id, view);
       }
+      let effect = this.sleepEffects.get(corpse.id);
+      if (!effect) {
+        effect = new Group();
+        effect.name = 'sleeping z zzz';
+        for (let row = 0; row < 2; row++) {
+          const letters = new Group();
+          const material = this.ownMaterial(new LineBasicMaterial({ color: '#f4f7ff', transparent: true, depthWrite: false }));
+          for (let letter = 0; letter < (row === 0 ? 1 : 3); letter++) {
+            const geometry = this.ownGeometry(new BufferGeometry().setFromPoints([new Vector3(0, 0.2, 0), new Vector3(0.17, 0.2, 0), new Vector3(0, 0, 0), new Vector3(0.17, 0, 0)]));
+            const line = new Line(geometry, material);
+            line.position.x = letter * 0.22;
+            letters.add(line);
+          }
+          effect.add(letters);
+        }
+        this.root.add(effect);
+        this.sleepEffects.set(corpse.id, effect);
+      }
+      effect.position.set(corpse.position.x, corpse.position.y + 0.65, corpse.position.z);
+      effect.visible = view.object.visible;
+      effect.children.forEach((letters, row) => {
+        const phase = (this.sleepTime / 3 + row * 0.5) % 1;
+        letters.position.set(phase * 0.25, phase * 1.5, 0);
+        letters.scale.setScalar(0.9 + phase * 0.5);
+        for (const line of letters.children) ((line as Line).material as LineBasicMaterial).opacity = Math.sin(Math.PI * phase) * 0.9;
+      });
       if (view.object.visible) view.update(deltaSeconds);
     });
   }

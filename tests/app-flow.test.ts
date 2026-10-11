@@ -1,3 +1,11 @@
+import type { Combatant } from '../src/game/combat/combatant';
+function forceDamage(actor: Combatant | null | undefined, amount: number): void {
+  if (!actor) return;
+  const protection = actor.damageProtected;
+  actor.damageProtected = () => false;
+  actor.applyDamage(amount);
+  actor.damageProtected = protection;
+}
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Scene, PerspectiveCamera, Vector3 } from 'three';
 import type { BotSkirmishView } from '../src/game/bots/bot-skirmish-view';
@@ -82,6 +90,31 @@ describe('application match flow', () => {
     } finally { app.dispose(); }
   });
 
+  it('allows countdown movement inside the safe area and completes wheel switching after half a second', () => {
+    harness.countdownSeconds = 20;
+    const { app, root, frame, element, windowTarget } = createHarness();
+    try {
+      element('menu-join-button').click(); frame(); frame();
+      const battle = harness.battles[0]!;
+      const actor = battle.simulation.playerCombatant!;
+      const spawn = actor.position.clone();
+      windowTarget.dispatchEvent(makeKeyEvent('keydown', 'KeyD'));
+      for (let i = 0; i < 15; i++) frame();
+      expect(actor.position.distanceTo(spawn)).toBeGreaterThan(0.1);
+      for (let i = 0; i < 400; i++) frame();
+      expect(battle.match.matchState).toBe('countdown');
+      expect(battle.match.isInSafeArea(actor.team, actor.position)).toBe(true);
+      windowTarget.dispatchEvent(makeKeyEvent('keyup', 'KeyD'));
+      root.dispatchEvent(Object.assign(new Event('wheel', { cancelable: true }), { deltaY: 100, deltaMode: 0 }));
+      frame(); frame();
+      expect(element('hud-weapon-name').textContent).toBe('SWITCHING…');
+      for (let i = 0; i < 30; i++) frame();
+      expect(element('hud-weapon-name').textContent).toBe('TACTICAL KNIFE');
+      expect(element('hud-ammo-note').textContent).toContain('25%');
+      expect(element('match-strip').textContent).toContain('BLUE 1');
+    } finally { app.dispose(); }
+  });
+
   it('scales damage feedback and zooms only the live death view with bounded wheel input', () => {
     const { app, root, frame, element } = createHarness();
     const wheel = (deltaY: number) => {
@@ -94,13 +127,13 @@ describe('application match flow', () => {
       const actor = harness.battles[0]!.simulation.playerCombatant!;
       const camera = harness.cameras[0]!;
       expect(element('damage-vignette').style.opacity).toBe('0');
-      expect(wheel(-100).defaultPrevented).toBe(false);
-      actor.applyDamage(20); frame();
+      expect(wheel(-100).defaultPrevented).toBe(true);
+      forceDamage(actor, 20); frame();
       const light = Number(element('damage-vignette').style.opacity);
       expect(light).toBeGreaterThan(0);
-      actor.applyDamage(50); frame();
+      forceDamage(actor, 50); frame();
       expect(Number(element('damage-vignette').style.opacity)).toBeGreaterThan(light);
-      actor.applyDamage(100); frame(); frame();
+      forceDamage(actor, 100); frame(); frame();
       expect(element('death-overlay').hidden).toBe(false);
       expect(element('damage-vignette').style.opacity).toBe('0');
       expect(camera.position.y).toBe(90);
@@ -156,7 +189,7 @@ describe('application match flow', () => {
       expect(actor.poseHeight).toBeLessThan(actor.height + 0.05);
       expect(actor.position.distanceTo(feet)).toBeLessThan(0.01);
       expect(actor.aimPoint().x).toBeLessThan(actor.position.x);
-      actor.applyDamage(100);
+      forceDamage(actor, 100);
       windowTarget.dispatchEvent(makeKeyEvent('keyup', 'KeyQ'));
       for (let i = 0; i < 20; i += 1) frame();
       expect(actor.status).toBe('alive');
@@ -203,8 +236,8 @@ describe('application match flow', () => {
       frame(); frame();
       const battle = harness.battles[0]!;
       expect(battle.match.matchState).toBe('active');
-      battle.simulation.getCombatant('friendly-001')!.applyDamage(100);
-      if (status === 'dead') battle.simulation.playerCombatant!.applyDamage(100);
+      forceDamage(battle.simulation.getCombatant('friendly-001'), 100);
+      if (status === 'dead') forceDamage(battle.simulation.playerCombatant, 100);
       for (let index = 0; index < 30; index += 1) frame();
 
       expect(battle.match.matchState).toBe('complete');

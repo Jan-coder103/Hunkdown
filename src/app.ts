@@ -1,3 +1,4 @@
+import { createMeleeWeaponModel } from './content/weapons/registry';
 import { EngineRuntime } from './engine/engine-runtime';
 import { Vector3 } from 'three';
 import { SceneView } from './engine/scene-view';
@@ -43,14 +44,19 @@ export function mountApp(root: HTMLElement) {
       <div id="damage-vignette" class="damage-vignette" aria-hidden="true"></div>
       <output id="round-countdown" class="round-countdown" aria-live="polite" hidden></output>
       <div id="combat-flash" class="combat-flash" aria-hidden="true"></div>
+      <section class="shooter-hud" aria-label="Combat HUD">
+        <div class="radar"><svg id="radar-map" viewBox="-50 -50 100 100" aria-label="Squad radar"></svg><span>SQUAD RADAR · N ↑</span></div>
+        <output id="match-strip" class="match-strip"></output>
+        <output id="health-display" class="health-display"></output>
+        <div class="ammo-display"><span id="hud-weapon-name" class="hud-weapon-name"></span><output id="ammo-display"></output><small id="hud-ammo-note"></small></div>
+        <output id="interaction-hint" class="interaction-hint"></output>
+        <output id="range-summary" class="range-summary"></output>
+      </section>
       <section class="engine-hud" aria-label="Shooting range controls and status">
         <p class="eyebrow">OPERATION HONKDOWN · MATCH PREVIEW</p>
         <h1 id="mode-heading">Shooting range</h1>
         <div class="state-row"><span class="state-dot" aria-hidden="true"></span><output id="engine-state">Starting</output></div>
         <p id="pointer-state" class="hint" aria-live="polite">Click the scene to capture the mouse.</p>
-        <button id="mode-toggle" class="mode-toggle" type="button">Watch ${TOTAL_MATCH_BOTS}-bot skirmish</button>
-        <button id="reset-range-button" class="mode-toggle range-reset" type="button">Reset range</button>
-        <button id="join-match-button" class="mode-toggle" type="button">Join ${TOTAL_MATCH_BOTS}-bot match</button>
         <output id="skirmish-readout" class="skirmish-readout" aria-live="polite" hidden></output>
         <output id="revive-readout" class="revive-readout" aria-live="polite" hidden></output>
         <div class="control-list" aria-label="Controls">
@@ -85,7 +91,7 @@ export function mountApp(root: HTMLElement) {
           <div class="menu-panels">
             <section data-menu-panel="loadout" aria-labelledby="loadout-title">
               <p class="menu-kicker">READY ROOM</p><h3 id="loadout-title">Loadout</h3>
-              <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Reliable, loud, and currently the whole armory.</span></div><b>PRIMARY</b></div>
+              <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Honk-47 + tactical knife · scroll to switch.</span></div><b>PRIMARY</b></div>
               <p class="menu-footnote">Try every target distance, practice movement and cover, then reset the range whenever you want.</p>
             </section>
             <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
@@ -125,6 +131,9 @@ export function mountApp(root: HTMLElement) {
           <h2 id="pause-title">Take a breather.</h2>
           <p>The world stops while you are away.</p>
           <button id="resume-button" type="button">Resume</button>
+          <button id="mode-toggle" class="secondary-action" type="button">Watch ${TOTAL_MATCH_BOTS}-bot skirmish</button>
+          <button id="join-match-button" class="secondary-action" type="button">Join ${TOTAL_MATCH_BOTS}-bot match</button>
+          <button id="reset-range-button" class="secondary-action" type="button">Reset range</button>
           <button id="pause-settings-button" type="button" class="secondary-action">Settings</button>
           <a class="pause-link" href="${import.meta.env.BASE_URL}asset-viewer.html" target="_blank" rel="noreferrer">Open asset viewer ↗</a>
           <button id="return-menu-button" type="button" class="secondary-action">Return to main menu</button>
@@ -202,6 +211,11 @@ export function mountApp(root: HTMLElement) {
   const roundCountdown = root.querySelector<HTMLOutputElement>('#round-countdown')!;
   let deathViewHeight = 90;
   const handleDeathZoom = (event: WheelEvent): void => {
+    if (runtime.state === 'running' && menuEl.hidden && !resultsShown && !isSkirmishMode
+      && (!isPlayerMatchMode || skirmishView?.simulation.playerCombatant?.status === 'alive')) {
+      if (Number.isFinite(event.deltaY) && event.deltaY !== 0) { event.preventDefault(); switchPending = true; }
+      return;
+    }
     if (!isPlayerMatchMode || skirmishView?.simulation.playerCombatant?.status !== 'dead'
       || runtime.state !== 'running' || !menuEl.hidden || resultsShown || !sceneView) return;
     event.preventDefault();
@@ -276,6 +290,8 @@ export function mountApp(root: HTMLElement) {
   let activeReviveTargetId: string | null = null;
   let playerWasAlive = true;
   let weaponView: WeaponView | null = null;
+  let knifeView: WeaponView | null = null;
+  let switchPending = false;
   let grenadeView: GrenadeView | null = null;
   let sceneView: SceneView | null = null;
   const feedback = new CombatFeedback();
@@ -424,15 +440,17 @@ export function mountApp(root: HTMLElement) {
     if (!activePlayer || !activeCombat || !camera) return;
     camera.getWorldDirection(aimDirection);
     const result = activeCombat.step(stepSeconds, {
-      fireHeld: pointerControls?.isFireHeld ?? false,
-      firePressed: pointerControls?.consumeFirePressed() ?? false,
+      fireHeld: (!isPlayerMatchMode || skirmishView?.match.matchState === 'active') && (pointerControls?.isFireHeld ?? false),
+      firePressed: (pointerControls?.consumeFirePressed() ?? false) && (!isPlayerMatchMode || skirmishView?.match.matchState === 'active'),
       reloadPressed: input.wasPressed('KeyR'),
       grenadeTogglePressed: input.wasPressed('KeyG'),
       aiming: pointerControls?.isAiming ?? false,
+      switchPressed: switchPending,
     }, camera.position, aimDirection, random, allowPlayerActions);
+    switchPending = false;
     if (isPlayerMatchMode) skirmishView?.match.recordPlayerCombat('player', result.shots, result.explosions);
     else {
-      practiceRange?.recordShots(result.weaponEvents.filter((event) => event.type === 'shot').length, result.shots);
+      practiceRange?.recordShots(result.shots.length, result.shots);
       practiceRange?.recordExplosions(result.explosions);
     }
     const destroyedObstacleIds = [
@@ -464,6 +482,7 @@ export function mountApp(root: HTMLElement) {
       combatFlash.classList.add('active');
     }
     for (const explosion of result.explosions) {
+      grenadeView?.showExplosion(explosion.position);
       audioManager.play('explosion', { position: explosion.position });
       const distance = camera.position.distanceTo(explosion.position);
       feedback.registerExplosion(distance, CombatSession.grenadeBlastRadius);
@@ -472,7 +491,13 @@ export function mountApp(root: HTMLElement) {
         combatFlash.classList.add('active');
       }
     }
-    weaponView?.setAiming(allowPlayerActions && !activeCombat.grenades.equipped && (pointerControls?.isAiming ?? false));
+    weaponView?.setVisible(allowPlayerActions && activeCombat.heldWeapon === 'rifle' && activeCombat.switchRemaining <= 0 && !activeCombat.grenades.equipped);
+    knifeView?.setVisible(allowPlayerActions && activeCombat.knifeReady && !activeCombat.grenades.equipped);
+    knifeView?.update(stepSeconds);
+    if (activeCombat.knifeReady && result.shots.length) knifeView?.fire();
+    grenadeView?.updateEffects(stepSeconds);
+    activePlayer.movementMultiplier = activeCombat.knifeReady && !activeCombat.grenades.equipped ? activeCombat.knife.movementMultiplier : 1;
+    weaponView?.setAiming(allowPlayerActions && activeCombat.heldWeapon === 'rifle' && !activeCombat.grenades.equipped && (pointerControls?.isAiming ?? false));
     if (!feedback.freezeWeaponPose) weaponView?.update(stepSeconds);
     root.dataset.aiming = String(pointerControls?.isAiming ?? false);
     root.dataset.hitFlash = String(feedback.showHitFlash);
@@ -517,6 +542,8 @@ export function mountApp(root: HTMLElement) {
       combat = new CombatSession(playground.world, practiceRange.combatants, weaponDefinition);
       weaponView = new WeaponView(view.camera, createWeaponModel(weaponDefinition.id), weaponDefinition.reloadSeconds);
       playerCharacter = new ChickenCharacterView(view.camera, 'player', 'first-person');
+      knifeView = new WeaponView(view.camera, createMeleeWeaponModel('tactical-knife'), 0.5);
+      knifeView.setVisible(false);
       grenadeView = new GrenadeView(view.scene);
       player = new PlayerController(view.camera, playground.world, {
         spawn: { x: 0, y: 0, z: 8 },
@@ -548,6 +575,22 @@ export function mountApp(root: HTMLElement) {
           const countdown = skirmishView?.match;
           roundCountdown.hidden = !menuEl.hidden || resultsShown || !countdown || countdown.matchState !== 'countdown';
           if (!roundCountdown.hidden && countdown) roundCountdown.textContent = `Round starts in ${Math.ceil(countdown.countdown.secondsRemaining)}`;
+          const ammo = combat?.weapon.snapshot;
+          const knife = combat?.heldWeapon === 'knife';
+          root.querySelector<HTMLElement>('#hud-weapon-name')!.textContent = combat?.switchRemaining ? 'SWITCHING…' : combat?.grenades.equipped ? 'FRAG GRENADE' : knife ? 'TACTICAL KNIFE' : 'HONK-47';
+          root.querySelector<HTMLElement>('#ammo-display')!.textContent = combat?.grenades.equipped ? String(combat.grenades.count) : knife ? '▱' : `${ammo?.magazine ?? 0} / ${ammo?.reserve ?? 0}`;
+          root.querySelector<HTMLElement>('#hud-ammo-note')!.textContent = ammo?.reloading ? 'RELOADING' : knife ? '25% movement boost · WHEEL switch' : `G · ${combat?.grenades.count ?? 0} grenades   WHEEL · knife`;
+          root.querySelector<HTMLElement>('#interaction-hint')!.textContent = reviveReadout.hidden ? (!pointerControls?.isLocked ? 'Click to capture mouse · ESC pause' : '') : reviveReadout.textContent;
+          const rangeSummary = root.querySelector<HTMLElement>('#range-summary')!;
+          rangeSummary.hidden = isPlayerMatchMode || isSkirmishMode;
+          rangeSummary.textContent = combatReadout.textContent;
+          root.querySelector<HTMLElement>('#health-display')!.textContent = `✚ ${Math.round(actor?.health ?? 100)}${actor && countdown?.isInSafeArea(actor.team, actor.position) ? ' · SAFE ZONE' : ''}`;
+          const tickets = countdown?.tickets;
+          const capture = countdown?.captureStatus;
+          root.querySelector<HTMLElement>('#match-strip')!.textContent = countdown ? `BLUE ${tickets?.friendly}  ·  ${capture?.control.toUpperCase()} ${Math.round(Math.max(capture?.friendlyProgress ?? 0, capture?.enemyProgress ?? 0) * 100)}%  ·  ORANGE ${tickets?.enemy}` : 'SHOOTING RANGE';
+          const radar = root.querySelector<HTMLElement>('#radar-map')!;
+          const extent = skirmishView ? Math.max(skirmishView.map.source.width, skirmishView.map.source.height) * skirmishView.map.source.cellSize : 50;
+          radar.innerHTML = '<circle r="48" fill="#173831"/><path d="M-48 0H48M0-48V48" stroke="#42665c" stroke-width="1"/>' + (skirmishView?.simulation.combatants.filter(c => c.status === 'alive' && c.team === 'friendly').map(c => `<circle cx="${c.position.x / extent * 90}" cy="${c.position.z / extent * 90}" r="${c.id === 'player' ? 3 : 1.5}" fill="${c.id === 'player' ? '#fff5ba' : '#66d5be'}"/>`).join('') ?? '<circle r="3" fill="#fff5ba"/>');
           root.dataset.playerDead = String(actor?.status === 'dead');
           view.camera.getWorldDirection(audioForward);
           audioManager.updateListener(view.camera.position, audioForward);
@@ -576,6 +619,8 @@ export function mountApp(root: HTMLElement) {
           grenadeView = null;
           playerCharacter?.dispose();
           playerCharacter = null;
+          knifeView?.dispose();
+          knifeView = null;
           weaponView?.dispose();
           weaponView = null;
           practiceRange?.dispose();
@@ -604,10 +649,15 @@ export function mountApp(root: HTMLElement) {
         if (!battle || !activePlayer || !playerActor) return;
         const aliveBeforeStep = playerActor.status === 'alive';
 
-        if (aliveBeforeStep && battle.match.matchState === 'active') {
-          activePlayer.update(stepSeconds, input, pointerControls?.isAiming ?? false);
+        if (aliveBeforeStep && battle.match.matchState !== 'complete') {
+          activePlayer.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (pointerControls?.isAiming ?? false));
           if (activePlayer.isGrounded && activePlayer.horizontalSpeed > 0.8) {
             audioManager.play('footstep', { position: activePlayer.position });
+          }
+          if (battle.match.matchState === 'countdown') {
+            const area = battle.match.safeArea(playerActor.team);
+            activePlayer.position.x = Math.max(area.minX + playerActor.radius, Math.min(area.maxX - playerActor.radius, activePlayer.position.x));
+            activePlayer.position.z = Math.max(area.minZ + playerActor.radius, Math.min(area.maxZ - playerActor.radius, activePlayer.position.z));
           }
           playerActor.position.copy(activePlayer.position);
           playerActor.leanOffset.copy(activePlayer.bodyLeanOffset);
@@ -652,7 +702,7 @@ export function mountApp(root: HTMLElement) {
           combat?.resetForRespawn();
           weaponView?.resetForRespawn();
         }
-        if (battle.match.matchState === 'active') {
+        if (battle.match.matchState !== 'complete') {
           stepPlayerCombat(stepSeconds, random, input, playerActor.status === 'alive');
         }
         playerCharacter?.update(stepSeconds);
@@ -662,6 +712,7 @@ export function mountApp(root: HTMLElement) {
           pointerControls?.releaseLock();
           playerCharacter?.setPose({ dead: true });
           playerCharacter && (playerCharacter.object.visible = false);
+          knifeView?.setVisible(false);
           weaponView?.setVisible(false);
           grenadeView?.updateTrajectory([], false);
           deathOverlay.hidden = false;
@@ -692,7 +743,7 @@ export function mountApp(root: HTMLElement) {
         return;
       }
 
-      player?.update(stepSeconds, input, pointerControls?.isAiming ?? false);
+      player?.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (pointerControls?.isAiming ?? false));
       if (player) {
         if (player.isGrounded && player.horizontalSpeed > 0.8) {
           audioManager.play('footstep', { position: player.position });
@@ -855,6 +906,7 @@ export function mountApp(root: HTMLElement) {
       playground.setVisible(false);
       practiceRange?.setVisible(false);
       if (playerCharacter) playerCharacter.object.visible = false;
+      knifeView?.setVisible(false);
       weaponView?.setVisible(false);
       grenadeView?.setVisible(false);
       camera.fov = 65;

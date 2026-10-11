@@ -196,6 +196,8 @@ export class PlayerController {
     }
   }
 
+  movementMultiplier = 1;
+
   update(deltaSeconds: number, input: KeyboardInput, aiming: boolean): void {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.previousPosition.copy(this.position);
@@ -260,8 +262,8 @@ export class PlayerController {
       this.velocity.z = this.slideDirectionZ * this.slideSpeed;
     } else if (moveLength > 0) {
       const speed = crouchRequested ? CROUCH_SPEED : sprinting ? SPRINT_SPEED : WALK_SPEED;
-      this.velocity.x = directionX * speed;
-      this.velocity.z = directionZ * speed;
+      this.velocity.x = directionX * speed * this.movementMultiplier;
+      this.velocity.z = directionZ * speed * this.movementMultiplier;
     } else {
       this.velocity.x = 0;
       this.velocity.z = 0;

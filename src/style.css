@@ -303,3 +303,23 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 @media (max-width: 760px) { .round-countdown { top: .5rem; } #app[data-view-mode="match"] .engine-hud { top: 3.5rem; } }
 
 #app[data-aiming="true"] .crosshair { opacity: 0; }
+
+/* Compact shooter HUD; tools and detailed diagnostics stay in the pause menu. */
+.engine-hud { display: none; }
+.shooter-hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; color: #f5f7ed; font-variant-numeric: tabular-nums; text-shadow: 0 2px 4px #162e29; }
+.radar { position: absolute; top: 20px; left: 20px; width: 140px; text-align: center; font-size: 9px; letter-spacing: 1px; }
+.radar svg { width: 140px; height: 140px; border-radius: 50%; border: 2px solid #a9d3bc99; background: #173831d9; box-shadow: 0 4px 18px #152c2944; }
+.radar span { display: block; margin-top: 7px; }
+.match-strip { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); background: #183b35cc; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 800; }
+.health-display { position: absolute; bottom: 30px; left: 28px; font-size: 27px; font-weight: 800; padding: 12px 18px; border-left: 4px solid #65d2b1; background: #183b35bb; border-radius: 6px; }
+.ammo-display { position: absolute; bottom: 30px; right: 28px; max-width: 290px; padding: 16px; border-radius: 8px; background: #183b35cc; font-size: 20px; font-weight: 800; text-align: right; }
+.round-countdown { top: 80px; font-size: clamp(32px, 5vw, 64px); padding: 20px 32px; border-radius: 18px; box-shadow: 0 8px 35px #153d3533; }
+#app[data-menu-open="true"] .shooter-hud, #app[data-player-dead="true"] .shooter-hud { display: none; }
+@media (max-width: 760px) { .radar, .radar svg { width: 100px; } .radar svg { height: 100px; } .match-strip { left: auto; right: 12px; transform: none; font-size: 10px; } .round-countdown { top: 145px; font-size: 30px; } .ammo-display { max-width: 190px; font-size: 15px; right: 12px; } .health-display { left: 12px; font-size: 20px; } }
+.ammo-display { width: 185px; max-width: 185px; padding: 12px 16px; }
+.hud-weapon-name { display: block; font-size: 11px; letter-spacing: 1.8px; color: #b2d8cb; margin-bottom: 7px; }
+#ammo-display { font-size: 30px; display: block; }
+#hud-ammo-note { display: block; font-size: 9px; font-weight: 500; margin-top: 6px; color: #c5dacf; }
+.interaction-hint { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); font-size: 12px; text-align: center; max-width: 380px; }
+.range-summary { position: absolute; top: 190px; left: 20px; max-width: 140px; font-size: 11px; line-height: 1.5; color: #f3f5de; }
+.range-summary[hidden] { display: none; }

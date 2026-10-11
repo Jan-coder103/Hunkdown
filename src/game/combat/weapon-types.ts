@@ -86,3 +86,13 @@ export function validateWeaponDefinition(definition: WeaponDefinition): void {
     throw new Error(`Weapon ${definition.id} should not be less accurate while aiming`);
   }
 }
+
+/** Close-combat content shares the model rig while keeping ammunition rules separate. */
+export type MeleeWeaponDefinition = Readonly<{
+  id: string; displayName: string; damage: number; range: number;
+  cooldownSeconds: number; movementMultiplier: number; equipSeconds: number;
+}>;
+export type MeleeWeaponModule = Readonly<{
+  meleeDefinition: MeleeWeaponDefinition;
+  createWeaponModel: () => WeaponModelRig;
+}>;

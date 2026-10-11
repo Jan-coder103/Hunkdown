@@ -1,3 +1,11 @@
+import type { Combatant } from '../src/game/combat/combatant';
+function forceDamage(actor: Combatant | null | undefined, amount: number): void {
+  if (!actor) return;
+  const protection = actor.damageProtected;
+  actor.damageProtected = () => false;
+  actor.applyDamage(amount);
+  actor.damageProtected = protection;
+}
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import { BotSkirmishMatch } from '../src/game/match/bot-skirmish-match';
@@ -13,7 +21,7 @@ describe('bot skirmish match start', () => {
     const map = generateMap(createEmptyMap({ width: 5, height: 3, seed: 71, cellSize: 4 }));
     const match = new BotSkirmishMatch(map, { friendlyCount, enemyCount }, {}, 0.01,
       { initialTickets: 1, respawnDelaySeconds: 0.2, captureDurationSeconds: 100 });
-    for (const actor of match.simulation.combatants) actor.applyDamage(100);
+    for (const actor of match.simulation.combatants) forceDamage(actor, 100);
     match.step(0.02);
     match.step(0.2);
     expect(match.tickets).toEqual(tickets);
@@ -37,11 +45,11 @@ describe('bot skirmish match start', () => {
     match.step(0.02);
     const enemy = match.simulation.getCombatant('enemy-001');
     expect(enemy).not.toBeNull();
-    enemy?.applyDamage(35);
+    forceDamage(enemy, 35);
     match.recordPlayerCombat('player', [{
       direction: new Vector3(1, 0, 0), distance: 2, blocked: false, targetId: 'enemy-001', damage: 35, killed: false,
     }]);
-    enemy?.applyDamage(65);
+    forceDamage(enemy, 65);
     match.recordPlayerCombat('player', [{
       direction: new Vector3(1, 0, 0), distance: 2, blocked: false, targetId: 'enemy-001', damage: 65, killed: true,
     }]);
@@ -176,7 +184,7 @@ describe('bot skirmish match start', () => {
     const first = match.simulation.getCombatant('friendly-001')!;
     const second = match.simulation.getCombatant('friendly-002')!;
     first.position.copy(player.position);
-    first.applyDamage(100);
+    forceDamage(first, 100);
     match.step(1 / 60);
     expect(match.findReviveTarget('player')?.botId).toBe(first.id);
     const oldCorpseId = match.findReviveTarget('player')!.id;
@@ -186,9 +194,9 @@ describe('bot skirmish match start', () => {
 
     // The first bird dies again away from its still-visible old corpse.
     first.position.set(-3, 0, 0);
-    first.applyDamage(100);
+    forceDamage(first, 100);
     second.position.copy(player.position).add({ x: 1, y: 0, z: 0 });
-    second.applyDamage(100);
+    forceDamage(second, 100);
     match.step(1 / 60);
     expect(match.findReviveTarget('player')?.botId).toBe(second.id);
     player.position.y = 5;
@@ -196,7 +204,7 @@ describe('bot skirmish match start', () => {
     player.position.set(-3, 0, 0);
     expect(match.findReviveTarget('player')?.id).not.toBe(oldCorpseId);
     expect(match.findReviveTarget('player')?.botId).toBe(first.id);
-    player.applyDamage(100);
+    forceDamage(player, 100);
     expect(match.findReviveTarget('player')).toBeNull();
   });
 
@@ -217,7 +225,7 @@ describe('bot skirmish match start', () => {
     const teammate = match.simulation.getCombatant('friendly-001');
     expect(player).not.toBeNull();
     expect(teammate).not.toBeNull();
-    teammate?.applyDamage(100);
+    forceDamage(teammate, 100);
     match.step(0.02);
     expect(match.corpseSnapshots.some((corpse) => corpse.botId === 'friendly-001')).toBe(true);
     expect(match.beginRevive('friendly-001', 'player')).toBe(true);
@@ -226,7 +234,7 @@ describe('bot skirmish match start', () => {
     expect(match.scoreSnapshots.find((score) => score.id === 'player')).toMatchObject({ healing: 50, revives: 1 });
     expect(match.corpseSnapshots.some((corpse) => corpse.botId === 'friendly-001')).toBe(false);
 
-    player?.applyDamage(100);
+    forceDamage(player, 100);
     match.step(0.02);
     expect(match.lifeSnapshots.find((life) => life.botId === 'player')?.respawnSecondsRemaining).toBeCloseTo(0.2);
     match.step(0.2);

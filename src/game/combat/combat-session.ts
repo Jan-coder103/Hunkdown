@@ -1,3 +1,4 @@
+import { getMeleeWeaponDefinition } from '../../content/weapons/registry';
 import { Vector3 } from 'three';
 import type { RandomSource } from '../../engine/seeded-random';
 import { MovementWorld } from '../player/movement-world';
@@ -12,6 +13,7 @@ export type CombatInput = Readonly<{
   reloadPressed: boolean;
   grenadeTogglePressed: boolean;
   aiming: boolean;
+  switchPressed?: boolean;
 }>;
 
 export type CombatStepResult = Readonly<{
@@ -25,6 +27,11 @@ export type CombatStepResult = Readonly<{
 
 /** Fixed-step combat orchestration shared by range targets now and full teams later. */
 export class CombatSession {
+  readonly knife = getMeleeWeaponDefinition('tactical-knife');
+  heldWeapon: 'rifle' | 'knife' = 'rifle';
+  switchRemaining = 0;
+  private knifeCooldown = 0;
+  get knifeReady(): boolean { return this.heldWeapon === 'knife' && this.switchRemaining <= 1e-9; }
   readonly weapon: WeaponController;
   readonly grenades = new GrenadeSystem();
 
@@ -38,6 +45,9 @@ export class CombatSession {
   }
 
   resetForRespawn(): void {
+    this.heldWeapon = 'rifle';
+    this.switchRemaining = 0;
+    this.knifeCooldown = 0;
     this.weapon.resetForRespawn();
     this.grenades.resetForRespawn();
   }
@@ -57,7 +67,17 @@ export class CombatSession {
         explosions: this.grenades.update(deltaSeconds, this.world, this.combatants, this.shooterTeam),
       };
     }
-    if (input.grenadeTogglePressed) this.grenades.toggleEquipped();
+    const switching = this.switchRemaining > 0;
+    this.switchRemaining = Math.max(0, this.switchRemaining - deltaSeconds);
+    if (this.switchRemaining < 1e-9) this.switchRemaining = 0;
+    this.knifeCooldown = Math.max(0, this.knifeCooldown - deltaSeconds);
+    if (input.switchPressed && !switching) {
+      this.heldWeapon = this.heldWeapon === 'rifle' ? 'knife' : 'rifle';
+      this.switchRemaining = this.knife.equipSeconds;
+      this.grenades.equipped = false;
+      this.weapon.cancelReload();
+    }
+    if (input.grenadeTogglePressed && this.switchRemaining <= 0) this.grenades.toggleEquipped();
     let grenadeThrown = false;
     let weaponEvents: readonly WeaponEvent[] = [];
     const shots: HitscanResult[] = [];
@@ -69,6 +89,13 @@ export class CombatSession {
         firePressed: false,
         reloadPressed: false,
       }, input.aiming);
+    } else if (this.heldWeapon === 'knife' || switching || this.switchRemaining > 0) {
+      this.weapon.step(deltaSeconds, { fireHeld: false, firePressed: false, reloadPressed: false }, false);
+      if (this.knifeReady && !switching && input.firePressed && this.knifeCooldown <= 0) {
+        this.knifeCooldown = this.knife.cooldownSeconds;
+        shots.push(resolveHitscan({ world: this.world, combatants: this.combatants, shooterTeam: this.shooterTeam,
+          origin, direction, range: this.knife.range, spreadRadians: 0, random, damage: this.knife.damage, knockback: 2 }));
+      }
     } else {
       weaponEvents = this.weapon.step(deltaSeconds, input, input.aiming);
       for (const event of weaponEvents) {

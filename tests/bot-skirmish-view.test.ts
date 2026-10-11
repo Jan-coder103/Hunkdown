@@ -1,3 +1,11 @@
+import type { Combatant } from '../src/game/combat/combatant';
+function forceDamage(actor: Combatant | null | undefined, amount: number): void {
+  if (!actor) return;
+  const protection = actor.damageProtected;
+  actor.damageProtected = () => false;
+  actor.applyDamage(amount);
+  actor.damageProtected = protection;
+}
 import { Group, InstancedMesh, PerspectiveCamera, Scene } from 'three';
 import { describe, expect, it } from 'vitest';
 import { BotSkirmishView } from '../src/game/bots/bot-skirmish-view';
@@ -282,7 +290,7 @@ describe('rendered bot skirmish', () => {
       rules: { captureDurationSeconds: 100, captureRadius: 0.1, respawnDelaySeconds: 10, corpseLifetimeSeconds: 0.1 },
     });
     view.step(0.02);
-    view.simulation.getCombatant('friendly-001')?.applyDamage(100);
+    forceDamage(view.simulation.getCombatant('friendly-001'), 100);
     view.step(1 / 60);
     const firstCorpse = view.match.corpseSnapshots.find((corpse) => corpse.botId === 'friendly-001');
     if (!firstCorpse) throw new Error('Expected the first friendly corpse');
@@ -292,7 +300,7 @@ describe('rendered bot skirmish', () => {
     view.step(0.11);
     expect(scene.getObjectByName(`skirmish corpse ${firstCorpse.id}`)).toBeFalsy();
     expect(firstView?.visible).toBe(false);
-    view.simulation.getCombatant('friendly-002')?.applyDamage(100);
+    forceDamage(view.simulation.getCombatant('friendly-002'), 100);
     view.step(1 / 60);
     const secondCorpse = view.match.corpseSnapshots.find((corpse) => corpse.botId === 'friendly-002');
 
