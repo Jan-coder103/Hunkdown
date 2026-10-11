@@ -115,6 +115,39 @@ describe('generated asset pipeline', () => {
     }
   });
 
+  it('keeps the cartoon face exposed, feet grounded, and far tier inexpensive', () => {
+    const asset = createAsset('tactical-chicken');
+    const close = asset.lods.close;
+    close.updateMatrixWorld(true);
+    const box = (name: string) => new Box3().setFromObject(close.getObjectByName(name)!);
+    const pupil = box('dark eye');
+    const white = box('white eye');
+    const beak = box('orange beak');
+    expect(white.getSize(new Vector3()).x).toBeGreaterThan(pupil.getSize(new Vector3()).x * 1.4);
+    expect(pupil.max.z).toBeGreaterThan(white.max.z);
+    expect(beak.max.z).toBeGreaterThan(pupil.max.z);
+    expect(box('red comb').max.y).toBeGreaterThan(box('feathered head').max.y);
+    expect(box('tactical vest').max.y).toBeLessThan(white.min.y);
+    const toes: Mesh[] = [];
+    close.traverse((part) => { if (part instanceof Mesh && part.name === 'foot toe') toes.push(part); });
+    expect(toes).toHaveLength(6);
+    for (const toe of toes) {
+      const bounds = new Box3().setFromObject(toe);
+      expect(bounds.min.y).toBeCloseTo(0.02, 2);
+      expect(bounds.max.y).toBeLessThan(0.1);
+    }
+    let farMeshes = 0;
+    let farTriangles = 0;
+    asset.lods.far.traverse((part) => {
+      if (!(part instanceof Mesh)) return;
+      farMeshes += 1;
+      farTriangles += (part.geometry.index?.count ?? part.geometry.getAttribute('position').count) / 3;
+    });
+    expect(farMeshes).toBe(2);
+    expect(farTriangles).toBeLessThan(1300);
+    asset.dispose();
+  });
+
   it('uses the same detailed Honk-47 model in combat and the asset viewer', () => {
     const asset = createAsset('honk-47');
     const weapon = createWeaponModelForAssetCheck();

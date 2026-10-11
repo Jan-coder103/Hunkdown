@@ -49,20 +49,20 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
   if (detail === 'far') return createFarTacticalChickenModel(team);
   const close = detail === 'close';
   const root = createAssetRoot(`Tactical chicken — ${team} — ${detail} LOD`);
-  const feather = material('#f4ead0', 0.9);
-  const wingFeather = material('#e9ddc0', 0.92);
+  const feather = material('#f5c765', 0.9);
+  const wingFeather = material('#eab654', 0.92);
   const vest = material('#586b60', 0.9);
   const vestDark = material('#394b44', 0.92);
-  const helmetMaterial = material('#718575', 0.86);
-  const helmetTrim = material('#c8b982', 0.82);
   const orange = material('#df9c48', 0.82);
-  const combMaterial = material('#cf6654', 0.86);
+  const combMaterial = material('#f06b50', 0.86);
   const beakMaterial = material('#e9ad54', 0.78);
-  const eyeMaterial = material('#31423b', 0.46);
+  const eyeMaterial = material('#49302a', 0.38);
   const eyeGlintMaterial = material('#fff7df', 0.34);
   const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
+  eyeMaterial.flatShading = false;
+  eyeGlintMaterial.flatShading = false;
   const ownedMaterials = [
-    feather, wingFeather, vest, vestDark, helmetMaterial, helmetTrim, orange,
+    feather, wingFeather, vest, vestDark, orange,
     combMaterial, beakMaterial, eyeMaterial, eyeGlintMaterial, teamMaterial,
   ];
   const spheroid = (
@@ -98,74 +98,56 @@ export function createTacticalChickenModel(team: ChickenTeam = 'friendly', detai
     return mesh;
   };
 
-  // Plump feathered body, protective vest, and a compact field pack.
+  // Overlapping egg volumes avoid a narrow neck and leave the face/comb uncovered.
   const body = new Group();
   body.name = 'chicken body and tactical vest';
-  body.position.set(0, 0.78, 0);
+  body.position.set(0, 0.88, 0);
   root.add(body);
-  spheroid('feathered body', [0.44, 0.54, 0.39], [0, 0, 0], feather, body);
-  block('tactical vest', [0.62, 0.42, 0.43], [0, 0.02, 0.16], vest, body);
-  block('vest center seam', [0.035, 0.38, 0.018], [0, 0.02, 0.382], vestDark, body);
-  block('left utility pouch', [0.18, 0.16, 0.1], [-0.2, -0.11, 0.39], vestDark, body);
-  block('right utility pouch', [0.18, 0.16, 0.1], [0.2, -0.11, 0.39], vestDark, body);
-  block('left pouch flap', [0.16, 0.045, 0.014], [-0.2, -0.075, 0.447], helmetTrim, body);
-  block('right pouch flap', [0.16, 0.045, 0.014], [0.2, -0.075, 0.447], helmetTrim, body);
-  block('shoulder strap left', [0.105, 0.39, 0.09], [-0.22, 0.06, 0.27], vestDark, body).rotation.z = -0.18;
-  block('shoulder strap right', [0.105, 0.39, 0.09], [0.22, 0.06, 0.27], vestDark, body).rotation.z = 0.18;
-  block('team shoulder patch', [0.14, 0.14, 0.035], [-0.324, 0.12, 0.08], teamMaterial, body);
-  block('chest team marker', [0.18, 0.105, 0.035], [0, 0.19, 0.397], teamMaterial, body);
-  if (close) {
-    block('field pack', [0.39, 0.43, 0.22], [0, 0.02, -0.3], vestDark, body);
-    block('field pack flap', [0.3, 0.13, 0.035], [0, 0.18, -0.414], vest, body);
-    block('radio aerial', [0.018, 0.34, 0.018], [-0.2, 0.29, -0.32], helmetTrim, body).rotation.z = -0.1;
+  spheroid('feathered body', [0.5, 0.63, 0.43], [0, 0, 0], feather, body, 10);
+  spheroid('tactical vest', [0.43, 0.22, 0.38], [0, -0.15, 0.015], vest, body);
+  block('left utility pouch', [0.17, 0.14, 0.07], [-0.2, -0.19, 0.36], vestDark, body);
+  block('right utility pouch', [0.17, 0.14, 0.07], [0.2, -0.19, 0.36], vestDark, body);
+  block('chest team marker', [0.18, 0.105, 0.035], [0, -0.08, 0.395], teamMaterial, body);
+  block('field pack', [0.3, 0.32, 0.16], [0, -0.02, -0.36], vestDark, body);
+  for (const side of [-1, 1]) {
+    block('shoulder strap', [0.07, 0.36, 0.06], [side * 0.28, 0.03, 0.3], vestDark, body).rotation.z = side * 0.24;
+  }
+  for (const side of [-1, 0, 1]) {
+    const tail = spheroid('tail feather', [0.12, 0.28, 0.1], [side * 0.14, 0.1, -0.41], wingFeather, body);
+    tail.rotation.x = -0.6;
+    tail.rotation.z = side * -0.35;
   }
 
   const head = new Group();
   head.name = 'chicken head';
-  head.position.set(0, 1.38, 0.08);
+  head.position.set(0, 1.35, 0.06);
   root.add(head);
-  spheroid('feathered head', [0.32, 0.31, 0.3], [0, 0, 0], feather, head);
-  // Forward-facing eyes and beak keep the bird readable from either LOD.
+  spheroid('feathered head', [0.37, 0.36, 0.33], [0, 0, 0], feather, head, 10);
   for (const side of [-1, 1]) {
-    spheroid('dark eye', [0.055, 0.064, 0.034], [side * 0.178, 0.015, 0.255], eyeMaterial, head, close ? 7 : 5);
-    if (close) {
-      spheroid('eye glint', [0.016, 0.019, 0.012], [side * 0.183 - 0.01, 0.035, 0.283], eyeGlintMaterial, head, 5);
-    }
+    spheroid('white eye', [0.117, 0.137, 0.067], [side * 0.176, 0.065, 0.282], eyeGlintMaterial, head, 10);
+    spheroid('dark eye', [0.073, 0.086, 0.038], [side * 0.176, 0.064, 0.341], eyeMaterial, head, 9);
+    spheroid('eye glint', [0.025, 0.028, 0.012], [side * 0.176 - 0.023, 0.102, 0.373], eyeGlintMaterial, head, 6);
+    spheroid('rosy cheek', [0.072, 0.04, 0.018], [side * 0.26, -0.105, 0.26], combMaterial, head);
+    spheroid('wattle', [0.065, 0.105, 0.055], [side * 0.049, -0.235, 0.295], combMaterial, head);
   }
-  const beak = new Mesh(new ConeGeometry(0.12, 0.22, close ? 5 : 4), beakMaterial);
+  spheroid('smiling mouth', [0.14, 0.067, 0.06], [0, -0.115, 0.335], eyeMaterial, head);
+  const beak = new Mesh(new ConeGeometry(0.155, 0.24, 4), beakMaterial);
   beak.name = 'orange beak';
   beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, -0.065, 0.33);
+  beak.rotation.z = Math.PI / 4;
+  beak.scale.z = 0.6;
+  beak.position.set(0, -0.065, 0.385);
   beak.castShadow = true;
   head.add(beak);
-  spheroid('wattle', [0.065, 0.095, 0.055], [0, -0.22, 0.23], combMaterial, head, close ? 6 : 4);
-  for (const [index, x] of [-0.105, 0, 0.105].entries()) {
-    spheroid('red comb', [0.07, 0.11 - Math.abs(index - 1) * 0.018, 0.055], [x, 0.31, -0.015], combMaterial, head, close ? 6 : 4);
+  spheroid('lower beak', [0.12, 0.035, 0.095], [0, -0.166, 0.36], beakMaterial, head);
+  for (const [index, z] of [-0.16, -0.04, 0.08].entries()) {
+    spheroid('red comb', [0.08, 0.15 + index * 0.012, 0.095], [0, 0.35, z], combMaterial, head, 7);
   }
-
-  const helmet = new Mesh(
-    new SphereGeometry(1, close ? 9 : 6, close ? 6 : 4, 0, Math.PI * 2, 0, Math.PI / 2),
-    helmetMaterial,
-  );
-  helmet.name = 'low-profile field helmet';
-  helmet.scale.set(0.35, 0.22, 0.32);
-  helmet.position.set(0, 0.27, -0.02);
-  helmet.castShadow = true;
-  head.add(helmet);
-  block('helmet brim', [0.69, 0.045, 0.42], [0, 0.205, 0.015], helmetMaterial, head);
-  block('helmet team stripe', [0.32, 0.035, 0.03], [0, 0.31, 0.279], teamMaterial, head);
-  if (close) {
-    // Simple raised goggles sit on the helmet so they read in close orbit views.
-    const goggleFrame = new Mesh(new BoxGeometry(0.36, 0.105, 0.065), vestDark);
-    goggleFrame.name = 'goggle frame';
-    goggleFrame.position.set(0, 0.23, 0.25);
-    head.add(goggleFrame);
-    const goggleLens = new Mesh(new BoxGeometry(0.28, 0.05, 0.025), material('#8dbdb4', 0.28, 0.14));
-    goggleLens.name = 'goggle lens';
-    goggleLens.position.set(0, 0.232, 0.293);
-    head.add(goggleLens);
-    ownedMaterials.push(goggleLens.material as MeshStandardMaterial);
-  }
+  // Raised goggles move to the pack; the expressive eyes remain unobstructed.
+  block('goggle frame', [0.27, 0.08, 0.04], [0, 0.09, -0.45], vestDark, body);
+  const lens = material('#8dbdb4', 0.28, 0.14);
+  ownedMaterials.push(lens);
+  block('goggle lens', [0.21, 0.04, 0.02], [0, 0.09, -0.48], lens, body);
 
   const leftWing = createWing('left chicken wing', -1, wingFeather, vest, close, root);
   const rightWing = createWing('right chicken wing', 1, wingFeather, vest, close, root);
@@ -198,27 +180,35 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
     parts.push(geometry);
   };
 
-  addPart(new SphereGeometry(1, 5, 4), '#f4ead0', [0, 0.78, 0], [0.44, 0.54, 0.39]);
-  addPart(new BoxGeometry(0.62, 0.42, 0.43), '#586b60', [0, 0.8, 0.16]);
-  addPart(new SphereGeometry(1, 5, 4), '#f4ead0', [0, 1.38, 0.08], [0.32, 0.31, 0.3]);
-  addPart(new SphereGeometry(1, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#718575', [0, 1.65, 0.06], [0.35, 0.22, 0.32]);
-  addPart(new ConeGeometry(0.12, 0.22, 4), '#e9ad54', [0, 1.315, 0.41], [1, 1, 1], [Math.PI / 2, 0, 0]);
-  addPart(new BoxGeometry(0.3, 0.12, 0.08), '#cf6654', [0, 1.69, 0.07]);
-  addPart(new SphereGeometry(1, 5, 4), '#e9ddc0', [-0.34, 1.02, 0.015], [0.22, 0.32, 0.19]);
-  addPart(new SphereGeometry(1, 5, 4), '#e9ddc0', [0.34, 1.02, 0.015], [0.22, 0.32, 0.19]);
-  addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [-0.17, 0.28, 0.015]);
-  addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [0.17, 0.28, 0.015]);
-  addPart(new BoxGeometry(0.18, 0.075, 0.29), '#df9c48', [-0.17, 0.13, 0.015]);
-  addPart(new BoxGeometry(0.18, 0.075, 0.29), '#df9c48', [0.17, 0.13, 0.015]);
-  addPart(new SphereGeometry(1, 4, 3), '#31423b', [-0.178, 1.395, 0.31], [0.055, 0.064, 0.034]);
-  addPart(new SphereGeometry(1, 4, 3), '#31423b', [0.178, 1.395, 0.31], [0.055, 0.064, 0.034]);
+  addPart(new SphereGeometry(1, 7, 5), '#f5c765', [0, 0.88, 0], [0.5, 0.63, 0.43]);
+  addPart(new SphereGeometry(1, 6, 4), '#586b60', [0, 0.73, 0.015], [0.43, 0.22, 0.38]);
+  addPart(new SphereGeometry(1, 7, 5), '#f5c765', [0, 1.35, 0.06], [0.37, 0.36, 0.33]);
+  addPart(new ConeGeometry(0.155, 0.24, 4), '#e9ad54', [0, 1.285, 0.445], [1, 1, 0.6], [Math.PI / 2, 0, Math.PI / 4]);
+  addPart(new SphereGeometry(1, 5, 3), '#49302a', [0, 1.235, 0.395], [0.14, 0.067, 0.06]);
+  for (const [index, z] of [-0.16, -0.04, 0.08].entries()) {
+    addPart(new SphereGeometry(1, 5, 4), '#f06b50', [0, 1.7, z + 0.06], [0.08, 0.15 + index * 0.012, 0.095]);
+  }
+  for (const side of [-1, 1]) {
+    addPart(new SphereGeometry(1, 5, 4), '#eab654', [side * 0.41, 0.97, 0.025], [0.22, 0.34, 0.19]);
+    addPart(new CylinderGeometry(0.045, 0.055, 0.28, 4), '#df9c48', [side * 0.17, 0.28, 0.015]);
+    for (const toe of [-1, 0, 1]) {
+      addPart(new SphereGeometry(1, 4, 3), '#df9c48', [side * 0.17 + toe * 0.065, 0.055, 0.105], [0.035, 0.035, 0.14], [0, toe * 0.48, 0]);
+    }
+    addPart(new SphereGeometry(1, 5, 4), '#fff7df', [side * 0.176, 1.415, 0.342], [0.117, 0.137, 0.067]);
+    addPart(new SphereGeometry(1, 5, 4), '#49302a', [side * 0.176, 1.414, 0.401], [0.073, 0.086, 0.038]);
+    addPart(new SphereGeometry(1, 4, 3), '#fff7df', [side * 0.176 - 0.023, 1.452, 0.433], [0.025, 0.028, 0.012]);
+    addPart(new SphereGeometry(1, 4, 3), '#f06b50', [side * 0.049, 1.115, 0.355], [0.065, 0.105, 0.055]);
+  }
+  for (const side of [-1, 0, 1]) {
+    addPart(new SphereGeometry(1, 4, 3), '#eab654', [side * 0.14, 0.98, -0.41], [0.12, 0.28, 0.1], [-0.6, 0, side * -0.35]);
+  }
 
   const geometry = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geometry) throw new Error('Could not combine far chicken geometry');
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  const featherMaterial = new MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.9 });
+  const featherMaterial = new MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.9, flatShading: true });
   const silhouette = new Mesh(geometry, featherMaterial);
   silhouette.name = 'far low-poly chicken silhouette';
   silhouette.castShadow = false;
@@ -228,7 +218,7 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
   const teamMaterial = material(TEAM_MARKINGS[team], 0.74);
   const teamMark = new Mesh(new BoxGeometry(0.18, 0.1, 0.04), teamMaterial);
   teamMark.name = 'chest team marker';
-  teamMark.position.set(0, 0.98, 0.39);
+  teamMark.position.set(0, 0.8, 0.395);
   root.add(teamMark);
 
   const body = new Group();
@@ -254,11 +244,11 @@ function createFarTacticalChickenModel(team: ChickenTeam): ChickenModelRig {
 function createWing(name: string, side: -1 | 1, feathers: MeshStandardMaterial, sleeve: MeshStandardMaterial, close: boolean, root: Group): Group {
   const wing = new Group();
   wing.name = name;
-  wing.position.set(side * 0.31, 1.02, 0.015);
+  wing.position.set(side * 0.30, 1.05, 0.015);
   root.add(wing);
   const primary = new Mesh(new SphereGeometry(1, close ? 8 : 5, close ? 6 : 4), feathers);
   primary.name = 'wing sleeve';
-  primary.scale.set(0.22, 0.32, 0.19);
+  primary.scale.set(0.22, 0.34, 0.19);
   primary.position.set(side * 0.11, -0.08, 0.01);
   primary.castShadow = true;
   wing.add(primary);
@@ -281,7 +271,7 @@ function createWing(name: string, side: -1 | 1, feathers: MeshStandardMaterial, 
   return wing;
 }
 
-function createLeg(name: string, side: -1 | 1, orange: MeshStandardMaterial, boot: MeshStandardMaterial, root: Group, close: boolean): Group {
+function createLeg(name: string, side: -1 | 1, orange: MeshStandardMaterial, _boot: MeshStandardMaterial, root: Group, close: boolean): Group {
   const leg = new Group();
   leg.name = name;
   leg.position.set(side * 0.17, 0.42, 0.015);
@@ -291,23 +281,14 @@ function createLeg(name: string, side: -1 | 1, orange: MeshStandardMaterial, boo
   shin.position.y = -0.14;
   shin.castShadow = true;
   leg.add(shin);
-  const foot = new Mesh(new BoxGeometry(0.18, 0.075, 0.29), orange);
-  foot.name = 'webbed foot';
-  foot.position.set(0, -0.29, 0.085);
-  foot.castShadow = true;
-  leg.add(foot);
-  if (close) {
-    const strap = new Mesh(new BoxGeometry(0.12, 0.045, 0.055), boot);
-    strap.name = 'ankle strap';
-    strap.position.set(0, -0.2, 0.015);
-    leg.add(strap);
-    for (const toeSide of [-1, 0, 1]) {
-      const toe = new Mesh(new SphereGeometry(1, 5, 3), orange);
-      toe.name = 'foot toe';
-      toe.scale.set(0.055, 0.04, 0.09);
-      toe.position.set(toeSide * 0.05, -0.3, 0.2);
-      leg.add(toe);
-    }
+  for (const toeSide of [-1, 0, 1]) {
+    const toe = new Mesh(new SphereGeometry(1, 6, 4), orange);
+    toe.name = 'foot toe';
+    toe.scale.set(0.035, 0.035, 0.14);
+    toe.position.set(toeSide * 0.065, -0.365, 0.09);
+    toe.rotation.y = toeSide * 0.48;
+    toe.castShadow = true;
+    leg.add(toe);
   }
   return leg;
 }
@@ -315,7 +296,7 @@ function createLeg(name: string, side: -1 | 1, orange: MeshStandardMaterial, boo
 /** Camera-mounted wing sleeves give the first-person view a matching chicken silhouette. */
 export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): ChickenArmsRig {
   const root = createAssetRoot(`First-person chicken arms — ${team}`);
-  const feather = material('#f0e5cb', 0.91);
+  const feather = material('#f5c765', 0.91);
   const cuff = material('#586b60', 0.9);
   const trim = material(TEAM_MARKINGS[team], 0.76);
   const eye = material('#df9c48', 0.82);
@@ -360,14 +341,14 @@ export function createFirstPersonChickenArms(team: ChickenTeam = 'player'): Chic
 }
 
 function material(color: string, roughness: number, metalness = 0): MeshStandardMaterial {
-  return new MeshStandardMaterial({ color, roughness, metalness });
+  return new MeshStandardMaterial({ color, roughness, metalness, flatShading: true });
 }
 
 export const tacticalChickenAsset: AssetDefinition = Object.freeze({
   id: 'tactical-chicken',
   displayName: 'Tactical chicken',
   category: 'bird',
-  bounds: { min: [-0.72, 0, -0.55] as const, max: [0.72, 1.9, 0.62] as const },
+  bounds: { min: [-0.72, 0, -0.68] as const, max: [0.72, 1.9, 0.62] as const },
   collision: [
     { id: 'body', center: [0, 0.8, 0] as const, size: [0.88, 1.08, 0.78] as const },
     { id: 'head', center: [0, 1.49, 0.08] as const, size: [0.72, 0.76, 0.9] as const },

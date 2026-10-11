@@ -2,6 +2,12 @@
 
 Updated: 2026-10-11.
 
+## Cartoon chicken revision — 2026-10-11
+
+Updated the shared TypeScript chicken asset from the user's two visual references: overlapping golden egg-shaped body/head, oversized white eyes with brown pupils and glints, exposed red comb, smiling beak/wattles, cheek accents, tail feathers and six splayed toes. Reduced the vest/pack, moved raised goggles to the pack, retained team markings and animation pivots, and matched first-person feather color. Both LODs follow the new silhouette; far remains a single vertex-colored mesh plus team patch (two draws, under 1,300 triangles). Gameplay hit volumes are unchanged; asset bounds include the new tail.
+
+Verification: `npm run check` passed with 206 tests across 32 files, type checking and production build. Added geometry-based checks for exposed facial features, grounded toes and far mesh/triangle budget; existing bounds, team, animation, LOD and disposal coverage passed. Both tiers inspected in the Codex in-app asset viewer at 1280 × 720, localhost:5190; browser warnings/errors were empty. Existing shared-chunk warning remains (561.37 kB). Human visual approval, hands-on animation review and a fresh sustained 100-bot performance profile remain unverified.
+
 ## Summary
 
 - Phase 1: technically complete; human review pending.
