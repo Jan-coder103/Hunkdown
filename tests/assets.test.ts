@@ -25,6 +25,30 @@ describe('generated asset pipeline', () => {
     asset.dispose();
   });
 
+  it('fills adjacent downtown tiles in both LODs and keeps distant blocks extremely cheap', () => {
+    for (const definition of ASSET_DEFINITIONS.filter((asset) => asset.category === 'building')) {
+      const asset = createAsset(definition.id);
+      for (const model of Object.values(asset.lods)) {
+        for (const rotation of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+          model.rotation.y = rotation;
+          const shell = model.getObjectByName('full tile structural shell')!;
+          const bounds = new Box3().setFromObject(shell);
+          expect(bounds.min.x).toBeCloseTo(-1.4);
+          expect(bounds.max.x).toBeCloseTo(1.4);
+          expect(bounds.min.z).toBeCloseTo(-1.4);
+          expect(bounds.max.z).toBeCloseTo(1.4);
+          expect(bounds.max.y).toBeGreaterThan(3.2);
+        }
+      }
+      let triangles = 0;
+      asset.lods.far.traverse((part) => {
+        if (part instanceof Mesh) triangles += (part.geometry.index?.count ?? part.geometry.attributes.position!.count) / 3;
+      });
+      expect(triangles).toBeLessThanOrEqual(24);
+      asset.dispose();
+    }
+  });
+
   it('registers typed code-generated assets with two render LODs and collision metadata', () => {
     expect(ASSET_DEFINITIONS.map((asset) => asset.category)).toEqual([
       'building', 'building', 'building',
@@ -55,8 +79,8 @@ describe('generated asset pipeline', () => {
 
   it('provides a detailed close LOD and a lighter far LOD for the Phase 11 city review set', () => {
     const reviewSet = [
-      ['pastel-row-house', ['painted roof eaves', 'sage window shutter', 'terracotta chimney']],
-      ['tall-townhouse', ['wide roof cornice', 'coral window shutter', 'front roof dormer']],
+      ['pastel-row-house', ['full tile structural shell', 'window mullion', 'roof ventilation housing']],
+      ['tall-townhouse', ['flat roof cornice', 'upper window glass', 'storefront glazing']],
       ['street-lamp', ['cast iron base', 'warm lantern glass', 'lantern roof cap']],
       ['street-tree', ['upper faceted canopy', 'east canopy cluster']],
       ['cafe-kiosk', ['striped canopy valance', 'side menu board']],

@@ -1,6 +1,14 @@
 # Current progress
 
-Updated: 2026-10-11.
+Updated: 2026-10-15.
+
+## Dense downtown buildings — 2026-10-15
+
+- Replaced the three cottage silhouettes with full-tile flat-roof apartment/cafe blocks (4, 5, and 8 floors). All rotations and both LODs have structural shells spanning the full tile; overhang bounds no longer create gaps between neighbors. Existing asset IDs and seeded selection remain stable.
+- Close models have four-sided storefront glazing, upper windows, mullions, sills, masonry piers, string courses, signs, and rooftop equipment. Far solid models use two boxes / 24 triangles. Enterable far panels omit window/trim children; shared collision and destructible IDs remain intact.
+- Updated tall-building culling spheres to include the complete height. Existing map-derived collision heights follow the taller asset bounds; routes and door widths are preserved.
+- Verification: full suite ran: 222/223 tests passed. The remaining map-catalog test expects “Test City”, while the user's existing replacement map is “Untitled City”; map edits were left untouched. Building footprint/rotation/height/triangle-budget tests and enterable geometry tests pass. Type checking and production build pass (existing >500 kB chunk warning).
+- Browser visual review and renewed 100-bot profiling remain pending: starting the local dev server was blocked by sandbox EPERM. No human approval claimed.
 
 ## Folder maps — 2026-10-11
 

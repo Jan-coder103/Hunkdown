@@ -437,6 +437,7 @@ export class BotSkirmishView {
     const size = this.map.source.cellSize;
     for (const placement of this.map.buildings) {
       if (placement.enterable) {
+        const buildingHeight = this.map.collisions.find((wall) => wall.role === 'enterable-wall' && wall.cell.x === placement.cell.x && wall.cell.y === placement.cell.y)!.size.y;
         const close = createEnterableBuilding(this.map, placement.cell, 'close', placement.assetId);
         const far = createEnterableBuilding(this.map, placement.cell, 'far', placement.assetId);
         for (const collision of this.map.collisions) {
@@ -453,8 +454,8 @@ export class BotSkirmishView {
         this.assetLodPairs.push({
           close,
           far,
-          position: new Vector3(placement.position.x, size * 0.5, placement.position.z),
-          radius: size * 1.25,
+          position: new Vector3(placement.position.x, buildingHeight / 2, placement.position.z),
+          radius: Math.hypot(size, buildingHeight / 2),
           detail: 'close',
         });
         continue;
@@ -480,8 +481,8 @@ export class BotSkirmishView {
       this.assetLodPairs.push({
         close: asset.lods.close,
         far: asset.lods.far,
-        position: new Vector3(placement.position.x, size * 0.5, placement.position.z),
-        radius: size * 1.2,
+        position: new Vector3(placement.position.x, bounds.max[1] * size / 5.6, placement.position.z),
+        radius: Math.hypot(size / Math.SQRT2, bounds.max[1] * size / 5.6),
         detail: 'close',
       });
     }

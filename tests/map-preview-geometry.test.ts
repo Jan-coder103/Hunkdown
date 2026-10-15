@@ -28,7 +28,8 @@ describe('generated city preview geometry', () => {
         expect(dimensions.width).toBeCloseTo(wall!.size.x);
         expect(dimensions.height).toBeCloseTo(wall!.size.y);
         expect(dimensions.depth).toBeCloseTo(wall!.size.z);
-        expect(mesh.children.length).toBeGreaterThan(detail === 'close' ? 4 : 2);
+        if (detail === 'close') expect(mesh.children.length).toBeGreaterThan(4);
+        else expect(mesh.children).toHaveLength(0);
       }
     }
   });

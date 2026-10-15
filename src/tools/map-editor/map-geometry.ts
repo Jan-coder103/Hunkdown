@@ -35,6 +35,8 @@ export function createEnterableBuilding(
     panel.position.set(wall.center.x, wall.center.y, wall.center.z);
     panel.castShadow = true;
     panel.receiveShadow = true;
+    root.add(panel);
+    if (detail === 'far') continue;
     const localCenter = { x: 0, y: 0, z: 0 };
     addFacadeBand(panel, localCenter, wall.size, wall.direction, 0.23, 0.13, materials.base);
     addFacadeBand(panel, localCenter, wall.size, wall.direction, wall.size.y - 0.18, 0.16, materials.trim);
@@ -50,7 +52,6 @@ export function createEnterableBuilding(
         addFacadeWindow(panel, localCenter, wall.size, wall.direction, along, y, windowWidth, detail, materials);
       }
     }
-    root.add(panel);
   }
 
   for (const doorSide of generated.buildings.find((building) => building.cell.x === cell.x && building.cell.y === cell.y)?.doors ?? []) {
