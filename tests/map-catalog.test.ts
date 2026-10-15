@@ -6,7 +6,7 @@ import { createDefaultProfile, loadProfile, saveProfile, updateProfileSettings }
 describe('folder map catalog', () => {
   it('discovers the exported city in the maps folder', () => {
     expect(MAP_CATALOG.errors).toEqual([]);
-    expect(MAP_CATALOG.maps.find(map => map.id === 'custom:city-draft')?.document.name).toBe('Test City');
+    expect(MAP_CATALOG.maps.find(map => map.id === 'custom:city-draft')?.document.name).toBe('Untitled City');
   });
   it('keeps built-ins while reporting malformed, duplicate and unplayable drafts', () => {
     const map = createEmptyMap();

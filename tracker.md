@@ -2,6 +2,11 @@
 
 Updated: 2026-10-15.
 
+## Map catalog test correction — 2026-10-15
+
+- Updated the exported-city discovery assertion to the committed map's authored name, “Untitled City”. The map and its gameplay data are unchanged. The replacement city export was committed and pushed in `8ef1182`.
+- Verification: `npm run check` passes: 247/247 tests across 39 files, typecheck and production build. Existing bundle-size warning remains. No interactive behavior changed.
+
 ## Phone aim toggle and landscape overlay scrolling — 2026-10-15
 
 - AIM now toggles on tap, highlights active state and remains enabled after release/while firing. Shared input clearing resets it on pause, focus loss, death, disabling and disposal; mouse aim remains held.
