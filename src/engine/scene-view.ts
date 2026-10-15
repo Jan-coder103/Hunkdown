@@ -1,3 +1,4 @@
+import { createSky } from './sky';
 import {
   Color,
   DirectionalLight,
@@ -55,14 +56,16 @@ function createBrowserResizeObserver(callback: () => void): ResizeObserverPort {
 /** Owns the blank scene, camera, lighting, canvas, resize observer, and renderer. */
 export class SceneView {
   readonly scene = new Scene();
-  readonly camera = new PerspectiveCamera(65, 1, 0.1, 500);
+  readonly camera = new PerspectiveCamera(65, 1, 0.1, 3500);
   readonly renderer: RendererPort;
   private readonly resizeObserver: ResizeObserverPort;
   private disposed = false;
+  private readonly sky = createSky();
 
   constructor(private readonly options: SceneViewOptions) {
     this.renderer = (options.createRenderer ?? createBrowserRenderer)();
-    this.scene.background = new Color('#c6ded5');
+    this.scene.background = new Color('#dce8df');
+    this.scene.add(this.sky.mesh);
     this.camera.position.set(0, 1.6, 7);
     this.camera.lookAt(0, 1, 0);
     // Camera children (such as the Phase 4 first-person weapon) must be traversed with the scene.
@@ -108,6 +111,7 @@ export class SceneView {
     if (this.disposed) return;
     this.disposed = true;
     this.resizeObserver.disconnect();
+    this.sky.dispose();
     this.scene.clear();
     this.scene.background = null;
     if (this.renderer.domElement.parentElement === this.options.container) {

@@ -1,3 +1,4 @@
+import { createSkylineView } from '../world/skyline-view';
 import { createStreetView } from '../world/street-view';
 import { CHICKEN_COLORS } from '../../content/assets/tactical-chicken.asset';
 import { chooseRoundTeamColors, type RoundTeamColors } from '../match/team-colors';
@@ -87,6 +88,7 @@ export class BotSkirmishView {
   readonly map: GeneratedMap;
   readonly teamColors: RoundTeamColors;
   private readonly root = new Group();
+  private readonly skyline: ReturnType<typeof createSkylineView>;
   private readonly characters = new Map<string, ChickenCharacterView>();
   private sleepTime = 0;
   private readonly sleepEffects = new Map<string, Group>();
@@ -144,6 +146,8 @@ export class BotSkirmishView {
     this.root.name = 'live bot skirmish';
     this.scene.add(this.root);
     this.buildCity();
+    this.skyline = createSkylineView(map.source);
+    this.root.add(this.skyline.root);
     for (const team of ['friendly', 'enemy'] as const) {
       const area = this.match.safeArea(team);
       const floor = new Mesh(this.ownGeometry(new PlaneGeometry(area.maxX - area.minX, area.maxZ - area.minZ)), this.ownMaterial(new MeshBasicMaterial({ color: CHICKEN_COLORS[this.teamColors[team]].feather, transparent: true, opacity: 0.16, depthWrite: false })));
@@ -343,6 +347,7 @@ export class BotSkirmishView {
     this.root.traverse((child) => {
       if (child instanceof InstancedMesh) child.dispose();
     });
+    this.skyline.dispose();
     this.scene.remove(this.root);
     for (const asset of this.generatedAssets) asset.dispose();
     this.generatedAssets.length = 0;

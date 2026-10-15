@@ -2,6 +2,13 @@
 
 Updated: 2026-10-15.
 
+## Low-poly sky and distant city — 2026-10-15
+
+- Added a translation-independent procedural blue/horizon gradient to gameplay and the range; menu presentation remains its own scene. Match scenery adds 96 seeded low-poly buildings with stepped roofs, three depth/color layers, baked face shading, and four surrounding ground strips outside the playable rectangle.
+- Skyline uses four static vertex-colored opaque batches, one shared unlit material, 2,352 triangles, no textures, physics, navigation, shadows or per-frame updates. Sky adds one draw and 224 triangles. World anchoring provides natural parallax and roofs support aerial views. Camera far plane is 3,500 to accommodate maximum supported map bounds plus surrounding scenery.
+- Added behavior coverage for determinism/seed variation, rectangular map exclusion, draw/triangle budgets, parallax, roof normals, and resource disposal; adjusted SceneView scene ownership expectation.
+- Verification: 240/241 tests pass across 38 files; only the pre-existing map-catalog name assertion fails (“Test City” vs user's “Untitled City”). Typecheck/build pass with existing bundle-size warning. Browser: 1280×720 street-level Midtown 100-bird match, gradient/skyline visible, no warning/error logs. Screenshot `/tmp/honkdown-skyline.jpg`. Aerial visual inspection, human approval and comparative performance profiling remain unverified; 60 FPS UI observation is not a benchmark.
+
 ## Dedicated main menu — 2026-10-15
 
 - Replaced the translucent training-ground overlay with a full title-screen design: oversized Operation Honkdown branding, charcoal/yellow command UI, a large code-generated chicken on a display platform, city silhouettes, squad profile, battleground readout, and clear range/join actions.
