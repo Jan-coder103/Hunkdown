@@ -12,12 +12,13 @@ export class TouchControls {
   private held = new Set<string>();
   private pressed = new Set<string>();
   private pointers = new Map<number, { action: string; x: number; y: number }>();
+  private lean: 'KeyQ' | 'KeyE' | null = null;
   private enabled = false;
   private active = false;
   constructor(root: HTMLElement, private readonly look: (x: number, y: number, aim: boolean) => void, private readonly pause: () => void, private readonly swap: () => void) {
     this.element = document.createElement('div');
     this.element.className = 'touch-controls';
-    this.element.innerHTML = `<div class="touch-look" data-touch="look" aria-label="Drag to look"></div><div class="touch-move" data-touch="move" aria-label="Drag to move">MOVE</div><div class="touch-actions">${[['fire','FIRE'],['aim','AIM'],['Space','JUMP'],['KeyR','RELOAD'],['KeyG','GRENADE'],['KeyF','INTERACT'],['ShiftLeft','SPRINT'],['KeyC','CROUCH'],['KeyQ','LEAN L'],['KeyE','LEAN R'],['swap','KNIFE']].map(([key,label]) => `<button type="button" data-touch="${key}">${label}</button>`).join('')}</div><button type="button" class="touch-pause" data-touch="pause">PAUSE</button>`;
+    this.element.innerHTML = `<div class="touch-look" data-touch="look" aria-label="Drag to look"></div><div class="touch-move" data-touch="move" aria-label="Drag to move">MOVE</div><div class="touch-actions">${[['fire','FIRE'],['aim','AIM'],['Space','JUMP'],['KeyR','RELOAD'],['KeyG','GRENADE'],['KeyF','INTERACT'],['KeyC','CROUCH'],['KeyQ','LEAN L'],['KeyE','LEAN R'],['swap','KNIFE']].map(([key,label]) => `<button type="button" data-touch="${key}" aria-label="${label}"${key === 'KeyQ' || key === 'KeyE' ? ' aria-pressed="false"' : ''}>${key === 'Space' ? '<span class="touch-icon" aria-hidden="true">↑</span>' : key === 'KeyR' ? '<span class="touch-icon" aria-hidden="true">↻</span>' : key === 'aim' ? '<svg class="touch-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 1v6m0 10v6M1 12h6m10 0h6"/></svg>' : label}</button>`).join('')}</div><button type="button" class="touch-pause" data-touch="pause">PAUSE</button>`;
     root.append(this.element);
     this.element.addEventListener('contextmenu', (event) => event.preventDefault());
     this.element.addEventListener('pointerdown', this.down);
@@ -39,12 +40,20 @@ export class TouchControls {
     const edges = new Set(this.pressed);
     // Fire edges are consumed by combat rather than movement.
     for (const key of edges) if (key !== 'fire') this.pressed.delete(key);
-    return { isDown: (code: string) => keyboard.isDown(code) || this.held.has(code), wasPressed: (code: string) => keyboard.wasPressed(code) || edges.has(code) };
+    return { isDown: (code: string) => keyboard.isDown(code) || this.held.has(code) || (code === 'ShiftLeft' && this.enabled && this.active), wasPressed: (code: string) => keyboard.wasPressed(code) || edges.has(code) };
   }
-  readonly clear = (): void => { this.pointers.clear(); this.held.clear(); this.pressed.clear(); };
+  readonly clear = (): void => { this.pointers.clear(); this.held.clear(); this.pressed.clear(); this.lean = null; this.updateLeanButtons(); };
   private readonly visibility = (): void => { if (document.hidden) this.clear(); };
+  private updateLeanButtons(): void {
+    for (const button of this.element.querySelectorAll<HTMLButtonElement>('[data-touch]')) {
+      if (button.dataset.touch === 'KeyQ' || button.dataset.touch === 'KeyE') {
+        button.setAttribute('aria-pressed', String(button.dataset.touch === this.lean));
+      }
+    }
+  }
   private rebuild(): void {
     this.held.clear();
+    if (this.lean) this.held.add(this.lean);
     for (const p of this.pointers.values()) {
       if (p.action === 'move') {
         const dx = p.x, dy = p.y;
@@ -60,6 +69,10 @@ export class TouchControls {
     event.preventDefault();
     const action = target.dataset.touch!;
     if (action === 'pause') { this.clear(); this.pause(); return; }
+    if (action === 'KeyQ' || action === 'KeyE') {
+      this.lean = this.lean === action ? null : action;
+      this.updateLeanButtons(); this.rebuild(); return;
+    }
     if (action === 'swap') { this.swap(); return; }
     target.setPointerCapture(event.pointerId);
     this.pointers.set(event.pointerId, { action, x: action === 'move' ? 0 : event.clientX, y: action === 'move' ? 0 : event.clientY });

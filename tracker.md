@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Phone lean, automatic sprint and symbols — 2026-10-15
+
+- Moved lean buttons to the right edge above FIRE. Phone lean is now tap-to-toggle and mutually exclusive so one right thumb can select lean then fire; active lean is highlighted. Pause/focus loss/death/disabling clears it. Keyboard lean remains held.
+- Removed SPRINT; phone play always requests sprint through the shared controller, preserving normal aim/crouch restrictions and desktop Shift input. Replaced JUMP with ↑, RELOAD with ↻ and AIM with a code-generated crosshair SVG; all retain accessible labels.
+- Verification: 246/247 tests pass across 39 files (only pre-existing map-name assertion fails); typecheck/build pass with existing bundle warning. Expanded behavior tests cover lean persistence while firing, direction switching, tap-to-reset, pause reset, automatic sprint gating and desktop fallback. Browser at 844×390: inspected symbols/right-edge layout, selected lean then fired (ammo 30→29 with lean still active), and pause/resume reset both lean toggles. Physical phone playtest and human approval pending.
+
 ## Circular phone action controls — 2026-10-15
 
 - Replaced the wrapping action-button layout with explicit positions: a 102 px circular FIRE target at bottom right and ten 48 px circular actions above/left. No action sits below or right of FIRE. Retained safe-area offsets and independent pointer handling; narrowed the movement pad on <=360 px screens to keep thumb regions separate.

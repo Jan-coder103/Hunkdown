@@ -38,6 +38,26 @@ it('keeps simultaneous fingers independent, consumes jump once and clears on pau
     controls.element.dispatchEvent(event);
   }
   const keyboard = { isDown: () => false, wasPressed: () => false };
+  expect(Array.from(controls.element.querySelectorAll<HTMLElement>('[data-touch]')).some(button => button.dataset.touch === 'ShiftLeft')).toBe(false);
+  expect(controls.input(keyboard).isDown('ShiftLeft')).toBe(true);
+  pointer('pointerdown', 6, 'KeyQ'); pointer('pointerup', 6, 'KeyQ');
+  expect(controls.input(keyboard).isDown('KeyQ')).toBe(true);
+  pointer('pointerdown', 7, 'fire');
+  expect(controls.firing).toBe(true);
+  expect(controls.input(keyboard).isDown('KeyQ')).toBe(true);
+  pointer('pointerup', 7, 'fire'); controls.consumeFire();
+  pointer('pointerdown', 6, 'KeyE');
+  expect(controls.input(keyboard).isDown('KeyQ')).toBe(false);
+  expect(controls.input(keyboard).isDown('KeyE')).toBe(true);
+  pointer('pointerdown', 6, 'KeyE'); expect(controls.input(keyboard).isDown('KeyE')).toBe(false);
+  pointer('pointerdown', 6, 'KeyQ'); controls.setActive(false);
+  expect(controls.input(keyboard).isDown('KeyQ')).toBe(false);
+  expect(controls.input(keyboard).isDown('ShiftLeft')).toBe(false);
+  controls.setActive(true); controls.setEnabled(false);
+  expect(controls.input(keyboard).isDown('ShiftLeft')).toBe(false);
+  const desktopKeyboard = { isDown: (code: string) => code === 'ShiftLeft', wasPressed: () => false };
+  expect(controls.input(desktopKeyboard).isDown('ShiftLeft')).toBe(true);
+  controls.setEnabled(true);
   const pad = controls.element.querySelector('.touch-move')!;
   Object.assign(pad, { getBoundingClientRect: () => ({ left: 0, top: 0, width: 120, height: 120 }) });
   pointer('pointerdown', 9, 'move'); pointer('pointermove', 9, 'move', 90, 20);
