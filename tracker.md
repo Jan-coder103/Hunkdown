@@ -2,6 +2,11 @@
 
 Updated: 2026-10-15.
 
+## Compact menu branding — 2026-10-15
+
+- Replaced stacked branding/ready-room headings with one compact Operation Honkdown title. Removed promotional taglines, character caption and decorative footer. Reduced panel/tab spacing and let the menu card fill reclaimed height; settings panels retain scrolling and persistent deployment actions. Hid the gameplay countdown behind the main menu.
+- Verification: 246/247 tests pass across 39 files; only the existing map-name assertion fails. Added mounted-app coverage for settings selection, saving phone mode and deploying from the compact menu. Typecheck/build pass with existing bundle warning. Browser review at 844×390 confirms compact title, larger settings area and visible deployment buttons. Human approval pending.
+
 ## Phone controls and HUD — 2026-10-15
 
 - Added saved Auto / On / Off phone controls and HUD setting; existing v2 saves default to Auto without losing progress. Phone user agents and small coarse-pointer screens enable the layout automatically, independent of orientation.

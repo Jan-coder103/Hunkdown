@@ -86,6 +86,21 @@ describe('application match flow', () => {
     } finally { app.dispose(); }
   });
 
+  it('keeps phone settings and deployment accessible in the compact menu', () => {
+    const { app, root, frame, element, stored } = createHarness();
+    try {
+      const settings = root.querySelectorAll('[data-menu-tab]').find(tab => tab.dataset.menuTab === 'settings')!;
+      settings.click();
+      expect(root.querySelectorAll('[data-menu-panel]').find(panel => panel.dataset.menuPanel === 'settings')!.hidden).toBe(false);
+      element('phone-controls-setting').value = 'on';
+      element('phone-controls-setting').dispatchEvent(new Event('change'));
+      expect(JSON.parse(stored.get('operation-honkdown-profile')!).phoneControls).toBe('on');
+      element('menu-range-button').click(); frame();
+      expect(element('main-menu').hidden).toBe(true);
+      expect(root.dataset.phoneControls).toBe('true');
+    } finally { app.dispose(); }
+  });
+
   it('shows the selected battleground in the deployment action area', () => {
     const { app, root, element } = createHarness();
     try {

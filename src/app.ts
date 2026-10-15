@@ -84,11 +84,9 @@ export function mountApp(root: HTMLElement) {
         <output id="position-readout" class="position-readout"></output>
       </section>
       <section id="main-menu" class="menu-overlay" aria-labelledby="menu-title">
-        <div class="menu-brand"><span class="title-eyebrow">TACTICAL CHICKENS. TOTAL CHAOS.</span><h1><small>OPERATION</small>HONKDOWN<span class="title-period">.</span></h1><p>Massive battles. Questionable instincts.</p></div>
-        <div class="menu-showcase-label" aria-hidden="true"><span>MEET YOUR WORST GOOD IDEA</span><strong>Born to honk.<br>Built for battle.</strong><small>01 / THE ROOKIE</small></div>
+        <div class="menu-brand"><h1 id="menu-title">Operation Honkdown</h1></div>
         <div class="menu-card">
           <div class="menu-header">
-            <div><p class="eyebrow">SQUAD HQ / READY ROOM</p><h2 id="menu-title">Your next operation.</h2></div>
             <div class="profile-balance"><span id="profile-level">Rookie · 0 XP</span><strong id="profile-credits">0 credits</strong></div>
           </div>
           <nav class="menu-tabs" aria-label="Main menu">
@@ -101,7 +99,6 @@ export function mountApp(root: HTMLElement) {
             <section data-menu-panel="loadout" aria-labelledby="loadout-title">
               <p class="menu-kicker">READY ROOM</p><h3 id="loadout-title">Loadout</h3>
               <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Honk-47 + tactical knife · scroll to switch.</span></div><b>PRIMARY</b></div>
-              <p class="menu-footnote">One rifle. One knife. A spectacular lack of self-preservation.</p>
             </section>
             <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
               <label class="setting-row" for="phone-controls-setting">Phone controls &amp; HUD</label><select id="phone-controls-setting"><option value="auto">Auto (detect phone)</option><option value="on">On</option><option value="off">Off</option></select><p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
@@ -136,7 +133,6 @@ export function mountApp(root: HTMLElement) {
           <p id="profile-notice" class="profile-notice" role="status"></p>
           <div class="menu-footer"><span><b id="deployment-map">MIDTOWN</b><br>${TOTAL_MATCH_BOTS} birds · ${BOTS_PER_TEAM} per squad</span><div class="menu-actions"><button id="menu-range-button" type="button" class="range-button">Shooting range</button><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div></div>
         </div>
-        <div class="title-footer"><span><i></i> SINGLE PLAYER · ALL OUT BIRD WARFARE</span><span>EARLY BUILD / 0.1</span></div>
       </section>
       <section id="pause-overlay" class="pause-overlay" aria-labelledby="pause-title" hidden>
         <div class="pause-card">
