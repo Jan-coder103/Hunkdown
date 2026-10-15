@@ -2,6 +2,14 @@
 
 Updated: 2026-10-15.
 
+## Dedicated main menu — 2026-10-15
+
+- Replaced the translucent training-ground overlay with a full title-screen design: oversized Operation Honkdown branding, charcoal/yellow command UI, a large code-generated chicken on a display platform, city silhouettes, squad profile, battleground readout, and clear range/join actions.
+- `MenuBackdrop` owns a separate presentation scene/camera and resources; `SceneView` renders it through the existing renderer while the menu is open. No training ground or live match is drawn behind the menu, no extra renderer/animation loop is created, and the existing paused simulation stays paused. Gameplay rendering returns when entering/resuming play.
+- Kept loadout, settings, maps/custom maps, skills, profile persistence, pause-settings/resume, and results return flows. The selected map appears beside the launch controls. Panels scroll independently while navigation and launch actions stay visible; tab changes reset panel scroll. The decorative scene is hidden from accessibility while the menu is active.
+- Verification: full suite 234/235 pass across 37 files, including title/gameplay render switching, selected-map deployment UI, scene aspect framing and shared resource cleanup. Only the existing “Test City”/“Untitled City” catalog assertion fails. Typecheck and production build pass; existing large shared chunk warning remains.
+- Browser smoke: reviewed 1280×720 desktop and 390×844 narrow layouts, settings/maps tabs, map selection with deployment text, launch shooting range, Escape pause, and return to the dedicated title scene. No browser warnings/errors. Restored Midtown after map-selection checks. Screenshot `/tmp/honkdown-main-menu.jpg`. No human visual approval or performance acceptance claimed.
+
 ## Automatic sidewalks and roads — 2026-10-15
 
 - Added shared automatic paving for the game and map preview. Street cells become seamless asphalt; concrete sidewalks follow the union of neighboring solid/enterable building footprints, including diagonal outside corners and concave block edges. Shared building walls receive no sidewalk, so joined tiles form one continuous block perimeter.

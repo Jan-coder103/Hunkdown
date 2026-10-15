@@ -1,3 +1,4 @@
+import { MenuBackdrop } from './ui/menu-backdrop';
 import { MAP_CATALOG, mapOptionMarkup } from './game/world/map-catalog';
 import { createMapBotRoster } from './game/bots/bot-simulation';
 import { CHICKEN_COLORS } from './content/assets/tactical-chicken.asset';
@@ -40,7 +41,7 @@ const TOTAL_MATCH_BOTS = BOTS_PER_TEAM * 2;
 export function mountApp(root: HTMLElement) {
   root.innerHTML = `
     <main class="engine-shell">
-      <div id="scene-viewport" class="scene-viewport" role="img" aria-label="First-person shooting and movement testing range">
+      <div id="scene-viewport" class="scene-viewport" aria-hidden="true" role="img" aria-label="First-person shooting and movement testing range">
         <span class="crosshair" aria-hidden="true"></span>
         <span id="hit-marker" class="hit-marker" aria-hidden="true"></span>
       </div>
@@ -82,9 +83,11 @@ export function mountApp(root: HTMLElement) {
         <output id="position-readout" class="position-readout"></output>
       </section>
       <section id="main-menu" class="menu-overlay" aria-labelledby="menu-title">
+        <div class="menu-brand"><span class="title-eyebrow">TACTICAL CHICKENS. TOTAL CHAOS.</span><h1><small>OPERATION</small>HONKDOWN<span class="title-period">.</span></h1><p>Massive battles. Questionable instincts.</p></div>
+        <div class="menu-showcase-label" aria-hidden="true"><span>MEET YOUR WORST GOOD IDEA</span><strong>Born to honk.<br>Built for battle.</strong><small>01 / THE ROOKIE</small></div>
         <div class="menu-card">
           <div class="menu-header">
-            <div><p class="eyebrow">OPERATION HONKDOWN</p><h2 id="menu-title">Pick your next bad idea.</h2></div>
+            <div><p class="eyebrow">SQUAD HQ / READY ROOM</p><h2 id="menu-title">Your next operation.</h2></div>
             <div class="profile-balance"><span id="profile-level">Rookie · 0 XP</span><strong id="profile-credits">0 credits</strong></div>
           </div>
           <nav class="menu-tabs" aria-label="Main menu">
@@ -97,7 +100,7 @@ export function mountApp(root: HTMLElement) {
             <section data-menu-panel="loadout" aria-labelledby="loadout-title">
               <p class="menu-kicker">READY ROOM</p><h3 id="loadout-title">Loadout</h3>
               <div class="loadout-item"><span class="loadout-icon" aria-hidden="true">✦</span><div><strong>Honk-47</strong><span>Honk-47 + tactical knife · scroll to switch.</span></div><b>PRIMARY</b></div>
-              <p class="menu-footnote">Try every target distance, practice movement and cover, then reset the range whenever you want.</p>
+              <p class="menu-footnote">One rifle. One knife. A spectacular lack of self-preservation.</p>
             </section>
             <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
               <p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
@@ -112,7 +115,7 @@ export function mountApp(root: HTMLElement) {
             </section>
             <section data-menu-panel="maps" aria-labelledby="maps-title" hidden>
               <p class="menu-kicker">CHOOSE THE BATTLEGROUND</p><h3 id="maps-title">Map selection</h3>
-              <p>Export editor JSON into the project’s maps/ folder, then reload. Production sites need a rebuild.</p>
+              <p class="menu-footnote">Choose where the feathers fly.</p>
               <p>${MAP_CATALOG.errors.map(error => error.replaceAll('&', '&amp;').replaceAll('<', '&lt;')).join('<br>')}</p>
               <div class="map-options">
                 ${MAP_CATALOG.maps.filter(map => map.id.startsWith('custom:')).map(mapOptionMarkup).join('')}
@@ -130,8 +133,9 @@ export function mountApp(root: HTMLElement) {
             </section>
           </div>
           <p id="profile-notice" class="profile-notice" role="status"></p>
-          <div class="menu-footer"><span>${TOTAL_MATCH_BOTS}-bird battle · ${BOTS_PER_TEAM} on each side</span><div class="menu-actions"><button id="menu-range-button" type="button" class="range-button">Shooting range</button><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div></div>
+          <div class="menu-footer"><span><b id="deployment-map">MIDTOWN</b><br>${TOTAL_MATCH_BOTS} birds · ${BOTS_PER_TEAM} per squad</span><div class="menu-actions"><button id="menu-range-button" type="button" class="range-button">Shooting range</button><button id="menu-join-button" type="button" class="join-button">Join round <span aria-hidden="true">→</span></button></div></div>
         </div>
+        <div class="title-footer"><span><i></i> SINGLE PLAYER · ALL OUT BIRD WARFARE</span><span>EARLY BUILD / 0.1</span></div>
       </section>
       <section id="pause-overlay" class="pause-overlay" aria-labelledby="pause-title" hidden>
         <div class="pause-card">
@@ -303,6 +307,7 @@ export function mountApp(root: HTMLElement) {
   let switchPending = false;
   let grenadeView: GrenadeView | null = null;
   let sceneView: SceneView | null = null;
+  const menuBackdrop = new MenuBackdrop();
   const feedback = new CombatFeedback();
   const aimDirection = new Vector3();
   const audioForward = new Vector3(0, 0, -1);
@@ -326,6 +331,7 @@ export function mountApp(root: HTMLElement) {
     const level = Math.floor(profile.xp / 1000) + 1;
     levelEl.textContent = `Rookie · level ${level} · ${profile.xp.toLocaleString()} XP`;
     creditsEl.textContent = `${profile.credits.toLocaleString()} credits`;
+    root.querySelector<HTMLElement>('#deployment-map')!.textContent = MAP_CATALOG.maps.find(map => map.id === profile.selectedMap)?.document.name ?? 'Midtown';
     sensitivityInput.value = String(profile.lookSensitivity);
     sensitivityOutput.value = profile.lookSensitivity.toFixed(4);
     masterVolumeInput.value = String(profile.masterVolume);
@@ -347,6 +353,7 @@ export function mountApp(root: HTMLElement) {
   }
 
   function openMenuTab(tab: 'loadout' | 'settings' | 'maps' | 'skills'): void {
+    root.querySelector<HTMLElement>('.menu-panels')!.scrollTop = 0;
     for (const button of tabButtons) button.setAttribute('aria-selected', String(button.dataset.menuTab === tab));
     for (const panel of tabPanels) panel.hidden = panel.dataset.menuPanel !== tab;
   }
@@ -358,6 +365,7 @@ export function mountApp(root: HTMLElement) {
     pauseEl.hidden = true;
     resultsEl.hidden = true;
     root.dataset.menuOpen = 'true';
+    viewport!.setAttribute('aria-hidden', 'true');
     menuJoinEl.innerHTML = fromPause ? 'Resume round <span aria-hidden="true">→</span>' : 'Join round <span aria-hidden="true">→</span>';
     openMenuTab(tab);
     refreshProfileUi();
@@ -366,6 +374,7 @@ export function mountApp(root: HTMLElement) {
   function closeMainMenu(): void {
     menuEl.hidden = true;
     root.dataset.menuOpen = 'false';
+    viewport!.setAttribute('aria-hidden', 'false');
     menuOpenedFromPause = false;
   }
 
@@ -584,6 +593,12 @@ export function mountApp(root: HTMLElement) {
 
       return {
         render(interpolationAlpha: number) {
+          if (!menuEl.hidden) {
+            damageVignette.style.opacity = '0';
+            menuBackdrop.frame(view.camera.aspect);
+            view.render(interpolationAlpha, menuBackdrop);
+            return;
+          }
           const actor = isPlayerMatchMode ? skirmishView?.simulation.playerCombatant : null;
           const damageOpacity = actor?.status === 'alive' && menuEl.hidden && !resultsShown
             ? 0.55 * Math.max(0, Math.min(1, 1 - actor.health / actor.maxHealth)) : 0;
@@ -1224,6 +1239,7 @@ export function mountApp(root: HTMLElement) {
       resetRangeButton.removeEventListener('click', handleResetRange);
       joinMatchButton.removeEventListener('click', handleJoinMatch);
       runtime.dispose();
+      menuBackdrop.dispose();
       audioManager.dispose();
       root.replaceChildren();
     },

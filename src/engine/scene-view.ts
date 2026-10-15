@@ -91,8 +91,8 @@ export class SceneView {
     });
   }
 
-  render(_interpolationAlpha: number): void {
-    if (!this.disposed) this.renderer.render(this.scene, this.camera);
+  render(_interpolationAlpha: number, presentation?: Readonly<{ scene: Scene; camera: PerspectiveCamera }>): void {
+    if (!this.disposed) this.renderer.render(presentation?.scene ?? this.scene, presentation?.camera ?? this.camera);
   }
 
   resize(): void {

@@ -13,7 +13,7 @@ import type { SceneViewOptions } from '../src/engine/scene-view';
 import { AppElement } from './helpers/app-dom';
 import { FakeEventTarget, FakeVisibilityTarget, ManualFrameScheduler, makeKeyEvent } from './helpers/engine-fixtures';
 
-const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[], cameras: [] as PerspectiveCamera[], countdownSeconds: 0.01, canvas: null as AppElement | null }));
+const harness = vi.hoisted(() => ({ battles: [] as BotSkirmishView[], cameras: [] as PerspectiveCamera[], countdownSeconds: 0.01, renderedScenes: [] as string[], canvas: null as AppElement | null }));
 
 vi.mock('../src/engine/scene-view', () => ({
   SceneView: class {
@@ -22,7 +22,7 @@ vi.mock('../src/engine/scene-view', () => ({
     readonly renderer = { domElement: new AppElement() };
     readonly rendererPerformanceStats = null;
     constructor(_options: SceneViewOptions) { this.scene.add(this.camera); harness.cameras.push(this.camera); harness.canvas = this.renderer.domElement; }
-    render(): void {}
+    render(_alpha: number, presentation?: { scene: Scene }): void { harness.renderedScenes.push(presentation?.scene.name ?? 'gameplay'); }
     dispose(): void { this.scene.clear(); }
   },
 }));
@@ -70,9 +70,31 @@ function createHarness(selectedMap?: string) {
   return { app, root, frame, element, windowTarget, documentTarget, stored };
 }
 
-afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; });
+afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; harness.renderedScenes.length = 0; });
 
 describe('application match flow', () => {
+  it('renders a dedicated title scene and restores gameplay when entering the range', () => {
+    const { app, frame, element } = createHarness();
+    try {
+      frame();
+      expect(harness.renderedScenes.at(-1)).toBe('Honkdown title showcase');
+      expect(element('scene-viewport').attributes.get('aria-hidden')).toBe('true');
+      element('menu-range-button').click();
+      frame();
+      expect(harness.renderedScenes.at(-1)).toBe('gameplay');
+      expect(element('scene-viewport').attributes.get('aria-hidden')).toBe('false');
+    } finally { app.dispose(); }
+  });
+
+  it('shows the selected battleground in the deployment action area', () => {
+    const { app, root, element } = createHarness();
+    try {
+      const garden = root.querySelectorAll('[data-map-option]').find(button => button.dataset.mapOption === 'garden-district')!;
+      garden.click();
+      expect(element('deployment-map').textContent).toContain('Garden');
+    } finally { app.dispose(); }
+  });
+
   it('updates the standalone FPS counter from real engine frame timing', () => {
     const { app, frame, element } = createHarness();
     try {

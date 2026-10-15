@@ -337,3 +337,96 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 
 .fps-counter { position: absolute; top: 14px; right: 18px; z-index: 3; padding: 5px 9px; border-radius: 4px; background: #17222dcc; color: #e5edf3; font: 600 12px monospace; font-variant-numeric: tabular-nums; pointer-events: none; }
 #app[data-menu-open="true"] .fps-counter { display: none; }
+
+/* Title screen: a dedicated character stage with an opaque command panel. */
+.menu-overlay {
+  padding: clamp(22px, 4vw, 64px);
+  grid-template-columns: minmax(340px, 480px) 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: stretch;
+  gap: 24px 5vw;
+  color: #e8edf0;
+  background: linear-gradient(90deg, #142029 0%, #142029f5 31%, #14202988 49%, #14202900 73%), linear-gradient(0deg, #142029f5, transparent 24%);
+  backdrop-filter: none;
+}
+.menu-brand { grid-column: 1 / -1; z-index: 1; pointer-events: none; }
+.title-eyebrow { display: block; color: #a4b3bc; font: 650 10px ui-monospace, monospace; letter-spacing: .23em; }
+.menu-brand h1 { margin: 18px 0 8px; font-size: clamp(48px, 7.6vw, 116px); line-height: .82; letter-spacing: -.075em; font-weight: 950; color: #f5f0db; }
+.menu-brand h1 small { display: block; margin-bottom: 12px; font-size: .19em; letter-spacing: .48em; font-weight: 750; }
+.title-period { color: #edc762; }
+.menu-brand > p { margin: 17px 0 0; color: #aab9bf; font-size: 13px; letter-spacing: .03em; }
+.menu-overlay .menu-card { grid-column: 1; grid-row: 2; align-self: center; width: 100%; max-height: 100%; padding: 22px 0 4px; border: 0; border-top: 1px solid #ffffff26; border-radius: 0; background: transparent; box-shadow: none; scrollbar-width: thin; scrollbar-color: #5e6d77 transparent; }
+.menu-overlay .menu-header { align-items: center; }
+.menu-overlay .menu-header h2 { font-size: 23px; letter-spacing: -.03em; }
+.menu-overlay .eyebrow { margin-bottom: 6px; font-size: 9px; letter-spacing: .16em; color: #edc762; }
+.menu-overlay .profile-balance { font-size: 10px; color: #9bacb6; }
+.menu-overlay .profile-balance strong { color: #edc762; font-size: 12px; }
+.menu-overlay .menu-tabs { gap: 0; margin-top: 22px; padding: 0; border: 0; border-bottom: 1px solid #ffffff22; border-radius: 0; background: none; }
+.menu-overlay .menu-tabs button { padding: 12px 5px; border-radius: 0; border-bottom: 2px solid transparent; color: #9dadb8; font-size: 12px; background: none; }
+.menu-overlay .menu-tabs button:hover { color: #f5f0db; background: #ffffff06; }
+.menu-overlay .menu-tabs button[aria-selected="true"] { color: #f2ce71; border-bottom-color: #f2ce71; box-shadow: none; }
+.menu-overlay .menu-panels { min-height: 170px; padding: 22px 0 12px; }
+.menu-overlay .menu-panels h3 { font-size: 18px; margin-bottom: 16px; }
+.menu-overlay .menu-kicker { font: 600 9px ui-monospace, monospace; letter-spacing: .16em; color: #8c9ba6; margin-bottom: 7px; }
+.menu-overlay .loadout-item { border: 1px solid #ffffff19; border-radius: 4px; padding: 16px; background: #ffffff05; }
+.menu-overlay .loadout-icon { border-radius: 3px; background: #edc762; color: #26313a; }
+.menu-overlay .loadout-item div span, .menu-overlay .menu-footnote, .menu-overlay .setting-row small { color: #9aabb6; font-size: 11px; }
+.menu-overlay .loadout-item > b { color: #e4c573; font-size: 9px; }
+.menu-overlay .profile-notice { min-height: 14px; margin: 0 0 5px; color: #e6c784; font-size: 11px; }
+.menu-overlay .menu-footer { border-top-color: #ffffff20; padding-top: 18px; color: #99aab6; font-size: 10px; line-height: 1.8; }
+.menu-overlay .menu-footer b { color: #e0e8ed; font-size: 9px; letter-spacing: .12em; }
+.menu-overlay .menu-actions { gap: 8px; }
+.menu-overlay .range-button { padding: 13px 12px; border: 1px solid #ffffff2b; border-radius: 3px; color: #d4dfe5; background: #ffffff04; font-size: 11px; }
+.menu-overlay .range-button:hover { background: #ffffff12; }
+.menu-overlay .join-button { padding: 14px 20px; border-radius: 3px; background: #edc762; color: #202c34; font-size: 13px; box-shadow: 0 4px 24px #edc76215; }
+.menu-overlay .join-button:hover { background: #ffdc82; transform: translateY(-1px); }
+.menu-overlay .join-button span { margin-left: 14px; }
+.menu-overlay .setting-row output { color: #edc762; }
+.menu-overlay input[type="range"] { accent-color: #edc762; }
+.menu-overlay .map-options { margin-top: 16px; }
+.menu-overlay .map-options button { border-radius: 4px; border-color: #ffffff20; background: #ffffff05; color: #e1e8ed; }
+.menu-overlay .map-options small, .menu-overlay .skill-card p { color: #9aabb6; }
+.menu-overlay .map-options button[aria-pressed="true"] { border-color: #edc762; box-shadow: 0 0 0 1px #edc762; }
+.menu-overlay .map-art { height: 64px; border-radius: 2px; filter: saturate(.45); }
+.menu-overlay .skill-card { border-radius: 4px; border-color: #ffffff20; background: #ffffff05; }
+.menu-overlay .skill-card button { border-radius: 3px; background: #edc762; color: #202c34; border-color: #edc762; }
+.menu-overlay .skill-card button:disabled { background: #34414a; border-color: #46535d; color: #9aabb6; }
+.menu-showcase-label { grid-column: 2; grid-row: 2; align-self: end; justify-self: end; padding-bottom: 6px; text-align: right; pointer-events: none; }
+.menu-showcase-label > span { color: #edc762; font: 600 9px ui-monospace, monospace; letter-spacing: .16em; }
+.menu-showcase-label strong { display: block; margin: 10px 0 14px; color: #ede9db; font-size: clamp(23px, 3vw, 42px); line-height: 1.05; letter-spacing: -.04em; }
+.menu-showcase-label small { color: #8fa1ad; font: 10px ui-monospace, monospace; letter-spacing: .18em; }
+.title-footer { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding-top: 17px; border-top: 1px solid #ffffff18; color: #90a1ad; font: 9px ui-monospace, monospace; letter-spacing: .09em; }
+.title-footer i { display: inline-block; width: 5px; height: 5px; margin-right: 8px; border-radius: 50%; background: #edc762; }
+#app[data-menu-open="true"] .crosshair { display: none; }
+.menu-overlay button { transition: background .15s, color .15s; }
+@media (max-width: 760px) {
+  .menu-overlay { grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 26px; background: linear-gradient(90deg, #142029fa, #142029e8 75%, #142029cc); }
+  .menu-brand h1 { font-size: clamp(44px, 10vw, 76px); }
+  .menu-overlay .menu-card { width: min(100%, 520px); justify-self: center; }
+  .menu-showcase-label { display: none; }
+  .menu-overlay .menu-header { display: flex; }
+  .menu-overlay .profile-balance { display: grid; margin: 0; text-align: right; }
+  .menu-overlay .menu-actions { flex-direction: row; }
+  .title-footer { font-size: 8px; gap: 15px; }
+}
+@media (max-width: 400px) {
+  .menu-overlay { padding: 18px; gap: 18px; }
+  .menu-overlay .menu-footer { align-items: stretch; flex-direction: column; }
+  .menu-overlay .menu-actions { justify-content: space-between; }
+  .menu-overlay .menu-header h2 { font-size: 20px; }
+}
+@media (max-height: 660px) and (min-width: 761px) {
+  .menu-overlay { padding-top: 24px; padding-bottom: 18px; gap: 16px; }
+  .menu-brand h1 { font-size: 62px; }
+  .menu-brand > p { margin-top: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .menu-overlay button { transition: none; } }
+.menu-overlay .menu-card { display: flex; flex-direction: column; height: 100%; max-height: 540px; overflow: hidden; }
+.menu-overlay .menu-header, .menu-overlay .menu-tabs, .menu-overlay .menu-footer, .menu-overlay .profile-notice { flex-shrink: 0; }
+.menu-overlay .menu-panels { flex: 1; min-height: 0; overflow: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: #5e6d77 transparent; }
+.menu-overlay #sensitivity-setting, .menu-overlay #master-volume-setting, .menu-overlay #effects-volume-setting { accent-color: #edc762; }
+@media (max-width: 760px) { .menu-overlay .profile-balance { grid-template-columns: 1fr; } }
+.menu-overlay [data-menu-panel="loadout"] .menu-kicker { display: none; }
+.menu-overlay [data-menu-panel="loadout"] h3 { margin-bottom: 10px; font-size: 16px; }
+.menu-overlay [data-menu-panel="loadout"] h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
