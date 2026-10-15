@@ -2,7 +2,7 @@
   "format": "operation-honkdown-map",
   "version": 1,
   "id": "city-draft",
-  "name": "Test City",
+  "name": "Untitled City",
   "seed": 1337,
   "width": 16,
   "height": 16,
@@ -31,7 +31,7 @@
     {
       "x": 4,
       "y": 0,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -66,7 +66,7 @@
     {
       "x": 11,
       "y": 0,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -111,8 +111,7 @@
     {
       "x": 4,
       "y": 1,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -147,7 +146,7 @@
     {
       "x": 11,
       "y": 1,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -192,7 +191,7 @@
     {
       "x": 4,
       "y": 2,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -237,8 +236,7 @@
     {
       "x": 13,
       "y": 2,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
+      "kind": "street"
     },
     {
       "x": 14,
@@ -253,17 +251,17 @@
     {
       "x": 0,
       "y": 3,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 1,
       "y": 3,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 2,
       "y": 3,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 3,
@@ -273,7 +271,7 @@
     {
       "x": 4,
       "y": 3,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -293,7 +291,7 @@
     {
       "x": 8,
       "y": 3,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 9,
@@ -333,22 +331,22 @@
     {
       "x": 0,
       "y": 4,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 1,
       "y": 4,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 2,
       "y": 4,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 3,
       "y": 4,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 4,
@@ -358,264 +356,263 @@
     {
       "x": 5,
       "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 6,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 7,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 8,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 9,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 10,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 11,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 12,
-      "y": 4,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 4,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 15,
-      "y": 4,
-      "kind": "solid-house"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 5,
       "kind": "street"
     },
     {
       "x": 6,
-      "y": 5,
+      "y": 4,
       "kind": "street"
     },
     {
       "x": 7,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 8,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 9,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 10,
-      "y": 5,
-      "kind": "solid-house"
-    },
-    {
-      "x": 11,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 12,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 15,
-      "y": 5,
-      "kind": "street"
-    },
-    {
-      "x": 0,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 6,
-      "kind": "solid-house"
-    },
-    {
-      "x": 4,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 6,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 7,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 8,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 9,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 10,
-      "y": 6,
-      "kind": "solid-house"
-    },
-    {
-      "x": 11,
-      "y": 6,
-      "kind": "solid-house"
-    },
-    {
-      "x": 12,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 15,
-      "y": 6,
-      "kind": "street"
-    },
-    {
-      "x": 0,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 7,
-      "kind": "solid-house"
-    },
-    {
-      "x": 4,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 6,
-      "y": 7,
-      "kind": "solid-house"
-    },
-    {
-      "x": 7,
-      "y": 7,
+      "y": 4,
       "kind": "enterable-house",
       "doorLayout": "all-sides"
     },
     {
       "x": 8,
+      "y": 4,
+      "kind": "solid-house"
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "kind": "solid-house"
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "kind": "solid-house"
+    },
+    {
+      "x": 11,
+      "y": 4,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 4,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 4,
+      "kind": "street"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 7,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 5,
+      "kind": "street"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "kind": "elevation"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "kind": "elevation"
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "kind": "street"
+    },
+    {
+      "x": 0,
       "y": 7,
       "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "kind": "elevation"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "kind": "solid-house"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "kind": "solid-house"
     },
     {
       "x": 9,
@@ -625,240 +622,240 @@
     {
       "x": 10,
       "y": 7,
+      "kind": "elevation"
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "kind": "street"
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "kind": "elevation"
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 7,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "kind": "elevation"
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "kind": "street"
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 9,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 8,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 9,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "kind": "solid-house"
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "kind": "street"
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "kind": "street"
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "kind": "street"
+    },
+    {
+      "x": 2,
+      "y": 10,
+      "kind": "street"
+    },
+    {
+      "x": 3,
+      "y": 10,
+      "kind": "street"
+    },
+    {
+      "x": 4,
+      "y": 10,
+      "kind": "solid-house"
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "kind": "solid-house"
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "kind": "solid-house"
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "kind": "solid-house"
+    },
+    {
+      "x": 8,
+      "y": 10,
       "kind": "enterable-house",
       "doorLayout": "all-sides"
     },
     {
-      "x": 11,
-      "y": 7,
-      "kind": "solid-house"
-    },
-    {
-      "x": 12,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 15,
-      "y": 7,
-      "kind": "street"
-    },
-    {
-      "x": 0,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 4,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 6,
-      "y": 8,
-      "kind": "solid-house"
-    },
-    {
-      "x": 7,
-      "y": 8,
-      "kind": "solid-house"
-    },
-    {
-      "x": 8,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 9,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 10,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 11,
-      "y": 8,
-      "kind": "solid-house"
-    },
-    {
-      "x": 12,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 8,
-      "kind": "solid-house"
-    },
-    {
-      "x": 15,
-      "y": 8,
-      "kind": "street"
-    },
-    {
-      "x": 0,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 4,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 6,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 7,
-      "y": 9,
-      "kind": "solid-house"
-    },
-    {
-      "x": 8,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 9,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 10,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 11,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 12,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 13,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 14,
-      "y": 9,
-      "kind": "solid-house"
-    },
-    {
-      "x": 15,
-      "y": 9,
-      "kind": "street"
-    },
-    {
-      "x": 0,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 1,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 2,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 3,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 4,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 5,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 6,
-      "y": 10,
-      "kind": "street"
-    },
-    {
-      "x": 7,
-      "y": 10,
-      "kind": "solid-house"
-    },
-    {
-      "x": 8,
-      "y": 10,
-      "kind": "street"
-    },
-    {
       "x": 9,
       "y": 10,
       "kind": "street"
@@ -871,7 +868,7 @@
     {
       "x": 11,
       "y": 10,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -886,8 +883,7 @@
     {
       "x": 14,
       "y": 10,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
+      "kind": "street"
     },
     {
       "x": 15,
@@ -897,27 +893,27 @@
     {
       "x": 0,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 1,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 2,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 3,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 4,
       "y": 11,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -927,7 +923,7 @@
     {
       "x": 6,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 7,
@@ -937,17 +933,17 @@
     {
       "x": 8,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 9,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 10,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 11,
@@ -957,22 +953,22 @@
     {
       "x": 12,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 13,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 14,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 15,
       "y": 11,
-      "kind": "solid-house"
+      "kind": "street"
     },
     {
       "x": 0,
@@ -1032,7 +1028,7 @@
     {
       "x": 11,
       "y": 12,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -1077,8 +1073,7 @@
     {
       "x": 4,
       "y": 13,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
+      "kind": "street"
     },
     {
       "x": 5,
@@ -1113,8 +1108,7 @@
     {
       "x": 11,
       "y": 13,
-      "kind": "enterable-house",
-      "doorLayout": "all-sides"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -1159,7 +1153,7 @@
     {
       "x": 4,
       "y": 14,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -1194,7 +1188,7 @@
     {
       "x": 11,
       "y": 14,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
@@ -1239,7 +1233,7 @@
     {
       "x": 4,
       "y": 15,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 5,
@@ -1274,7 +1268,7 @@
     {
       "x": 11,
       "y": 15,
-      "kind": "street"
+      "kind": "solid-house"
     },
     {
       "x": 12,
