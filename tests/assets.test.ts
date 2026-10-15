@@ -1,4 +1,4 @@
-import { Box3, BoxGeometry, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3 } from 'three';
+import { Box3, BoxGeometry, Raycaster, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { ASSET_DEFINITIONS, createAsset } from '../src/content/assets/registry';
 import { createGeneratedAsset, validateAssetDefinition, type AssetDefinition } from '../src/content/assets/asset-types';
@@ -33,6 +33,26 @@ describe('generated asset pipeline', () => {
       expect(Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b)).toBeLessThan(0.12);
       const glass = asset.lods.close.getObjectByName('upper window glass') as Mesh<BoxGeometry, MeshStandardMaterial>;
       expect(glass.material.color.b).toBeGreaterThan(glass.material.color.r);
+      asset.dispose();
+    }
+  });
+
+  it('exposes upper glazing from all street faces instead of burying it in the shell', () => {
+    for (const definition of ASSET_DEFINITIONS.filter(asset => asset.category === 'building')) {
+      const asset = createAsset(definition.id);
+      const model = asset.lods.close;
+      model.updateMatrixWorld(true);
+      for (let side = 0; side < 4; side += 1) {
+        const facade = model.getObjectByName(`street facade ${side}`)!;
+        const glass = facade.getObjectByName('upper window glass')!;
+        const target = glass.getWorldPosition(new Vector3());
+        // Offset from the center mullion, then cast from the street toward the pane.
+        const sideways = new Vector3(0.10, 0, 0).applyQuaternion(facade.quaternion);
+        target.add(sideways);
+        const outward = new Vector3(0, 0, 1).applyQuaternion(facade.quaternion);
+        const ray = new Raycaster(target.clone().addScaledVector(outward, 3), outward.clone().negate());
+        expect(ray.intersectObject(model, true)[0]?.object.name, definition.id).toBe('upper window glass');
+      }
       asset.dispose();
     }
   });

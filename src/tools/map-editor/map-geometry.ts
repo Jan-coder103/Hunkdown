@@ -6,9 +6,9 @@ import type { AssetLodTier } from '../../content/assets/asset-types';
 type FacadePalette = Readonly<{ wall: ColorRepresentation; base: ColorRepresentation; trim: ColorRepresentation; glass: ColorRepresentation; accent: ColorRepresentation }>;
 
 const FACADE_PALETTES: Readonly<Record<string, FacadePalette>> = Object.freeze({
-  'pastel-row-house': Object.freeze({ wall: '#a7adb2', base: '#66717c', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
-  'tall-townhouse': Object.freeze({ wall: '#c0c5c9', base: '#78838d', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
-  'corner-cafe': Object.freeze({ wall: '#858e97', base: '#596672', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
+  'pastel-row-house': Object.freeze({ wall: '#a7adb2', base: '#66717c', trim: '#c9ced3', glass: '#567e99', accent: '#303c49' }),
+  'tall-townhouse': Object.freeze({ wall: '#c0c5c9', base: '#78838d', trim: '#c9ced3', glass: '#567e99', accent: '#303c49' }),
+  'corner-cafe': Object.freeze({ wall: '#858e97', base: '#596672', trim: '#c9ced3', glass: '#567e99', accent: '#303c49' }),
 });
 
 /** Draw a detailed, destructible facade while preserving the generated door openings. */
@@ -90,9 +90,9 @@ function addFacadeWindow(
     return;
   }
   addSurfaceBox(panel, center, wallSize, side, along, y, width + 0.16, windowHeight + 0.16, 0.09, materials.trim, 'window surround');
-  addSurfaceBox(panel, center, wallSize, side, along, y, width, windowHeight, 0.065, materials.glass, 'window glass');
-  addSurfaceBox(panel, center, wallSize, side, along, y, 0.055, windowHeight, 0.105, materials.trim, 'window mullion');
-  addSurfaceBox(panel, center, wallSize, side, along, y, width + 0.24, 0.095, 0.14, materials.trim, 'projecting window sill');
+  addSurfaceBox(panel, center, wallSize, side, along, y, width, windowHeight, 0.065, materials.glass, 'window glass', 0.045);
+  addSurfaceBox(panel, center, wallSize, side, along, y, 0.055, windowHeight, 0.105, materials.trim, 'window mullion', 0.04);
+  addSurfaceBox(panel, center, wallSize, side, along, y - windowHeight / 2 - 0.05, width + 0.24, 0.095, 0.14, materials.trim, 'projecting window sill');
   const shutterWidth = 0.1;
   for (const offset of [-1, 1]) {
     addSurfaceBox(panel, center, wallSize, side, along + offset * (width / 2 + 0.13), y, shutterWidth, windowHeight * 0.92, 0.075, materials.accent, 'painted shutter');
@@ -153,12 +153,13 @@ function addSurfaceBox(
   depth: number,
   material: MeshStandardMaterial,
   name: string,
+  surfaceOffset = 0,
 ): void {
   const horizontalWall = side === 'north' || side === 'south' || (side === undefined && wallSize.x >= wallSize.z);
   const faceSign = side === 'north' || side === 'west' ? -1 : 1;
   const normalHalf = horizontalWall ? wallSize.z / 2 : wallSize.x / 2;
-  const faceX = horizontalWall ? center.x + along : center.x + faceSign * (normalHalf + depth / 2 + 0.008);
-  const faceZ = horizontalWall ? center.z + faceSign * (normalHalf + depth / 2 + 0.008) : center.z + along;
+  const faceX = horizontalWall ? center.x + along : center.x + faceSign * (normalHalf + depth / 2 + 0.008 + surfaceOffset);
+  const faceZ = horizontalWall ? center.z + faceSign * (normalHalf + depth / 2 + 0.008 + surfaceOffset) : center.z + along;
   const geometry = horizontalWall
     ? new BoxGeometry(width, height, depth)
     : new BoxGeometry(depth, height, width);

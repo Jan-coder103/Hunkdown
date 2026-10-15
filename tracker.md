@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Close building facade rework — 2026-10-15
+
+- Reworked the three downtown solid-building close LODs. Fixed glazing buried in the original full-size shell: close shells now combine inset wall bodies, flush corner masonry and floor bands into one structural mesh. Layered window surrounds, blue panes and mullions have distinct outward faces; upper windows are smaller, trims lighter, sills sit below windows, and storefronts have framed entrance details. Roof/collision heights and tile footprints preserved; far shells remain 24 triangles with matching lighter cornice color.
+- Shared materials within each solid-building LOD. Enterable facades also receive lighter trims, exposed glass/mullion layering and correctly lowered sills; destructible wall ownership and actual door openings preserved.
+- Verification: full suite 241/242 pass across 38 files; only pre-existing map-name assertion fails. New behavior test raycasts all four street-facing upper windows for every solid-building variant to prevent buried glazing. Existing footprint, bounds, LOD, disposal and navigation checks pass. Typecheck/build pass with existing bundle warning. Browser: 1280×720 Midtown close facade reviewed, no warning/error logs; `/tmp/honkdown-building-rework.jpg`. Human visual approval and comparative performance profiling remain open.
+
 ## Skyline transition color refinement — 2026-10-15
 
 - Matched the surrounding ground to the warm lit-asphalt appearance and darkened the nearest skyline palette. Increased haze progressively in the two farther layers, preserving depth while bringing nearby scenery closer to the playable city. Geometry and draw budgets unchanged.
