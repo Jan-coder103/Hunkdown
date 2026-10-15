@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Phone aim toggle and landscape overlay scrolling — 2026-10-15
+
+- AIM now toggles on tap, highlights active state and remains enabled after release/while firing. Shared input clearing resets it on pause, focus loss, death, disabling and disposal; mouse aim remains held.
+- Bounded pause cards to overlay height with vertical scrolling, reduced padding on short screens and scoped phone `touch-action: none` to the scene instead of the app root. Pause/results/settings scrolling uses native pan-y, restoring finger scrolling through long menus.
+- Verification: 246/247 tests pass across 39 files; only the existing map-name assertion fails. Typecheck/build pass with existing bundle warning. Extended input tests cover aim tap/release, tap-off/on, active accessibility state and focus reset. Browser at 640×300: aim remained active while FIRE spent ammo, pause card measured within y=10…290 and scrolled to bottom actions; settings panel scrolled to final audio/help rows. Physical phone gesture verification and human approval remain pending.
+
 ## Phone lean, automatic sprint and symbols — 2026-10-15
 
 - Moved lean buttons to the right edge above FIRE. Phone lean is now tap-to-toggle and mutually exclusive so one right thumb can select lean then fire; active lean is highlighted. Pause/focus loss/death/disabling clears it. Keyboard lean remains held.

@@ -65,7 +65,11 @@ it('keeps simultaneous fingers independent, consumes jump once and clears on pau
   expect(controls.input(keyboard).isDown('KeyD')).toBe(true);
   pointer('pointerup', 9, 'move'); expect(controls.input(keyboard).isDown('KeyW')).toBe(false);
   pointer('pointerdown', 1, 'fire'); pointer('pointerdown', 2, 'aim'); pointer('pointerdown', 3, 'Space');
+  pointer('pointerup', 2, 'aim');
   expect(controls.firing && controls.aiming).toBe(true);
+  expect(Array.from(controls.element.querySelectorAll<HTMLElement>('[data-touch]')).find(button => button.dataset.touch === 'aim')!.getAttribute('aria-pressed')).toBe('true');
+  pointer('pointerdown', 2, 'aim'); expect(controls.aiming).toBe(false);
+  pointer('pointerdown', 2, 'aim'); expect(controls.aiming).toBe(true);
   expect(controls.input(keyboard).wasPressed('Space')).toBe(true);
   expect(controls.input(keyboard).wasPressed('Space')).toBe(false);
   expect(controls.consumeFire()).toBe(true); expect(controls.consumeFire()).toBe(false);

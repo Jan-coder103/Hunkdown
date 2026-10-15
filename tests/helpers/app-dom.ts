@@ -31,6 +31,8 @@ export class AppElement extends EventTarget {
     }
   }
 
+  getAttribute(name: string): string | null { return this.attributes.get(name) ?? null; }
+
   setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
     if (name === 'class') this.className = value;

@@ -449,7 +449,7 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .touch-actions [data-touch="KeyE"] { grid-area: 2 / 4; }
 .touch-actions [data-touch="swap"] { grid-area: 2 / 1; }
 .touch-pause { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
-#app[data-phone-controls="true"] { touch-action: none; }
+#app[data-phone-controls="true"] .scene-viewport { touch-action: none; }
 #app[data-phone-controls="true"] .radar { top: max(10px, env(safe-area-inset-top)); left: 10px; width: 68px; }
 #app[data-phone-controls="true"] .radar svg { width: 68px; height: 68px; }
 #app[data-phone-controls="true"] .radar span, #app[data-phone-controls="true"] .rifle-symbol, #app[data-phone-controls="true"] #hud-ammo-note, #app[data-phone-controls="true"] .range-summary { display: none; }
@@ -488,3 +488,14 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .touch-actions .touch-icon { display: inline-block; width: 25px; height: 25px; font: 30px/25px system-ui, sans-serif; vertical-align: middle; }
 .touch-actions svg.touch-icon { fill: none; stroke: currentColor; stroke-width: 1.8; }
 .touch-actions button[aria-pressed="true"] { background: #b89335db; border-color: #ffe2a3; box-shadow: 0 0 0 2px #ffe2a34d; }
+
+/* Constrain overlays to the visible game height and allow native finger scrolling. */
+.pause-overlay:not(.death-overlay) { grid-template-rows: minmax(0, 1fr); }
+.pause-overlay:not(.death-overlay) .pause-card { min-height: 0; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.menu-overlay .menu-panels, .results-card { touch-action: pan-y; overscroll-behavior: contain; }
+@media (max-height: 500px) {
+  .pause-overlay:not(.death-overlay) { padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left)); }
+  .pause-overlay:not(.death-overlay) .pause-card { padding: 16px 20px; border-radius: 16px; }
+  .pause-card h2 { font-size: 24px; }
+  .pause-card > p:not(.eyebrow):not(.hint) { margin: 6px 0 12px; }
+}
