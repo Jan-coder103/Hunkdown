@@ -277,6 +277,15 @@ function createEnterableWallCollisions(
         }));
       }
     }
+    if (doorOpen) {
+      const headerHeight = buildingHeight - 2.2;
+      colliders.push(Object.freeze({
+        cell: point(cell),
+        center: Object.freeze({ x: position.x + (side === 'west' ? -half : side === 'east' ? half : 0), y: 2.2 + headerHeight / 2, z: position.z + (side === 'north' ? -half : side === 'south' ? half : 0) }),
+        size: Object.freeze({ x: side === 'north' || side === 'south' ? HOUSE_DOOR_WIDTH : thickness, y: headerHeight, z: side === 'north' || side === 'south' ? thickness : HOUSE_DOOR_WIDTH }),
+        role: 'enterable-wall', id: `house-${cell.x}-${cell.y}-${side}-header`, health: ENTERABLE_WALL_HEALTH, direction: side,
+      }));
+    }
   }
   return colliders;
 }

@@ -29,9 +29,9 @@ describe('seeded city generation', () => {
 
     expect(centerNeighbors).toEqual([{ x: 2, y: 1 }, { x: 2, y: 3 }]);
     const houseWalls = generated.collisions.filter((item) => item.cell.x === 2 && item.cell.y === 2 && item.role === 'enterable-wall');
-    expect(houseWalls).toHaveLength(6);
+    expect(houseWalls).toHaveLength(8);
     expect(houseWalls.every((wall) => Boolean(wall.id) && wall.health === 136)).toBe(true);
-    expect(new Set(houseWalls.map((wall) => wall.id)).size).toBe(6);
+    expect(new Set(houseWalls.map((wall) => wall.id)).size).toBe(8);
     expect(generated.buildings[0]).toMatchObject({ enterable: true, doors: ['north', 'south'] });
   });
 

@@ -51,6 +51,23 @@ describe('generated city preview geometry', () => {
     }
   });
 
+  it('closes the full-height doorway slot above head clearance in both LODs', () => {
+    const generated = generateMap(paintMapCell(createEmptyMap({ width: 3, height: 3 }), 1, 1, 'enterable-house', 'all-sides'));
+    const headers = generated.collisions.filter(wall => wall.id?.endsWith('-header'));
+    expect(headers).toHaveLength(4);
+    for (const header of headers) expect(header.center.y - header.size.y / 2).toBeCloseTo(2.2);
+    for (const detail of ['close', 'far'] as const) {
+      const building = createEnterableBuilding(generated, { x: 1, y: 1 }, detail);
+      building.updateMatrixWorld(true);
+      for (const direction of [new Vector3(0, 0, 1), new Vector3(0, 0, -1), new Vector3(1, 0, 0), new Vector3(-1, 0, 0)]) {
+        const origin = direction.clone().multiplyScalar(-6); origin.y = 3;
+        expect(new Raycaster(origin, direction).intersectObject(building, true).length).toBeGreaterThan(0);
+        origin.y = 1.8;
+        expect(new Raycaster(origin, direction).intersectObject(building, true)).toHaveLength(0);
+      }
+    }
+  });
+
   it('keeps all ramp surfaces outside the raised tile and aligned with collision width', () => {
     const map = paintMapCell(createEmptyMap({ width: 3, height: 3 }), 1, 1, 'elevation');
     const generated = generateMap(map);

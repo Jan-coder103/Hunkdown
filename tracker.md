@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Enterable building facade/header fix — 2026-10-15
+
+- Closed full-height slots above authored entrances with generated destructible wall headers starting at 2.2 m. The same collision records drive close/far geometry, hitscan and destruction; normal door passages remain clear. Headers use distinct stable IDs and retain wall health.
+- Reworked enterable window proportions/spacing, removed narrow dark shutter strips, refined cornice thickness, lowered sills and aligned the door surround with the new opening height. Header windows use world floor heights so they align with adjoining wall panels.
+- Verification: full suite 242/243 pass across 38 files (same pre-existing map-name failure); typecheck/build pass with existing bundle warning. Added all-four-sides ray coverage for solid headers at 3 m and clear openings at 1.8 m in both LODs; existing wall ownership, navigation and door tests pass. Map editor starts without browser warnings/errors; close-up visual review of the changed building remains unverified. Human approval pending.
+
 ## Close building facade rework — 2026-10-15
 
 - Reworked the three downtown solid-building close LODs. Fixed glazing buried in the original full-size shell: close shells now combine inset wall bodies, flush corner masonry and floor bands into one structural mesh. Layered window surrounds, blue panes and mullions have distinct outward faces; upper windows are smaller, trims lighter, sills sit below windows, and storefronts have framed entrance details. Roof/collision heights and tile footprints preserved; far shells remain 24 triangles with matching lighter cornice color.

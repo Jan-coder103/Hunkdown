@@ -39,14 +39,17 @@ export function createEnterableBuilding(
     if (detail === 'far') continue;
     const localCenter = { x: 0, y: 0, z: 0 };
     addFacadeBand(panel, localCenter, wall.size, wall.direction, 0.23, 0.13, materials.base);
-    addFacadeBand(panel, localCenter, wall.size, wall.direction, wall.size.y - 0.18, 0.16, materials.trim);
-    const floorCount = Math.max(1, Math.ceil((wall.size.y - 2.2) / 2.55));
+    addFacadeBand(panel, localCenter, wall.size, wall.direction, wall.size.y - 0.12, 0.10, materials.trim);
+    const bottom = wall.center.y - wall.size.y / 2;
+    const top = wall.center.y + wall.size.y / 2;
+    const floorCount = Math.max(1, Math.ceil((top - 2.2) / 2.55));
     for (let floor = 0; floor < floorCount; floor += 1) {
-      const y = 1.45 + floor * 2.55;
-      if (y + 0.55 >= wall.size.y - 0.25) continue;
+      const worldY = 1.35 + floor * 2.55;
+      if (worldY - 0.65 < bottom + 0.15 || worldY + 0.65 >= top - 0.25) continue;
+      const y = worldY - bottom;
       const length = wall.size.x > wall.size.z ? wall.size.x : wall.size.z;
-      const windowCount = length > 5.4 ? 2 : 1;
-      const windowWidth = Math.min(1.05, length / (windowCount + 1) * 0.62);
+      const windowCount = Math.max(1, Math.floor(length / 2.5));
+      const windowWidth = Math.min(1.30, length / (windowCount + 1) * 0.62);
       for (let index = 0; index < windowCount; index += 1) {
         const along = (index + 1) * length / (windowCount + 1) - length / 2;
         addFacadeWindow(panel, localCenter, wall.size, wall.direction, along, y, windowWidth, detail, materials);
@@ -84,7 +87,7 @@ function addFacadeWindow(
   detail: AssetLodTier,
   materials: Readonly<Record<'wall' | 'base' | 'trim' | 'glass' | 'accent', MeshStandardMaterial>>,
 ): void {
-  const windowHeight = 1.0;
+  const windowHeight = 1.3;
   if (detail === 'far') {
     addSurfaceBox(panel, center, wallSize, side, along, y, width, windowHeight, 0.055, materials.accent, 'far facade window');
     return;
@@ -93,10 +96,7 @@ function addFacadeWindow(
   addSurfaceBox(panel, center, wallSize, side, along, y, width, windowHeight, 0.065, materials.glass, 'window glass', 0.045);
   addSurfaceBox(panel, center, wallSize, side, along, y, 0.055, windowHeight, 0.105, materials.trim, 'window mullion', 0.04);
   addSurfaceBox(panel, center, wallSize, side, along, y - windowHeight / 2 - 0.05, width + 0.24, 0.095, 0.14, materials.trim, 'projecting window sill');
-  const shutterWidth = 0.1;
-  for (const offset of [-1, 1]) {
-    addSurfaceBox(panel, center, wallSize, side, along + offset * (width / 2 + 0.13), y, shutterWidth, windowHeight * 0.92, 0.075, materials.accent, 'painted shutter');
-  }
+
 }
 
 function addDoorwayTrim(
@@ -123,15 +123,15 @@ function addDoorwayTrim(
   const x = position.x + (side === 'west' ? -cellSize / 2 - wallThickness / 2 - outward / 2 : side === 'east' ? cellSize / 2 + wallThickness / 2 + outward / 2 : 0);
   const frameMaterial = detail === 'close' ? materials.trim : materials.accent;
   for (const offset of [-1, 1]) {
-    const post = new Mesh(new BoxGeometry(horizontal ? postWidth : outward, 1.98, horizontal ? outward : postWidth), frameMaterial);
+    const post = new Mesh(new BoxGeometry(horizontal ? postWidth : outward, 2.14, horizontal ? outward : postWidth), frameMaterial);
     post.name = `doorway trim ${side} post`;
     const postOffset = openingWidth / 2 + postWidth / 2;
-    post.position.set(x + (horizontal ? offset * postOffset : 0), 0.99, z + (horizontal ? 0 : offset * postOffset));
+    post.position.set(x + (horizontal ? offset * postOffset : 0), 1.07, z + (horizontal ? 0 : offset * postOffset));
     root.add(post);
   }
   const lintel = new Mesh(new BoxGeometry(horizontal ? openingWidth + 0.18 : outward, 0.14, horizontal ? outward : openingWidth + 0.18), frameMaterial);
   lintel.name = `doorway trim ${side} lintel`;
-  lintel.position.set(x, 2.04, z);
+  lintel.position.set(x, 2.17, z);
   root.add(lintel);
   if (detail === 'close') {
     const sign = new Mesh(new BoxGeometry(horizontal ? 0.44 : outward, 0.16, horizontal ? outward : 0.44), materials.accent);
