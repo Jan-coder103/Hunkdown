@@ -2,6 +2,11 @@
 
 Updated: 2026-10-15.
 
+## Skyline transition color refinement — 2026-10-15
+
+- Matched the surrounding ground to the warm lit-asphalt appearance and darkened the nearest skyline palette. Increased haze progressively in the two farther layers, preserving depth while bringing nearby scenery closer to the playable city. Geometry and draw budgets unchanged.
+- Verification: full suite 240/241 pass (same pre-existing map-name failure); typecheck/build pass with existing bundle warning. Browser at 1280×720: matching ground boundary and darker nearest buildings visible in Midtown, no warnings/errors. Screenshot `/tmp/honkdown-skyline-colors.jpg`. Human approval remains open.
+
 ## Low-poly sky and distant city — 2026-10-15
 
 - Added a translation-independent procedural blue/horizon gradient to gameplay and the range; menu presentation remains its own scene. Match scenery adds 96 seeded low-poly buildings with stepped roofs, three depth/color layers, baked face shading, and four surrounding ground strips outside the playable rectangle.

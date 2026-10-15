@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createSeededRandom } from '../../engine/seeded-random';
 import type { MapDocument } from './map-types';
 
-const PALETTE = ['#a9bfc1', '#c6bcae', '#b6c7b8', '#c2becb', '#b8cad1'];
+const PALETTE = ['#737f80', '#918574', '#7b8b7b', '#878394', '#7a8d98'];
 const HORIZON = new Color('#dce8df');
 
 /** Static scenery only. Four opaque batches, no collision or simulation entities. */
@@ -37,7 +37,8 @@ export function createSkylineView(map: Pick<MapDocument, 'width' | 'height' | 'c
     const along = horizontal ? halfX : halfZ;
     const across = horizontal ? halfZ : halfX;
     // Four non-overlapping strips leave the playable ground untouched, even on rectangular maps.
-    const groundColor = new Color('#bac6bd').lerp(HORIZON, 0.22);
+    // Approximate the warm, lit asphalt appearance using the unlit scenery material.
+    const groundColor = new Color('#625f4d');
     if (horizontal) box(0, -0.16, sign * (across + 115), (halfX + 230) * 2, 0.2, 230, groundColor);
     else box(sign * (across + 115), -0.16, 0, 230, 0.2, halfZ * 2, groundColor);
     for (let layer = 0; layer < 3; layer += 1) {
@@ -51,7 +52,7 @@ export function createSkylineView(map: Pick<MapDocument, 'width' | 'height' | 'c
         const width = 10 + random() * 15;
         const depth = 10 + random() * 13;
         const height = 12 + random() * 22 + layer * 7;
-        const color = new Color(PALETTE[Math.floor(random() * PALETTE.length)]!).lerp(HORIZON, 0.15 + layer * 0.22);
+        const color = new Color(PALETTE[Math.floor(random() * PALETTE.length)]!).lerp(HORIZON, 0.04 + layer * 0.30);
         box(x, height / 2, z, width, height, depth, color);
         // Stepped roof silhouettes and occasional taller landmark crowns, visible from above too.
         const crown = 2 + random() * (index % 4 === 0 ? 12 : 4);
