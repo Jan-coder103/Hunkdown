@@ -6,9 +6,9 @@ import type { AssetLodTier } from '../../content/assets/asset-types';
 type FacadePalette = Readonly<{ wall: ColorRepresentation; base: ColorRepresentation; trim: ColorRepresentation; glass: ColorRepresentation; accent: ColorRepresentation }>;
 
 const FACADE_PALETTES: Readonly<Record<string, FacadePalette>> = Object.freeze({
-  'pastel-row-house': Object.freeze({ wall: '#e5a786', base: '#b77c66', trim: '#f1d8ae', glass: '#80b7b4', accent: '#647d70' }),
-  'tall-townhouse': Object.freeze({ wall: '#8fb8aa', base: '#688e82', trim: '#eddbb7', glass: '#80b7b4', accent: '#c8755c' }),
-  'corner-cafe': Object.freeze({ wall: '#d9a36f', base: '#a97851', trim: '#f1d19a', glass: '#9bc9c1', accent: '#58776c' }),
+  'pastel-row-house': Object.freeze({ wall: '#a7adb2', base: '#66717c', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
+  'tall-townhouse': Object.freeze({ wall: '#c0c5c9', base: '#78838d', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
+  'corner-cafe': Object.freeze({ wall: '#858e97', base: '#596672', trim: '#434e59', glass: '#567e99', accent: '#303c49' }),
 });
 
 /** Draw a detailed, destructible facade while preserving the generated door openings. */

@@ -1,2 +1,2 @@
 import { downtownBuilding } from './downtown-building';
-export const buildingAsset = downtownBuilding('pastel-row-house', 'Pastel apartment block', 5, '#e7a787');
+export const buildingAsset = downtownBuilding('pastel-row-house', 'Concrete apartment block', 5, '#a7adb2');

@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Modern gray buildings and visible FPS — 2026-10-15
+
+- Changed all downtown building variants and generated enterable facades to neutral concrete grays, charcoal metal trim, and blue-gray glazing. Enlarged close windows for a modern facade rhythm; full-tile footprints, heights, and 24-triangle solid far LODs remain intact.
+- Added a dedicated top-right FPS output using the existing engine diagnostics, refreshed every ten frames. Visible during gameplay and the death view; hidden in the main menu.
+- Automated coverage checks neutral facade colors/blue glazing and drives real engine frame timing to verify a 50 FPS reading. Full suite: 224/225 pass; the existing custom-map name mismatch remains the sole failure. Typecheck and production build passed; existing large-chunk warning remains. Browser visual review and performance profiling were not performed; no human approval claimed.
+
 ## Dense downtown buildings — 2026-10-15
 
 - Replaced the three cottage silhouettes with full-tile flat-roof apartment/cafe blocks (4, 5, and 8 floors). All rotations and both LODs have structural shells spanning the full tile; overhang bounds no longer create gaps between neighbors. Existing asset IDs and seeded selection remain stable.

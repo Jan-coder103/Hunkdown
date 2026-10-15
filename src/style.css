@@ -334,3 +334,6 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .grenade-display text { fill: #fff3c7; font-size: 13px; font-weight: 800; text-shadow: none; }
 @media(max-width:760px) { .grenade-display { right: 12px; bottom: 145px; } }
 #ammo-display { clear: both; white-space: nowrap; }
+
+.fps-counter { position: absolute; top: 14px; right: 18px; z-index: 3; padding: 5px 9px; border-radius: 4px; background: #17222dcc; color: #e5edf3; font: 600 12px monospace; font-variant-numeric: tabular-nums; pointer-events: none; }
+#app[data-menu-open="true"] .fps-counter { display: none; }

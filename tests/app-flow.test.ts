@@ -73,6 +73,14 @@ function createHarness(selectedMap?: string) {
 afterEach(() => { vi.unstubAllGlobals(); harness.battles.length = 0; harness.cameras.length = 0; harness.countdownSeconds = 0.01; });
 
 describe('application match flow', () => {
+  it('updates the standalone FPS counter from real engine frame timing', () => {
+    const { app, frame, element } = createHarness();
+    try {
+      for (let index = 0; index < 20; index += 1) frame();
+      expect(element('fps-counter').textContent).toBe('50 FPS');
+    } finally { app.dispose(); }
+  });
+
   it('recovers removed custom selection without clearing progression', () => {
     const { app, stored, element } = createHarness('custom:removed-map');
     try {

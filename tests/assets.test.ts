@@ -1,4 +1,4 @@
-import { Box3, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3 } from 'three';
+import { Box3, BoxGeometry, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { ASSET_DEFINITIONS, createAsset } from '../src/content/assets/registry';
 import { createGeneratedAsset, validateAssetDefinition, type AssetDefinition } from '../src/content/assets/asset-types';
@@ -23,6 +23,18 @@ describe('generated asset pipeline', () => {
       });
     }
     asset.dispose();
+  });
+
+  it('uses neutral concrete and blue glass on modern apartment facades', () => {
+    for (const definition of ASSET_DEFINITIONS.filter((asset) => asset.category === 'building')) {
+      const asset = createAsset(definition.id);
+      const shell = asset.lods.close.getObjectByName('full tile structural shell') as Mesh<BoxGeometry, MeshStandardMaterial>;
+      const color = shell.material.color;
+      expect(Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b)).toBeLessThan(0.12);
+      const glass = asset.lods.close.getObjectByName('upper window glass') as Mesh<BoxGeometry, MeshStandardMaterial>;
+      expect(glass.material.color.b).toBeGreaterThan(glass.material.color.r);
+      asset.dispose();
+    }
   });
 
   it('fills adjacent downtown tiles in both LODs and keeps distant blocks extremely cheap', () => {

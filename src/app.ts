@@ -47,6 +47,7 @@ export function mountApp(root: HTMLElement) {
       <div id="damage-vignette" class="damage-vignette" aria-hidden="true"></div>
       <output id="round-countdown" class="round-countdown" aria-live="polite" hidden></output>
       <div id="combat-flash" class="combat-flash" aria-hidden="true"></div>
+      <output id="fps-counter" class="fps-counter" aria-label="Frames per second">— FPS</output>
       <section class="shooter-hud" aria-label="Combat HUD">
         <div class="radar"><svg id="radar-map" viewBox="-50 -50 100 100" aria-label="Squad radar"></svg><span>SQUAD RADAR · N ↑</span></div>
         <output id="match-strip" class="match-strip"></output>
@@ -185,6 +186,7 @@ export function mountApp(root: HTMLElement) {
   const classOutput = root.querySelector<HTMLOutputElement>('#class-state');
   const weaponOutput = root.querySelector<HTMLOutputElement>('#weapon-state');
   const combatReadout = root.querySelector<HTMLOutputElement>('#combat-readout');
+  const fpsCounter = root.querySelector<HTMLOutputElement>('#fps-counter')!;
   const diagnosticsOutput = root.querySelector<HTMLOutputElement>('#engine-diagnostics');
   const positionOutput = root.querySelector<HTMLOutputElement>('#position-readout');
   const hitMarker = root.querySelector<HTMLElement>('#hit-marker');
@@ -794,6 +796,7 @@ export function mountApp(root: HTMLElement) {
     },
     onDiagnostics: (snapshot) => {
       if (snapshot.frameCount % 10 !== 0) return;
+      fpsCounter.textContent = `${snapshot.framesPerSecond.toFixed(0)} FPS`;
       const rendererStats = sceneView?.rendererPerformanceStats;
       const rendererSummary = rendererStats
         ? ` · ${rendererStats.drawCalls} draws · ${(rendererStats.triangles / 1000).toFixed(1)}k tris · ${rendererStats.geometries} geometries`
