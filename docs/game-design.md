@@ -71,7 +71,7 @@ Sound files are supplied by the user and listed in `public/audio/manifest.json` 
 
 ## City and tools
 
-Dense tiled urban city with predefined paths and randomly selected edge-to-edge buildings. Decoration includes trees, cafes, fountains, and wall-leaning bikes. Keep open routes wide enough for crowds. Buildings, collision, doors, slopes, and navigation must agree.
+Dense tiled urban city with predefined paths and randomly selected edge-to-edge buildings. Street ground becomes asphalt automatically. Concrete sidewalks and shallow curbs follow the outside of connected building blocks, including corners; shared building walls have no intervening walkway. White dashed lane centers follow connected roads and leave junction centers clear. Decoration includes trees, cafes, fountains, and wall-leaning bikes. Keep open routes wide enough for crowds. Buildings, collision, doors, slopes, and navigation must agree.
 
 The map editor paints cells on a top-down flat grid: blue houses, yellow enterable houses with N/S, W/E, or all-side doors, green elevation. Elevation boundaries generate slopes automatically. Asset viewer is a separate app reachable from Escape, used to inspect code-generated content and both visual LOD tiers.
 

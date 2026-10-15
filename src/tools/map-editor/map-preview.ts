@@ -1,9 +1,11 @@
+import { createStreetView } from '../../game/world/street-view';
 import {
   AmbientLight,
   BoxGeometry,
   BufferGeometry,
   Color,
   DirectionalLight,
+  InstancedMesh,
   Line,
   LineBasicMaterial,
   Mesh,
@@ -31,13 +33,6 @@ export type PreviewSummary = Readonly<{
   navigationNodes: number;
   navigationLinks: number;
 }>;
-
-const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
-  street: '#c4cdbc',
-  'solid-house': '#c9a8a0',
-  'enterable-house': '#e8d18c',
-  elevation: '#91b386',
-});
 
 export class MapPreview {
   private readonly scene = new Scene();
@@ -117,28 +112,20 @@ export class MapPreview {
     const { source } = generated;
     const base = new Mesh(
       this.ownGeometry(new PlaneGeometry(source.width * source.cellSize, source.height * source.cellSize)),
-      this.ownMaterial(new MeshStandardMaterial({ color: '#b6c6b5', roughness: 0.95 })),
+      this.ownMaterial(new MeshStandardMaterial({ color: '#aeb4b8', roughness: 0.95 })),
     );
     base.rotation.x = -Math.PI / 2;
-    base.position.y = -0.08;
+    base.position.y = 0.001;
     base.receiveShadow = true;
     this.ground.add(base);
 
-    const tileGeometry = this.ownGeometry(new PlaneGeometry(source.cellSize - 0.06, source.cellSize - 0.06));
-    const materials = new Map<string, MeshStandardMaterial>();
-    for (const cell of source.cells) {
-      const color = CELL_COLORS[cell.kind] ?? CELL_COLORS.street ?? '#c4cdbc';
-      let material = materials.get(color);
-      if (!material) {
-        material = this.ownMaterial(new MeshStandardMaterial({ color, roughness: 0.9 })) as MeshStandardMaterial;
-        materials.set(color, material);
-      }
-      const position = worldPosition(source, cell);
-      const tile = new Mesh(tileGeometry, material);
-      tile.rotation.x = -Math.PI / 2;
-      tile.position.set(position.x, 0.005, position.z);
-      this.contents.add(tile);
-    }
+    const street = createStreetView(source);
+    street.traverse((part) => {
+      if (!(part instanceof Mesh)) return;
+      this.ownGeometry(part.geometry);
+      for (const material of Array.isArray(part.material) ? part.material : [part.material]) this.ownMaterial(material);
+    });
+    this.contents.add(street);
   }
 
   private buildElevations(generated: GeneratedMap): void {
@@ -230,6 +217,7 @@ export class MapPreview {
 
   private clearContents(): void {
     for (const child of [...this.ground.children, ...this.contents.children]) {
+      child.traverse((part) => { if (part instanceof InstancedMesh) part.dispose(); });
       child.removeFromParent();
       if (child instanceof Mesh || child instanceof Line) {
         if (child.geometry && !this.ownedGeometries.has(child.geometry)) child.geometry.dispose();

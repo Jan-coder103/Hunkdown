@@ -1,3 +1,4 @@
+import { createStreetView } from '../world/street-view';
 import { CHICKEN_COLORS } from '../../content/assets/tactical-chicken.asset';
 import { chooseRoundTeamColors, type RoundTeamColors } from '../match/team-colors';
 import {
@@ -34,13 +35,6 @@ import { BotSkirmishSimulation, type BotShot, type BotSide, type BotSimulationOp
 import { BotSkirmishMatch, type BotSkirmishMatchRules } from '../match/bot-skirmish-match';
 import type { BotIntent } from './bot-brain';
 import type { Combatant } from '../combat/combatant';
-
-const CELL_COLORS: Readonly<Record<string, string>> = Object.freeze({
-  street: '#c4cdbc',
-  'solid-house': '#c9a8a0',
-  'enterable-house': '#e8d18c',
-  elevation: '#91b386',
-});
 
 type Tracer = { line: Line<BufferGeometry, LineBasicMaterial>; remaining: number; duration: number };
 type DebrisParticle = {
@@ -362,44 +356,16 @@ export class BotSkirmishView {
     const { source } = this.map;
     const base = new Mesh(
       this.ownGeometry(new PlaneGeometry(source.width * source.cellSize, source.height * source.cellSize)),
-      this.ownMaterial(new MeshStandardMaterial({ color: '#b6c6b5', roughness: 0.95 })),
+      this.ownMaterial(new MeshStandardMaterial({ color: '#aeb4b8', roughness: 0.95 })),
     );
     base.rotation.x = -Math.PI / 2;
-    base.position.y = -0.08;
+    base.position.y = 0.001;
     this.root.add(base);
 
-    const tileGeometry = this.ownGeometry(new PlaneGeometry(source.cellSize - 0.06, source.cellSize - 0.06));
-    const tileMaterials = new Map<string, MeshStandardMaterial>();
-    const tilePositions = new Map<string, Vector3[]>();
-    for (const cell of source.cells) {
-      const color = CELL_COLORS[cell.kind] ?? CELL_COLORS.street ?? '#c4cdbc';
-      let material = tileMaterials.get(color);
-      if (!material) {
-        material = this.ownMaterial(new MeshStandardMaterial({ color, roughness: 0.9 })) as MeshStandardMaterial;
-        tileMaterials.set(color, material);
-      }
-      const position = worldPosition(source, cell);
-      const positions = tilePositions.get(color) ?? [];
-      positions.push(new Vector3(position.x, 0.005, position.z));
-      tilePositions.set(color, positions);
-    }
+    const street = createStreetView(source);
+    this.trackObjectResources(street);
+    this.root.add(street);
     const tileTransform = new Object3D();
-    for (const [color, positions] of tilePositions) {
-      const material = tileMaterials.get(color);
-      if (!material || positions.length === 0) continue;
-      const tiles = new InstancedMesh(tileGeometry, material, positions.length);
-      tiles.instanceMatrix.setUsage(StaticDrawUsage);
-      tiles.receiveShadow = true;
-      for (const [index, position] of positions.entries()) {
-        tileTransform.position.copy(position);
-        tileTransform.rotation.set(-Math.PI / 2, 0, 0);
-        tileTransform.updateMatrix();
-        tiles.setMatrixAt(index, tileTransform.matrix);
-      }
-      tiles.instanceMatrix.needsUpdate = true;
-      tiles.computeBoundingSphere();
-      this.root.add(tiles);
-    }
 
     const raisedTileGeometry = this.ownGeometry(new BoxGeometry(source.cellSize - 0.06, 1.25, source.cellSize - 0.06));
     const raisedTileMaterial = this.ownMaterial(new MeshStandardMaterial({ color: '#86a977', roughness: 0.9 }));

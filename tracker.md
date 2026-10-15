@@ -2,6 +2,15 @@
 
 Updated: 2026-10-15.
 
+## Automatic sidewalks and roads — 2026-10-15
+
+- Added shared automatic paving for the game and map preview. Street cells become seamless asphalt; concrete sidewalks follow the union of neighboring solid/enterable building footprints, including diagonal outside corners and concave block edges. Shared building walls receive no sidewalk, so joined tiles form one continuous block perimeter.
+- Pale shallow curbs distinguish road/pavement edges. Sidewalk width scales with cell size up to 1.4 m; all paving stays inside the map. Heights stay within 4 cm and are presentation-only, preserving ground/collision, door openings, ramps, destruction IDs, and bot navigation.
+- White dashed lane centers derive from connected street spans. Straight sections continue through tile centers; junction centers stay clear. Broad open streets use central lanes rather than a repeated per-cell lane grid. Building and elevation cells receive no asphalt/markings.
+- Road, sidewalk, curb, and paint use at most four instanced batches with shared geometry; both runtime and preview dispose instance and geometry/material resources.
+- Verification: 230/231 tests pass across 36 files; only the existing custom-map name mismatch fails (“Untitled City” vs “Test City”). New coverage checks connected/L-shaped/edge blocks, sidewalk continuity/corners, broad/straight/T roads, pavement-free markings, elevation exclusions, deterministic output, unchanged world data, bounded batches/heights, and runtime disposal. Typecheck and production build pass (existing large-chunk warning).
+- Browser smoke check at localhost:5187: painted a joined 2×2 block in the editor and observed its continuous sidewalk ring, then joined Midtown and observed asphalt, dashed white lanes, curbs and the FPS counter. Browser warnings/errors were empty; displayed FPS was 60 at 663×658. This is not renewed 1080p profiling or human approval; manual movement/curb traversal was not checked. User map files remain untouched.
+
 ## Modern gray buildings and visible FPS — 2026-10-15
 
 - Changed all downtown building variants and generated enterable facades to neutral concrete grays, charcoal metal trim, and blue-gray glazing. Enlarged close windows for a modern facade rhythm; full-tile footprints, heights, and 24-triangle solid far LODs remain intact.
