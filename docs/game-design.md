@@ -44,7 +44,7 @@ Results open even when the player is dead. Escape keeps the ready room and compl
 
 Settings → Phone controls & HUD offers Auto (default), On and Off, saved per browser. Auto uses a phone user agent or a coarse pointer with a screen short side at most 600 CSS pixels. On/off overrides detection and changes both controls and HUD. Phone mode disables pointer-lock requests.
 
-Drag the left pad to move and drag the right-side scene to look. Hold FIRE, AIM, SPRINT, CROUCH, INTERACT or lean buttons; tap JUMP, RELOAD, GRENADE and KNIFE for their usual actions. FIRE also stabs or throws an equipped grenade. PAUSE opens the existing resume/settings menu and remains available while dead or spectating. The HUD keeps radar, health, ammo and grenades near the top, clear of thumb controls. Touches clear on pause, focus loss, death, disabling controls and disposal. Real-device ergonomics and performance require phone playtesting.
+Drag the left pad to move and drag the right-side scene to look. Hold FIRE, AIM, SPRINT, CROUCH, INTERACT or lean buttons; tap JUMP, RELOAD, GRENADE and KNIFE for their usual actions. FIRE also stabs or throws an equipped grenade. PAUSE opens the existing resume/settings menu and remains available while dead or spectating. FIRE is a large circular target at bottom right; smaller circular action buttons sit above and to its left, with none below or to its right. The HUD keeps radar, health, ammo and grenades near the top, clear of thumb controls. Touches clear on pause, focus loss, death, disabling controls and disposal. Real-device ergonomics and performance require phone playtesting.
 
 ## Controls
 

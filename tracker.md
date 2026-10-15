@@ -2,6 +2,11 @@
 
 Updated: 2026-10-15.
 
+## Circular phone action controls — 2026-10-15
+
+- Replaced the wrapping action-button layout with explicit positions: a 102 px circular FIRE target at bottom right and ten 48 px circular actions above/left. No action sits below or right of FIRE. Retained safe-area offsets and independent pointer handling; narrowed the movement pad on <=360 px screens to keep thumb regions separate.
+- Verification: full suite 246/247 passes (only existing map-name failure); typecheck/build pass with existing bundle warning. Browser at 844×390: inspected circular buttons and measured FIRE 102×102, other actions 48×48, all border-radius 50%, with no action below/right of FIRE. At 390×844, clicking FIRE spent one round. Physical phone ergonomics and human approval remain pending.
+
 ## Compact menu branding — 2026-10-15
 
 - Replaced stacked branding/ready-room headings with one compact Operation Honkdown title. Removed promotional taglines, character caption and decorative footer. Reduced panel/tab spacing and let the menu card fill reclaimed height; settings panels retain scrolling and persistent deployment actions. Hid the gameplay countdown behind the main menu.

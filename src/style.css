@@ -435,9 +435,20 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 .touch-controls [data-touch] { pointer-events: auto; touch-action: none; }
 .touch-look { position: absolute; inset: 12% 0 0 38%; }
 .touch-move { position: absolute; left: max(22px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); width: 120px; height: 120px; display: grid; place-items: center; border: 2px solid #ffffff70; border-radius: 50%; background: #183b3560; color: #fff9; font-size: 12px; }
-.touch-actions { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); width: 238px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; pointer-events: none; }
+.touch-actions { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 48px); grid-template-rows: repeat(4, 48px); gap: 6px; pointer-events: none; }
 .touch-actions button, .touch-pause { min-width: 48px; min-height: 44px; padding: 8px; border: 1px solid #ffffff70; border-radius: 14px; color: white; background: #183b35ba; font-size: 10px; }
-.touch-actions [data-touch="fire"] { width: 74px; background: #ae4f31c9; }
+.touch-actions button { width: 48px; height: 48px; min-width: 0; min-height: 0; padding: 2px; border-radius: 50%; font-size: 8px; font-weight: 700; }
+.touch-actions [data-touch="fire"] { grid-column: 3 / 5; grid-row: 3 / 5; width: 102px; height: 102px; border: 2px solid #ffe2bdc9; background: #ae4f31c9; font-size: 15px; box-shadow: inset 0 0 0 5px #ffffff12, 0 3px 12px #0003; }
+.touch-actions [data-touch="aim"] { grid-area: 2 / 4; }
+.touch-actions [data-touch="Space"] { grid-area: 2 / 3; }
+.touch-actions [data-touch="KeyR"] { grid-area: 3 / 2; }
+.touch-actions [data-touch="KeyG"] { grid-area: 2 / 2; }
+.touch-actions [data-touch="KeyF"] { grid-area: 1 / 4; }
+.touch-actions [data-touch="ShiftLeft"] { grid-area: 1 / 1; }
+.touch-actions [data-touch="KeyC"] { grid-area: 3 / 1; }
+.touch-actions [data-touch="KeyQ"] { grid-area: 1 / 2; }
+.touch-actions [data-touch="KeyE"] { grid-area: 1 / 3; }
+.touch-actions [data-touch="swap"] { grid-area: 2 / 1; }
 .touch-pause { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
 #app[data-phone-controls="true"] { touch-action: none; }
 #app[data-phone-controls="true"] .radar { top: max(10px, env(safe-area-inset-top)); left: 10px; width: 68px; }
@@ -453,7 +464,8 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
 #app[data-phone-controls="true"] .fps-counter { top: auto; bottom: 3px; left: 50%; right: auto; font-size: 9px; }
 #app[data-phone-controls="true"] .round-countdown { top: 100px; font-size: 24px; }
 #phone-controls-setting { min-height: 44px; width: 100%; margin-bottom: 18px; }
-@media (max-width: 430px) { .touch-actions { width: 192px; gap: 5px; } .touch-actions button { font-size: 9px; } .touch-move { width: 104px; height: 104px; left: 12px; } }
+@media (max-width: 430px) { .touch-move { width: 104px; height: 104px; left: 12px; } }
+@media (max-width: 360px) { .touch-move { width: 84px; height: 84px; left: 8px; } }
 #app[data-player-dead="true"] .touch-controls > :not(.touch-pause), #app[data-view-mode="skirmish"] .touch-controls > :not(.touch-pause) { display: none; }
 
 /* Keep branding to one line so settings and deployment own the available space. */
