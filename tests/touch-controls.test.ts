@@ -1,0 +1,58 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { detectPhone, phoneControlsEnabled, TouchControls } from '../src/ui/touch-controls';
+import { createDefaultProfile, loadProfile, saveProfile, updateProfileSettings } from '../src/game/progression/profile';
+import { AppElement } from './helpers/app-dom';
+
+afterEach(() => vi.unstubAllGlobals());
+it('detects phones in either orientation without enabling a desktop mouse viewport', () => {
+  expect(detectPhone('iPhone', false, 844)).toBe(true);
+  expect(detectPhone('Android Mobile', true, 390)).toBe(true);
+  expect(detectPhone('Desktop', false, 390)).toBe(false);
+  expect(detectPhone('Desktop', true, 390)).toBe(true);
+  expect(phoneControlsEnabled('off', true)).toBe(false);
+  expect(phoneControlsEnabled('on', false)).toBe(true);
+  expect(phoneControlsEnabled('auto', true)).toBe(true);
+});
+it('persists overrides and defaults existing profiles to auto without losing progress', () => {
+  let saved = '';
+  const storage = { getItem: () => saved, setItem: (_key: string, value: string) => { saved = value; } };
+  const profile = updateProfileSettings({ ...createDefaultProfile(), xp: 800 }, { phoneControls: 'off' });
+  saveProfile(storage, profile);
+  expect(loadProfile(storage).profile).toEqual(profile);
+  const old = JSON.parse(saved); delete old.phoneControls; saved = JSON.stringify(old);
+  expect(loadProfile(storage).profile.phoneControls).toBe('auto');
+  expect(loadProfile(storage).profile.xp).toBe(800);
+  old.phoneControls = 'invalid'; saved = JSON.stringify(old);
+  expect(loadProfile(storage).recovery).toBe('invalid');
+});
+it('keeps simultaneous fingers independent, consumes jump once and clears on pause/focus loss', () => {
+  const win = new EventTarget(); const doc = Object.assign(new EventTarget(), { createElement: () => new AppElement(), hidden: false });
+  vi.stubGlobal('window', win); vi.stubGlobal('document', doc);
+  const look = vi.fn();
+  const controls = new TouchControls(new AppElement() as unknown as HTMLElement, look, vi.fn(), vi.fn());
+  controls.setEnabled(true); controls.setActive(true);
+  function pointer(type: string, id: number, action: string, x = 0, y = 0) {
+    const target = { dataset: { touch: action }, closest() { return this; }, setPointerCapture() {} };
+    const event = new Event(type, { cancelable: true });
+    Object.defineProperties(event, { target: { value: target }, pointerId: { value: id }, clientX: { value: x }, clientY: { value: y } });
+    controls.element.dispatchEvent(event);
+  }
+  const keyboard = { isDown: () => false, wasPressed: () => false };
+  const pad = controls.element.querySelector('.touch-move')!;
+  Object.assign(pad, { getBoundingClientRect: () => ({ left: 0, top: 0, width: 120, height: 120 }) });
+  pointer('pointerdown', 9, 'move'); pointer('pointermove', 9, 'move', 90, 20);
+  expect(controls.input(keyboard).isDown('KeyW')).toBe(true);
+  expect(controls.input(keyboard).isDown('KeyD')).toBe(true);
+  pointer('pointerup', 9, 'move'); expect(controls.input(keyboard).isDown('KeyW')).toBe(false);
+  pointer('pointerdown', 1, 'fire'); pointer('pointerdown', 2, 'aim'); pointer('pointerdown', 3, 'Space');
+  expect(controls.firing && controls.aiming).toBe(true);
+  expect(controls.input(keyboard).wasPressed('Space')).toBe(true);
+  expect(controls.input(keyboard).wasPressed('Space')).toBe(false);
+  expect(controls.consumeFire()).toBe(true); expect(controls.consumeFire()).toBe(false);
+  pointer('pointerdown', 4, 'look', 50, 50); pointer('pointermove', 4, 'look', 65, 40);
+  expect(look).toHaveBeenCalledWith(15, -10, true);
+  pointer('pointercancel', 1, 'fire'); expect(controls.firing).toBe(false); expect(controls.aiming).toBe(true);
+  win.dispatchEvent(new Event('blur')); expect(controls.aiming).toBe(false);
+  pointer('pointerdown', 2, 'fire'); controls.setActive(false); expect(controls.firing).toBe(false);
+  controls.dispose();
+});

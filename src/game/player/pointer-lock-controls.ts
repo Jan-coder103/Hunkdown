@@ -20,6 +20,8 @@ export class PointerLockControls {
   private documentTarget: PointerLockDocument | null = null;
   private windowTarget: EventTarget | null = null;
   private locked = false;
+  private enabled = true;
+  setEnabled(enabled: boolean): void { this.enabled = enabled; if (!enabled) this.releaseLock(); }
   private aiming = false;
   private fireHeld = false;
   private firePressed = false;
@@ -109,6 +111,7 @@ export class PointerLockControls {
   }
 
   requestLock(): void {
+    if (!this.enabled) return;
     try {
       const result = this.canvas.requestPointerLock();
       if (result) void result.catch(() => this.setLocked(false));

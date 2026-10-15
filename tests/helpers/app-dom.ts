@@ -59,6 +59,7 @@ export class AppElement extends EventTarget {
   }
 
   replaceChildren(...elements: AppElement[]): void { this.children.length = 0; this.append(...elements); }
+  remove(): void { if (this.parentElement) { const index = this.parentElement.children.indexOf(this); if (index >= 0) this.parentElement.children.splice(index, 1); } }
   click(): void { this.dispatchEvent(new Event('click')); }
   requestPointerLock(): void { /* Native pointer lock requires a browser gesture. */ }
 }

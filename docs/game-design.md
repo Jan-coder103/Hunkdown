@@ -40,6 +40,12 @@ The knife gives a 25% walking/sprinting/crouching movement boost while equipped.
 
 Results open even when the player is dead. Escape keeps the ready room and completed-round screens paused. The live death view exists, but changing loadout from that screen remains unimplemented; Honk-47 is currently the only available primary.
 
+## Phone controls
+
+Settings → Phone controls & HUD offers Auto (default), On and Off, saved per browser. Auto uses a phone user agent or a coarse pointer with a screen short side at most 600 CSS pixels. On/off overrides detection and changes both controls and HUD. Phone mode disables pointer-lock requests.
+
+Drag the left pad to move and drag the right-side scene to look. Hold FIRE, AIM, SPRINT, CROUCH, INTERACT or lean buttons; tap JUMP, RELOAD, GRENADE and KNIFE for their usual actions. FIRE also stabs or throws an equipped grenade. PAUSE opens the existing resume/settings menu and remains available while dead or spectating. The HUD keeps radar, health, ammo and grenades near the top, clear of thumb controls. Touches clear on pause, focus loss, death, disabling controls and disposal. Real-device ergonomics and performance require phone playtesting.
+
 ## Controls
 
 | Input | Behavior |

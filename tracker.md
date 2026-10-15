@@ -2,6 +2,13 @@
 
 Updated: 2026-10-15.
 
+## Phone controls and HUD — 2026-10-15
+
+- Added saved Auto / On / Off phone controls and HUD setting; existing v2 saves default to Auto without losing progress. Phone user agents and small coarse-pointer screens enable the layout automatically, independent of orientation.
+- Independent pointer capture supports left-pad movement, right-drag look, held fire/aim/sprint/crouch/interact/lean, jump/reload/grenade/knife actions and pause. Phone mode suppresses pointer-lock requests. Input edges survive until simulation; blur, cancellation, pause, death and disabling clear held actions.
+- Compact HUD places radar/health/ammo/grenades above thumb controls, with safe-area spacing and portrait/landscape support. Pause remains available in death/spectator views.
+- Verification: 245/246 tests pass across 39 files; only the pre-existing map-catalog name assertion fails (“Test City” vs “Untitled City”). Typecheck and production build pass with existing bundle warning. New tests cover detection/overrides, save compatibility/validation, independent pointers, movement, aim/look, one-shot actions, cancellation and clearing. Browser smoke at 390×844 and 844×390: touch HUD visible, FIRE spent one round, PAUSE opened menu. Physical phone multi-touch feel/performance and human approval remain pending.
+
 ## Enterable building facade/header fix — 2026-10-15
 
 - Closed full-height slots above authored entrances with generated destructible wall headers starting at 2.2 m. The same collision records drive close/far geometry, hitscan and destruction; normal door passages remain clear. Headers use distinct stable IDs and retain wall health.

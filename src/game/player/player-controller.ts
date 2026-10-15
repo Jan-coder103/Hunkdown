@@ -198,7 +198,7 @@ export class PlayerController {
 
   movementMultiplier = 1;
 
-  update(deltaSeconds: number, input: KeyboardInput, aiming: boolean): void {
+  update(deltaSeconds: number, input: Pick<KeyboardInput, 'isDown' | 'wasPressed'>, aiming: boolean): void {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
     this.previousPosition.copy(this.position);
     this.previousYaw = this.yaw;
@@ -374,7 +374,7 @@ export class PlayerController {
     }
   }
 
-  private updateLean(deltaSeconds: number, input: KeyboardInput): void {
+  private updateLean(deltaSeconds: number, input: Pick<KeyboardInput, 'isDown' | 'wasPressed'>): void {
     const leanInput = Number(input.isDown('KeyQ')) - Number(input.isDown('KeyE'));
     const targetLean = leanInput * MAX_LEAN;
     const desired = this.lean + (targetLean - this.lean) * (1 - Math.exp(-10 * deltaSeconds));

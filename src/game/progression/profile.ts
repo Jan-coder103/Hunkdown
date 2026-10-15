@@ -21,6 +21,7 @@ export type GameProfile = Readonly<{
   xp: number;
   credits: number;
   selectedMap: MapPresetId;
+  phoneControls: 'auto' | 'on' | 'off';
   lookSensitivity: number;
   masterVolume: number;
   effectsVolume: number;
@@ -66,6 +67,7 @@ export function createDefaultProfile(): GameProfile {
     xp: 0,
     credits: 0,
     selectedMap: 'midtown',
+    phoneControls: 'auto',
     lookSensitivity: 0.002,
     masterVolume: DEFAULT_AUDIO_VOLUME,
     effectsVolume: DEFAULT_AUDIO_VOLUME,
@@ -171,12 +173,15 @@ export function purchaseSkill(profile: GameProfile, skillId: SkillId): Readonly<
 export function updateProfileSettings(
   profile: GameProfile,
   updates: Readonly<{
+    phoneControls?: 'auto' | 'on' | 'off';
     selectedMap?: MapPresetId;
     lookSensitivity?: number;
     masterVolume?: number;
     effectsVolume?: number;
   }>,
 ): GameProfile {
+  const phoneControls = updates.phoneControls ?? profile.phoneControls;
+  if (!['auto', 'on', 'off'].includes(phoneControls)) throw new RangeError('Unknown phone controls mode');
   const selectedMap = updates.selectedMap ?? profile.selectedMap;
   const lookSensitivity = updates.lookSensitivity ?? profile.lookSensitivity;
   const masterVolume = updates.masterVolume ?? profile.masterVolume;
@@ -188,11 +193,12 @@ export function updateProfileSettings(
   if (!isUnitInterval(masterVolume) || !isUnitInterval(effectsVolume)) {
     throw new RangeError('Audio volumes must be between 0 and 1');
   }
-  return freezeProfile({ ...profile, selectedMap, lookSensitivity, masterVolume, effectsVolume });
+  return freezeProfile({ ...profile, phoneControls, selectedMap, lookSensitivity, masterVolume, effectsVolume });
 }
 
 function isValidProfile(value: Record<string, unknown>): value is Record<string, unknown> & GameProfile {
   return isValidProfileData(value)
+    && (value.phoneControls === undefined || ['auto', 'on', 'off'].includes(value.phoneControls as string))
     && isUnitInterval(value.masterVolume as number)
     && isUnitInterval(value.effectsVolume as number);
 }
@@ -218,6 +224,7 @@ function freezeProfile(value: GameProfile | Record<string, unknown>): GameProfil
     xp: record.xp as number,
     credits: record.credits as number,
     selectedMap: record.selectedMap as MapPresetId,
+    phoneControls: (record.phoneControls as GameProfile['phoneControls'] | undefined) ?? 'auto',
     lookSensitivity: record.lookSensitivity as number,
     masterVolume: (record.masterVolume as number | undefined) ?? DEFAULT_AUDIO_VOLUME,
     effectsVolume: (record.effectsVolume as number | undefined) ?? DEFAULT_AUDIO_VOLUME,

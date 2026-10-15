@@ -1,3 +1,4 @@
+import { TouchControls, detectPhone, phoneControlsEnabled, type PhoneControlsMode } from './ui/touch-controls';
 import { MenuBackdrop } from './ui/menu-backdrop';
 import { MAP_CATALOG, mapOptionMarkup } from './game/world/map-catalog';
 import { createMapBotRoster } from './game/bots/bot-simulation';
@@ -103,7 +104,7 @@ export function mountApp(root: HTMLElement) {
               <p class="menu-footnote">One rifle. One knife. A spectacular lack of self-preservation.</p>
             </section>
             <section data-menu-panel="settings" aria-labelledby="settings-title" hidden>
-              <p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
+              <label class="setting-row" for="phone-controls-setting">Phone controls &amp; HUD</label><select id="phone-controls-setting"><option value="auto">Auto (detect phone)</option><option value="on">On</option><option value="off">Off</option></select><p class="menu-kicker">MAKE IT COMFORTABLE</p><h3 id="settings-title">Settings</h3>
               <label class="setting-row" for="sensitivity-setting"><span><strong>Look sensitivity</strong><small>Applies immediately · aiming still slows look by 20%</small></span><output id="sensitivity-value">0.0020</output></label>
               <input id="sensitivity-setting" type="range" min="0.0005" max="0.005" step="0.0001" value="0.002" aria-label="Look sensitivity">
               <label class="setting-row" for="master-volume-setting"><span><strong>Master volume</strong><small>Overall game audio level</small></span><output id="master-volume-value">80%</output></label>
@@ -305,6 +306,26 @@ export function mountApp(root: HTMLElement) {
   let weaponView: WeaponView | null = null;
   let knifeView: WeaponView | null = null;
   let switchPending = false;
+  const phoneSetting = root.querySelector<HTMLSelectElement>('#phone-controls-setting')!;
+  const touch = new TouchControls(root,
+    (x, y, aim) => player?.handleMouseMove(x, y, aim),
+    () => runtime.pause(), () => { switchPending = true; });
+  function applyPhoneMode(): void {
+    const detected = detectPhone(navigator.userAgent, window.matchMedia?.('(pointer: coarse)').matches ?? false, Math.min(window.screen?.width ?? 1920, window.screen?.height ?? 1080));
+    const enabled = phoneControlsEnabled(profile.phoneControls, detected);
+    root.dataset.phoneControls = String(enabled);
+    phoneSetting.value = profile.phoneControls;
+    touch.setEnabled(enabled);
+    pointerControls?.setEnabled(!enabled);
+  }
+  const handlePhoneSetting = () => {
+    profile = updateProfileSettings(profile, { phoneControls: phoneSetting.value as PhoneControlsMode });
+    persistNewProfile(profile, 'Phone controls saved.');
+    applyPhoneMode();
+  };
+  phoneSetting.addEventListener('change', handlePhoneSetting);
+  applyPhoneMode();
+
   let grenadeView: GrenadeView | null = null;
   let sceneView: SceneView | null = null;
   const menuBackdrop = new MenuBackdrop();
@@ -463,11 +484,11 @@ export function mountApp(root: HTMLElement) {
     if (!activePlayer || !activeCombat || !camera) return;
     camera.getWorldDirection(aimDirection);
     const result = activeCombat.step(stepSeconds, {
-      fireHeld: (!isPlayerMatchMode || skirmishView?.match.matchState === 'active') && (pointerControls?.isFireHeld ?? false),
-      firePressed: (pointerControls?.consumeFirePressed() ?? false) && (!isPlayerMatchMode || skirmishView?.match.matchState === 'active'),
+      fireHeld: (!isPlayerMatchMode || skirmishView?.match.matchState === 'active') && (touch.firing || (pointerControls?.isFireHeld ?? false)),
+      firePressed: (touch.consumeFire() || (pointerControls?.consumeFirePressed() ?? false)) && (!isPlayerMatchMode || skirmishView?.match.matchState === 'active'),
       reloadPressed: input.wasPressed('KeyR'),
       grenadeTogglePressed: input.wasPressed('KeyG'),
-      aiming: pointerControls?.isAiming ?? false,
+      aiming: touch.aiming || (pointerControls?.isAiming ?? false),
       switchPressed: switchPending,
     }, camera.position, aimDirection, random, allowPlayerActions);
     switchPending = false;
@@ -520,9 +541,9 @@ export function mountApp(root: HTMLElement) {
     if (activeCombat.knifeReady && result.shots.length) knifeView?.fire();
     grenadeView?.updateEffects(stepSeconds);
     activePlayer.movementMultiplier = activeCombat.knifeReady && !activeCombat.grenades.equipped ? activeCombat.knife.movementMultiplier : 1;
-    weaponView?.setAiming(allowPlayerActions && activeCombat.heldWeapon === 'rifle' && !activeCombat.grenades.equipped && (pointerControls?.isAiming ?? false));
+    weaponView?.setAiming(allowPlayerActions && activeCombat.heldWeapon === 'rifle' && !activeCombat.grenades.equipped && (touch.aiming || (pointerControls?.isAiming ?? false)));
     if (!feedback.freezeWeaponPose) weaponView?.update(stepSeconds);
-    root.dataset.aiming = String(pointerControls?.isAiming ?? false);
+    root.dataset.aiming = String(touch.aiming || (pointerControls?.isAiming ?? false));
     root.dataset.hitFlash = String(feedback.showHitFlash);
   };
 
@@ -590,9 +611,12 @@ export function mountApp(root: HTMLElement) {
         },
       });
       pointerControls.attach();
+      applyPhoneMode();
 
       return {
         render(interpolationAlpha: number) {
+          if (root.dataset.playerDead === 'true' || isSkirmishMode) touch.clear();
+          touch.setActive(runtime.state === 'running' && menuEl.hidden && !resultsShown);
           if (!menuEl.hidden) {
             damageVignette.style.opacity = '0';
             menuBackdrop.frame(view.camera.aspect);
@@ -616,7 +640,7 @@ export function mountApp(root: HTMLElement) {
           root.querySelector<HTMLElement>('#hud-weapon-name')!.textContent = combat?.switchRemaining ? 'SWITCHING…' : combat?.grenades.equipped ? 'FRAG GRENADE' : knife ? 'TACTICAL KNIFE' : 'HONK-47';
           root.querySelector<HTMLElement>('#ammo-display')!.textContent = combat?.grenades.equipped ? String(combat.grenades.count) : knife ? '▱' : `${ammo?.magazine ?? 0} / ${ammo?.reserve ?? 0}`;
           root.querySelector<HTMLElement>('#hud-ammo-note')!.textContent = ammo?.reloading ? 'RELOADING' : knife ? '25% movement boost · WHEEL switch' : 'WHEEL · knife   R · reload';
-          root.querySelector<HTMLElement>('#interaction-hint')!.textContent = reviveReadout.hidden ? (!pointerControls?.isLocked ? 'Click to capture mouse · ESC pause' : '') : reviveReadout.textContent;
+          root.querySelector<HTMLElement>('#interaction-hint')!.textContent = reviveReadout.hidden ? (root.dataset.phoneControls === 'true' ? 'Drag right to look · hold INTERACT to revive' : !pointerControls?.isLocked ? 'Click to capture mouse · ESC pause' : '') : reviveReadout.textContent;
           const rangeSummary = root.querySelector<HTMLElement>('#range-summary')!;
           rangeSummary.hidden = isPlayerMatchMode || isSkirmishMode;
           rangeSummary.textContent = combatReadout.textContent;
@@ -670,7 +694,8 @@ export function mountApp(root: HTMLElement) {
         },
       };
     },
-    updateSimulation: (stepSeconds, random, input) => {
+    updateSimulation: (stepSeconds, random, keyboard) => {
+      const input = touch.input(keyboard);
       feedback.update(stepSeconds);
       if (isSkirmishMode) {
         const battle = skirmishView;
@@ -686,7 +711,7 @@ export function mountApp(root: HTMLElement) {
         const aliveBeforeStep = playerActor.status === 'alive';
 
         if (aliveBeforeStep && battle.match.matchState !== 'complete') {
-          activePlayer.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (pointerControls?.isAiming ?? false));
+          activePlayer.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (touch.aiming || (pointerControls?.isAiming ?? false)));
           if (activePlayer.isGrounded && activePlayer.horizontalSpeed > 0.8) {
             audioManager.play('footstep', { position: activePlayer.position });
           }
@@ -704,7 +729,7 @@ export function mountApp(root: HTMLElement) {
             sprinting: activePlayer.horizontalSpeed > 5.8,
             crouched: activePlayer.isCrouched,
             grounded: activePlayer.isGrounded,
-            aiming: pointerControls?.isAiming ?? false,
+            aiming: touch.aiming || (pointerControls?.isAiming ?? false),
           });
         }
 
@@ -770,7 +795,7 @@ export function mountApp(root: HTMLElement) {
           deathOverlay.hidden = true;
         }
         playerWasAlive = aliveAfterStep;
-        root.dataset.aiming = String(aliveAfterStep && (pointerControls?.isAiming ?? false));
+        root.dataset.aiming = String(aliveAfterStep && (touch.aiming || (pointerControls?.isAiming ?? false)));
         if (battle.match.matchState === 'complete') {
           deathOverlay.hidden = true;
           showMatchResults(battle);
@@ -779,7 +804,7 @@ export function mountApp(root: HTMLElement) {
         return;
       }
 
-      player?.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (pointerControls?.isAiming ?? false));
+      player?.update(stepSeconds, input, combat?.heldWeapon === 'rifle' && !combat.grenades.equipped && (touch.aiming || (pointerControls?.isAiming ?? false)));
       if (player) {
         if (player.isGrounded && player.horizontalSpeed > 0.8) {
           audioManager.play('footstep', { position: player.position });
@@ -790,7 +815,7 @@ export function mountApp(root: HTMLElement) {
           sprinting: player.horizontalSpeed > 5.8,
           crouched: player.isCrouched,
           grounded: player.isGrounded,
-          aiming: pointerControls?.isAiming ?? false,
+          aiming: touch.aiming || (pointerControls?.isAiming ?? false),
         });
         playerCharacter?.update(stepSeconds);
       }
@@ -801,7 +826,7 @@ export function mountApp(root: HTMLElement) {
       stateOutput.textContent = state === 'running' ? 'Running' : state === 'paused' ? 'Paused' : state;
       pauseOverlay.hidden = state !== 'paused' || resultsShown || !mainMenu.hidden;
       root.dataset.engineState = state;
-      if (state === 'paused') pointerControls?.releaseLock();
+      if (state === 'paused') { touch.setActive(false); pointerControls?.releaseLock(); }
       if (state === 'running' && runtimeHasStarted && !mainMenu.hidden) {
         const resumeMatch = menuOpenedFromPause && isPlayerMatchMode
           && skirmishView?.match.simulation.playerCombatant?.status === 'alive';
@@ -1229,6 +1254,8 @@ export function mountApp(root: HTMLElement) {
       sensitivitySetting.removeEventListener('input', handleSensitivity);
       masterVolumeInput.removeEventListener('input', handleMasterVolume);
       effectsVolumeInput.removeEventListener('input', handleEffectsVolume);
+      touch.dispose();
+      phoneSetting.removeEventListener('change', handlePhoneSetting);
       window.removeEventListener('pointerdown', handleAudioGesture);
       window.removeEventListener('keydown', handleAudioGesture);
       root.removeEventListener('click', handleUiSound);
