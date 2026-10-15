@@ -1,3 +1,4 @@
+import { attachFullscreenToggle } from './ui/fullscreen-toggle';
 import { TouchControls, detectPhone, phoneControlsEnabled, type PhoneControlsMode } from './ui/touch-controls';
 import { MenuBackdrop } from './ui/menu-backdrop';
 import { MAP_CATALOG, mapOptionMarkup } from './game/world/map-catalog';
@@ -42,6 +43,7 @@ const TOTAL_MATCH_BOTS = BOTS_PER_TEAM * 2;
 export function mountApp(root: HTMLElement) {
   root.innerHTML = `
     <main class="engine-shell">
+      <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen" aria-pressed="false" title="Enter fullscreen">⛶</button>
       <div id="scene-viewport" class="scene-viewport" aria-hidden="true" role="img" aria-label="First-person shooting and movement testing range">
         <span class="crosshair" aria-hidden="true"></span>
         <span id="hit-marker" class="hit-marker" aria-hidden="true"></span>
@@ -1228,6 +1230,7 @@ export function mountApp(root: HTMLElement) {
   sensitivitySetting.addEventListener('input', handleSensitivity);
   masterVolumeInput.addEventListener('input', handleMasterVolume);
   effectsVolumeInput.addEventListener('input', handleEffectsVolume);
+  const disposeFullscreen = attachFullscreenToggle(root, root.querySelector<HTMLButtonElement>('#fullscreen-toggle')!);
   root.addEventListener('wheel', handleDeathZoom, { passive: false });
   runtime.start();
   runtimeHasStarted = true;
@@ -1250,6 +1253,7 @@ export function mountApp(root: HTMLElement) {
       sensitivitySetting.removeEventListener('input', handleSensitivity);
       masterVolumeInput.removeEventListener('input', handleMasterVolume);
       effectsVolumeInput.removeEventListener('input', handleEffectsVolume);
+      disposeFullscreen();
       touch.dispose();
       phoneSetting.removeEventListener('change', handlePhoneSetting);
       window.removeEventListener('pointerdown', handleAudioGesture);

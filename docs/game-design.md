@@ -40,6 +40,8 @@ The knife gives a 25% walking/sprinting/crouching movement boost while equipped.
 
 Results open even when the player is dead. Escape keeps the ready room and completed-round screens paused. The live death view exists, but changing loadout from that screen remains unimplemented; Honk-47 is currently the only available primary.
 
+A small top-left button toggles native browser fullscreen for the game and follows browser exits such as Escape. It stays available in menus and gameplay; browsers without fullscreen support show it disabled.
+
 ## Phone controls
 
 Settings → Phone controls & HUD offers Auto (default), On and Off, saved per browser. Auto uses a phone user agent or a coarse pointer with a screen short side at most 600 CSS pixels. On/off overrides detection and changes both controls and HUD. Phone mode disables pointer-lock requests.

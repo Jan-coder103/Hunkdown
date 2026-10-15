@@ -499,3 +499,12 @@ kbd { padding: .12rem .38rem; border: 1px solid #bcc9bd; border-radius: .35rem; 
   .pause-card h2 { font-size: 24px; }
   .pause-card > p:not(.eyebrow):not(.hint) { margin: 6px 0 12px; }
 }
+
+.fullscreen-toggle { position: absolute; z-index: 10; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); width: 36px; height: 36px; padding: 0; border: 1px solid #ffffff65; border-radius: 9px; color: #fff; background: #183b35d9; font: 25px/1 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.fullscreen-toggle:disabled { opacity: .45; cursor: default; }
+.fullscreen-toggle:focus-visible { outline: 2px solid #edc762; outline-offset: 2px; }
+#app:fullscreen { width: 100%; height: 100%; background: #142029; }
+.menu-brand { padding-left: 40px; }
+.radar { top: 54px; }
+#app[data-phone-controls="true"] .radar { top: max(52px, calc(env(safe-area-inset-top) + 44px)); }
+#app[data-phone-controls="true"] .health-display { top: max(130px, calc(env(safe-area-inset-top) + 122px)); }

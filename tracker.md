@@ -2,6 +2,12 @@
 
 Updated: 2026-10-15.
 
+## Fullscreen toggle — 2026-10-15
+
+- Added a small top-left fullscreen button above all menus and gameplay. Native Fullscreen API toggles the game root; button icon, label and pressed state follow browser fullscreen changes, including Escape exits. Unsupported browsers disable it; rejected requests allow retry and concurrent requests are suppressed. Disposal removes listeners.
+- Shifted title/radar/phone health to leave the button clear. Existing fullscreen/resizing uses the shared scene resize lifecycle.
+- Verification: `npm run check` passes all 249 tests across 40 files, typecheck and production build (existing bundle warning). New behavior tests cover entry/exit, external exit, unsupported/denied requests, duplicate clicks, retry and cleanup. Browser entered and exited fullscreen using the top-left button; label/state followed both transitions. Human approval and physical phone fullscreen testing remain pending.
+
 ## Map catalog test correction — 2026-10-15
 
 - Updated the exported-city discovery assertion to the committed map's authored name, “Untitled City”. The map and its gameplay data are unchanged. The replacement city export was committed and pushed in `8ef1182`.
